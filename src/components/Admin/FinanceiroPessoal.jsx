@@ -183,6 +183,198 @@ export const FinanceiroPessoal = () => {
         </div>
       </div>
 
+      {/* Gráficos Didáticos das Finanças */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(380px, 1fr))', gap: '20px', marginBottom: '24px' }}>
+        {/* Gráfico 1: Termômetro e Comparativo Entradas x Saídas */}
+        <div className="card" style={{ display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
+          <div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '14px' }}>
+              <TrendingUp size={20} color="var(--color-primary)" />
+              <h3 style={{ fontSize: '1.1rem', color: 'var(--color-secondary)' }}>
+                Termômetro: Lucro do Bazar vs Gastos de Casa
+              </h3>
+            </div>
+
+            <p style={{ fontSize: '0.84rem', color: 'var(--color-secondary-muted)', marginBottom: '16px', lineHeight: '1.4' }}>
+              Mostra de forma simples se o que a família retira do bazar é suficiente para pagar as contas do mês:
+            </p>
+
+            {/* Visual Bars */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '14px', marginBottom: '16px' }}>
+              <div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.85rem', marginBottom: '4px' }}>
+                  <span style={{ fontWeight: 600, color: '#065f46' }}>💰 Retiradas do Bazar para Casa</span>
+                  <strong>{formatCurrency(totalRetiradasFamilia)}</strong>
+                </div>
+                <div style={{ height: '12px', background: '#e2e8f0', borderRadius: '6px', overflow: 'hidden' }}>
+                  <div
+                    style={{
+                      height: '100%',
+                      background: 'linear-gradient(90deg, #10b981 0%, #059669 100%)',
+                      width: `${Math.min(100, Math.max(8, totalRetiradasFamilia > 0 ? (totalRetiradasFamilia / Math.max(totalRetiradasFamilia, totalDespesasCasa, 1)) * 100 : 0))}%`,
+                      transition: 'width 0.5s ease',
+                    }}
+                  />
+                </div>
+              </div>
+
+              <div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.85rem', marginBottom: '4px' }}>
+                  <span style={{ fontWeight: 600, color: '#9f1239' }}>🏠 Total de Contas e Despesas da Casa</span>
+                  <strong>{formatCurrency(totalDespesasCasa)}</strong>
+                </div>
+                <div style={{ height: '12px', background: '#e2e8f0', borderRadius: '6px', overflow: 'hidden' }}>
+                  <div
+                    style={{
+                      height: '100%',
+                      background: 'linear-gradient(90deg, #f43f5e 0%, #e11d48 100%)',
+                      width: `${Math.min(100, Math.max(8, totalDespesasCasa > 0 ? (totalDespesasCasa / Math.max(totalRetiradasFamilia, totalDespesasCasa, 1)) * 100 : 0))}%`,
+                      transition: 'width 0.5s ease',
+                    }}
+                  />
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Didactic Tip Card */}
+          <div
+            style={{
+              background: saldoFamilia >= 0 ? '#ecfdf5' : '#fff1f2',
+              border: `1px solid ${saldoFamilia >= 0 ? '#6ee7b7' : '#fecdd3'}`,
+              borderRadius: '10px',
+              padding: '12px 16px',
+            }}
+          >
+            <div style={{ fontWeight: 700, fontSize: '0.88rem', color: saldoFamilia >= 0 ? '#065f46' : '#9f1239', display: 'flex', alignItems: 'center', gap: '6px' }}>
+              {saldoFamilia >= 0 ? '✓ Diagnóstico Saudável' : '⚠️ Atenção às Finanças'}
+            </div>
+            <p style={{ fontSize: '0.8rem', color: saldoFamilia >= 0 ? '#047857' : '#be123c', marginTop: '4px', lineHeight: '1.4' }}>
+              {totalDespesasCasa === 0 && totalRetiradasFamilia === 0 ? (
+                'Cadastre suas despesas de casa e retiradas da loja para acompanhar seu diagnóstico em tempo real!'
+              ) : saldoFamilia >= 0 ? (
+                `O bazar está cobrindo 100% dos custos da casa e sobrando ${formatCurrency(saldoFamilia)} no bolso da família!`
+              ) : (
+                `As contas de casa superaram as retiradas da loja em ${formatCurrency(Math.abs(saldoFamilia))}. Considere ajustar os gastos ou acelerar as vendas de roupas e perfumes.`
+              )}
+            </p>
+          </div>
+        </div>
+
+        {/* Gráfico 2: Distribuição dos Gastos por Categoria (Gráfico de Rosca / Donut SVG) */}
+        <div className="card">
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '14px' }}>
+            <PieChart size={20} color="var(--color-primary)" />
+            <h3 style={{ fontSize: '1.1rem', color: 'var(--color-secondary)' }}>
+              Para Onde Vai o Dinheiro da Casa?
+            </h3>
+          </div>
+
+          {(() => {
+            const expensesByCategory = {};
+            personalFinance
+              .filter((f) => f.type === 'despesa_casa')
+              .forEach((f) => {
+                expensesByCategory[f.category] = (expensesByCategory[f.category] || 0) + f.amount;
+              });
+
+            const categoryEntries = Object.entries(expensesByCategory).sort((a, b) => b[1] - a[1]);
+            const colors = ['#f59e0b', '#3b82f6', '#10b981', '#ec4899', '#8b5cf6', '#06b6d4', '#f97316', '#64748b'];
+
+            if (categoryEntries.length === 0) {
+              return (
+                <div style={{ textAlign: 'center', padding: '36px 16px', color: 'var(--color-secondary-muted)' }}>
+                  <PieChart size={40} color="#cbd5e1" style={{ margin: '0 auto 12px auto' }} />
+                  <p style={{ fontWeight: 600, fontSize: '0.9rem', color: 'var(--color-secondary)', marginBottom: '4px' }}>
+                    Nenhuma despesa de casa lançada ainda
+                  </p>
+                  <p style={{ fontSize: '0.8rem', maxWidth: '300px', margin: '0 auto 14px auto' }}>
+                    Clique no botão <strong>"+ Lançar Entrada / Despesa"</strong> acima e anote mercado, luz, água para ver a divisão colorida em gráfico!
+                  </p>
+                </div>
+              );
+            }
+
+            // Calculate SVG donut segments
+            let accumulatedPercent = 0;
+
+            return (
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-around', flexWrap: 'wrap', gap: '20px' }}>
+                {/* SVG Donut */}
+                <div style={{ position: 'relative', width: '150px', height: '150px' }}>
+                  <svg viewBox="0 0 100 100" style={{ transform: 'rotate(-90deg)', width: '100%', height: '100%' }}>
+                    {categoryEntries.map(([cat, amount], idx) => {
+                      const pct = totalDespesasCasa > 0 ? (amount / totalDespesasCasa) * 100 : 0;
+                      const circumference = 251.32; // 2 * PI * 40
+                      const strokeDasharray = `${(pct * circumference) / 100} ${circumference}`;
+                      const strokeDashoffset = -((accumulatedPercent * circumference) / 100);
+                      accumulatedPercent += pct;
+
+                      return (
+                        <circle
+                          key={cat}
+                          cx="50"
+                          cy="50"
+                          r="40"
+                          fill="transparent"
+                          stroke={colors[idx % colors.length]}
+                          strokeWidth="15"
+                          strokeDasharray={strokeDasharray}
+                          strokeDashoffset={strokeDashoffset}
+                        />
+                      );
+                    })}
+                  </svg>
+                  <div
+                    style={{
+                      position: 'absolute',
+                      inset: 0,
+                      display: 'flex',
+                      flexDirection: 'column',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      textAlign: 'center',
+                    }}
+                  >
+                    <span style={{ fontSize: '0.72rem', color: 'var(--color-secondary-muted)', fontWeight: 600 }}>Total Casa</span>
+                    <span style={{ fontSize: '0.95rem', fontWeight: 800, color: 'var(--color-secondary)' }}>
+                      {formatCurrency(totalDespesasCasa)}
+                    </span>
+                  </div>
+                </div>
+
+                {/* Legend list */}
+                <div style={{ flex: 1, minWidth: '180px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                  {categoryEntries.map(([cat, amount], idx) => {
+                    const pct = totalDespesasCasa > 0 ? Math.round((amount / totalDespesasCasa) * 100) : 0;
+                    return (
+                      <div key={cat} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '0.82rem' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                          <span
+                            style={{
+                              width: '10px',
+                              height: '10px',
+                              borderRadius: '50%',
+                              backgroundColor: colors[idx % colors.length],
+                              display: 'inline-block',
+                            }}
+                          />
+                          <span style={{ fontWeight: 600, color: 'var(--color-secondary)' }}>{cat}</span>
+                        </div>
+                        <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                          <strong style={{ color: 'var(--color-secondary)' }}>{formatCurrency(amount)}</strong>
+                          <span style={{ color: 'var(--color-secondary-muted)', fontSize: '0.75rem' }}>({pct}%)</span>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            );
+          })()}
+        </div>
+      </div>
+
       {/* Filter and Table */}
       <div className="card" style={{ marginBottom: '20px', padding: '14px 20px' }}>
         <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
