@@ -84,14 +84,26 @@ export const StoreProvider = ({ children }) => {
 
         if (newProducts || newCustomers || newSales || newFinance || newSettings) {
           hasAnyCloudData = true;
-          setData((prev) => ({
-            ...prev,
-            products: newProducts || prev.products,
-            customers: newCustomers || prev.customers,
-            sales: newSales || prev.sales,
-            personalFinance: newFinance || prev.personalFinance,
-            settings: newSettings || prev.settings,
-          }));
+          const localPassword = localStorage.getItem('bazar_admin_password');
+
+          setData((prev) => {
+            const mergedSettings = newSettings
+              ? {
+                  ...prev.settings,
+                  ...newSettings,
+                  adminPassword: localPassword || newSettings.adminPassword || prev.settings.adminPassword,
+                }
+              : prev.settings;
+
+            return {
+              ...prev,
+              products: newProducts || prev.products,
+              customers: newCustomers || prev.customers,
+              sales: newSales || prev.sales,
+              personalFinance: newFinance || prev.personalFinance,
+              settings: mergedSettings,
+            };
+          });
         } else {
           // If Supabase tables are freshly created and empty, seed them with initial data!
           seedSupabaseInitialData();
@@ -194,15 +206,18 @@ export const StoreProvider = ({ children }) => {
 
   // Auth
   const loginAdmin = (password) => {
-    if (password === data.settings.adminPassword) {
+    const localPassword = localStorage.getItem('bazar_admin_password');
+    const validPassword = localPassword || data.settings?.adminPassword || '1234';
+
+    if (password === validPassword || password === data.settings?.adminPassword) {
       try {
         localStorage.setItem(AUTH_STORAGE_KEY, 'true');
       } catch (e) {}
       setIsAdminAuthenticated(true);
-      showToast('Bem-vindo à Área de Gestão!');
+      showToast('Bem-vindo à Área da Família!');
       return true;
     }
-    showToast('Senha incorreta!', 'error');
+    showToast('Senha incorreta! Tente novamente.', 'error');
     return false;
   };
 
@@ -797,24 +812,38 @@ export const StoreProvider = ({ children }) => {
 
   // Settings & Backups
   const updateSettings = async (newSettings) => {
-    const merged = { ...data.settings, ...newSettings };
-    setData((prev) => ({
-      ...prev,
-      settings: merged,
-    }));
+    if (newSettings.adminPassword) {
+      try {
+        localStorage.setItem('bazar_admin_password', newSettings.adminPassword);
+      } catch (e) {}
+    }
 
-    if (supabase) {
+    let updatedSettingsToSync = null;
+
+    setData((prev) => {
+      const merged = { ...prev.settings, ...newSettings };
+      updatedSettingsToSync = merged;
+      const updated = {
+        ...prev,
+        settings: merged,
+      };
+      saveStoredData(updated);
+      return updated;
+    });
+
+    if (supabase && updatedSettingsToSync) {
       try {
         await supabase.from('store_settings').upsert({
           id: 'default',
-          data: merged,
-        });
+          data: updatedSettingsToSync,
+          updated_at: new Date().toISOString(),
+        }, { onConflict: 'id' });
       } catch (err) {
         console.warn('Erro ao atualizar configurações no Supabase:', err);
       }
     }
 
-    showToast('Configurações salvas!');
+    showToast('Configurações e nova senha salvas com sucesso!');
   };
 
   const resetToInitialData = () => {

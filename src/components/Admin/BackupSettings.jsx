@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useStore } from '../../context/StoreContext';
 import { exportDataAsJSON } from '../../utils/storage';
 import {
@@ -17,12 +17,25 @@ import {
 export const BackupSettings = () => {
   const { data, settings, updateSettings, resetToInitialData, loadSpreadsheetData, importBackupData, showToast, isCloudConnected } = useStore();
 
+  const currentPassword = localStorage.getItem('bazar_admin_password') || settings.adminPassword || '1234';
+
   const [formSettings, setFormSettings] = useState({
     storeName: settings.storeName || '',
     storeSubtitle: settings.storeSubtitle || '',
     whatsapp: settings.whatsapp || '',
-    adminPassword: settings.adminPassword || '1234',
+    adminPassword: currentPassword,
   });
+
+  useEffect(() => {
+    const pwd = localStorage.getItem('bazar_admin_password') || settings.adminPassword || '1234';
+    setFormSettings((prev) => ({
+      ...prev,
+      storeName: settings.storeName || prev.storeName,
+      storeSubtitle: settings.storeSubtitle || prev.storeSubtitle,
+      whatsapp: settings.whatsapp || prev.whatsapp,
+      adminPassword: pwd,
+    }));
+  }, [settings]);
 
   const handleSaveSettings = (e) => {
     e.preventDefault();

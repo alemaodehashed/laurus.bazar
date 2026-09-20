@@ -3,12 +3,27 @@ const STORAGE_KEY = 'bazar_familia_data_v2';
 export const loadStoredData = (fallbackData) => {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
-    if (!raw) return fallbackData;
+    const localPassword = localStorage.getItem('bazar_admin_password');
+
+    if (!raw) {
+      if (localPassword) {
+        return {
+          ...fallbackData,
+          settings: { ...fallbackData.settings, adminPassword: localPassword },
+        };
+      }
+      return fallbackData;
+    }
+
     const parsed = JSON.parse(raw);
     return {
       ...fallbackData,
       ...parsed,
-      settings: { ...fallbackData.settings, ...(parsed.settings || {}) },
+      settings: {
+        ...fallbackData.settings,
+        ...(parsed.settings || {}),
+        adminPassword: localPassword || parsed.settings?.adminPassword || fallbackData.settings.adminPassword,
+      },
     };
   } catch (error) {
     console.error('Erro ao carregar dados do LocalStorage:', error);
