@@ -32,6 +32,11 @@ export const FiadoManager = () => {
 
   sales.forEach((sale) => {
     if (sale.paymentMethod === 'boca_2x' && sale.installments) {
+      const totalInstallments = sale.installments.length;
+      const paidInstallmentsCount = sale.installments.filter((i) => i.paid).length;
+      const isSaleFullyPaid = totalInstallments > 0 && paidInstallmentsCount === totalInstallments;
+      const isSalePartiallyPaid = paidInstallmentsCount > 0 && !isSaleFullyPaid;
+
       sale.installments.forEach((inst) => {
         const isOverdue = !inst.paid && inst.dueDate < today;
         const isDueToday = !inst.paid && inst.dueDate === today;
@@ -50,6 +55,10 @@ export const FiadoManager = () => {
           paidDate: inst.paidDate,
           isOverdue,
           isDueToday,
+          totalInstallments,
+          paidInstallmentsCount,
+          isSaleFullyPaid,
+          isSalePartiallyPaid,
         });
       });
     }
@@ -65,8 +74,13 @@ export const FiadoManager = () => {
     .reduce((acc, i) => acc + i.amount, 0);
 
   const overdueCount = allInstallments.filter((i) => i.isOverdue).length;
+  const pendingCount = allInstallments.filter((i) => !i.paid).length;
+  const fullyPaidCount = allInstallments.filter((i) => i.paid && i.isSaleFullyPaid).length;
+  const totalSalesFullyPaid = sales.filter(
+    (s) => s.paymentMethod === 'boca_2x' && s.installments && s.installments.length > 0 && s.installments.every((i) => i.paid)
+  ).length;
 
-  // Filtered List
+  // Filtered List: "Quitadas / Pagas" only displays fully paid sales (all installments paid, e.g. 2/2)
   const filteredInstallments = allInstallments.filter((item) => {
     const matchesSearch = item.customerName.toLowerCase().includes(searchCustomer.toLowerCase());
 
@@ -74,7 +88,7 @@ export const FiadoManager = () => {
 
     if (filterStatus === 'pendente') return !item.paid;
     if (filterStatus === 'vencido') return item.isOverdue;
-    if (filterStatus === 'pago') return item.paid;
+    if (filterStatus === 'pago') return item.paid && item.isSaleFullyPaid;
     return true; // todos
   });
 
@@ -145,7 +159,9 @@ export const FiadoManager = () => {
             <div className="metric-value" style={{ color: 'var(--color-success)' }}>
               {formatCurrency(totalQuitado)}
             </div>
-            <div className="metric-sub">{allInstallments.filter((i) => i.paid).length} parcelas quitadas</div>
+            <div className="metric-sub">
+              {totalSalesFullyPaid} {totalSalesFullyPaid === 1 ? 'venda 100% quitada' : 'vendas 100% quitadas'} ({allInstallments.filter((i) => i.paid).length} parcelas pagas)
+            </div>
           </div>
           <div className="metric-icon-box">
             <CheckCircle size={24} />
@@ -174,7 +190,7 @@ export const FiadoManager = () => {
               className={`btn btn-sm ${filterStatus === 'pendente' ? 'btn-secondary' : 'btn-outline'}`}
               onClick={() => setFilterStatus('pendente')}
             >
-              Pendentes a Receber
+              Pendentes a Receber ({pendingCount})
             </button>
             <button
               className={`btn btn-sm ${filterStatus === 'vencido' ? 'btn-danger' : 'btn-outline'}`}
@@ -185,14 +201,15 @@ export const FiadoManager = () => {
             <button
               className={`btn btn-sm ${filterStatus === 'pago' ? 'btn-secondary' : 'btn-outline'}`}
               onClick={() => setFilterStatus('pago')}
+              title="Apenas compras em que todas as parcelas foram pagas (100% quitado)"
             >
-              Quitadas / Pagas
+              Quitadas / Pagas (2/2) {totalSalesFullyPaid > 0 ? `(${totalSalesFullyPaid})` : ''}
             </button>
             <button
               className={`btn btn-sm ${filterStatus === 'todos' ? 'btn-secondary' : 'btn-outline'}`}
               onClick={() => setFilterStatus('todos')}
             >
-              Todas
+              Todas ({allInstallments.length})
             </button>
           </div>
 
@@ -228,7 +245,16 @@ export const FiadoManager = () => {
               {filteredInstallments.length === 0 ? (
                 <tr>
                   <td colSpan="6" style={{ textAlign: 'center', padding: '40px', color: 'var(--color-secondary-muted)' }}>
-                    Nenhuma parcela encontrada para os filtros selecionados.
+                    {filterStatus === 'pago' ? (
+                      <div>
+                        <strong>Nenhuma compra 100% quitada (2/2) encontrada.</strong>
+                        <p style={{ margin: '6px 0 0 0', fontSize: '0.85rem' }}>
+                          Clientes que pagaram apenas 1 de 2 parcelas permanecem em "Pendentes a Receber" até a quitação total da 2ª parcela.
+                        </p>
+                      </div>
+                    ) : (
+                      'Nenhuma parcela encontrada para os filtros selecionados.'
+                    )}
                   </td>
                 </tr>
               ) : (
@@ -250,9 +276,21 @@ export const FiadoManager = () => {
                       </td>
 
                       <td>
-                        <span className="badge badge-warning" style={{ fontSize: '0.75rem' }}>
-                          {item.number}ª Parcela (de 2)
-                        </span>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', alignItems: 'flex-start' }}>
+                          <span className="badge badge-warning" style={{ fontSize: '0.75rem' }}>
+                            {item.number}ª Parcela (de {item.totalInstallments})
+                          </span>
+                          {item.isSaleFullyPaid && (
+                            <span className="badge badge-success" style={{ fontSize: '0.7rem' }}>
+                              ✓ 100% Pago ({item.totalInstallments}/{item.totalInstallments})
+                            </span>
+                          )}
+                          {item.isSalePartiallyPaid && !item.paid && (
+                            <span style={{ fontSize: '0.72rem', color: 'var(--color-primary)', fontWeight: 600, background: 'rgba(197, 160, 99, 0.15)', padding: '2px 6px', borderRadius: '4px' }}>
+                              1 de 2 já paga • Falta 2ª
+                            </span>
+                          )}
+                        </div>
                       </td>
 
                       <td>
@@ -290,13 +328,45 @@ export const FiadoManager = () => {
 
                       <td>
                         {item.paid ? (
-                          <span className="badge badge-success">Paga em {formatDate(item.paidDate)}</span>
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: '3px' }}>
+                            <span className="badge badge-success">Paga em {formatDate(item.paidDate)}</span>
+                            {item.isSaleFullyPaid ? (
+                              <span style={{ fontSize: '0.72rem', color: 'var(--color-success)', fontWeight: 600 }}>
+                                ✓ Dívida 100% Quitada (2/2)
+                              </span>
+                            ) : (
+                              <span style={{ fontSize: '0.72rem', color: 'var(--color-primary)', fontWeight: 600 }}>
+                                1ª Parcela recebida (resta 2ª)
+                              </span>
+                            )}
+                          </div>
                         ) : item.isOverdue ? (
-                          <span className="badge badge-danger">Vencida em Atraso</span>
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: '3px' }}>
+                            <span className="badge badge-danger">Vencida em Atraso</span>
+                            {item.isSalePartiallyPaid && (
+                              <span style={{ fontSize: '0.72rem', color: '#b91c1c', fontWeight: 600 }}>
+                                Pagou 1ª • 2ª em atraso
+                              </span>
+                            )}
+                          </div>
                         ) : item.isDueToday ? (
-                          <span className="badge badge-warning">Vence Hoje!</span>
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: '3px' }}>
+                            <span className="badge badge-warning">Vence Hoje!</span>
+                            {item.isSalePartiallyPaid && (
+                              <span style={{ fontSize: '0.72rem', color: '#b45309', fontWeight: 600 }}>
+                                Pagou 1ª • Falta 2ª
+                              </span>
+                            )}
+                          </div>
                         ) : (
-                          <span className="badge badge-secondary">A Vencer</span>
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: '3px' }}>
+                            <span className="badge badge-secondary">A Vencer</span>
+                            {item.isSalePartiallyPaid && (
+                              <span style={{ fontSize: '0.72rem', color: 'var(--color-taupe)', fontWeight: 600 }}>
+                                1ª já paga • Falta 2ª
+                              </span>
+                            )}
+                          </div>
                         )}
                       </td>
 
