@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useStore } from '../../context/StoreContext';
 import { formatCurrency, generateWhatsAppLink } from '../../utils/formatters';
-import { X, ShoppingBag, MessageCircle, Check } from 'lucide-react';
+import { X, ShoppingBag, MessageCircle, Check, Clock } from 'lucide-react';
 
 export const ProductModal = ({ product, onClose }) => {
   const { addToCart, settings } = useStore();
@@ -28,7 +28,15 @@ export const ProductModal = ({ product, onClose }) => {
         <div className="modal-header">
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
             <span className="badge badge-warning">{product.category}</span>
-            {product.featured && <span className="badge badge-success">Destaque</span>}
+            {isOutOfStock ? (
+              <span className="badge badge-danger" style={{ background: '#fef3c7', color: '#92400e', borderColor: '#fde68a' }}>
+                📦 Sob Encomenda
+              </span>
+            ) : (
+              <span className="badge badge-success">
+                ✓ {product.stock} un em Estoque
+              </span>
+            )}
           </div>
           <button className="modal-close-btn" onClick={onClose}>
             <X size={18} />
@@ -121,15 +129,39 @@ export const ProductModal = ({ product, onClose }) => {
             Dúvida no WhatsApp
           </a>
 
-          <button
-            type="button"
-            className="btn btn-primary"
-            onClick={handleAddToCart}
-            disabled={isOutOfStock}
-          >
-            <ShoppingBag size={18} />
-            {isOutOfStock ? 'Esgotado' : 'Adicionar ao Carrinho'}
-          </button>
+          {isOutOfStock ? (
+            <a
+              href={generateWhatsAppLink(
+                settings.whatsapp,
+                `Olá! Gostaria de encomendar o produto: *${product.name}* (Variação: ${selectedSize}) no valor de ${formatCurrency(product.price)}. Como funciona para fazer o pedido sob encomenda?`
+              )}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="btn btn-warning"
+              style={{
+                background: '#d97706',
+                borderColor: '#b45309',
+                color: '#fff',
+                fontWeight: 700,
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '8px',
+                textDecoration: 'none'
+              }}
+            >
+              <Clock size={18} />
+              Encomendar no WhatsApp
+            </a>
+          ) : (
+            <button
+              type="button"
+              className="btn btn-primary"
+              onClick={handleAddToCart}
+            >
+              <ShoppingBag size={18} />
+              Adicionar ao Carrinho
+            </button>
+          )}
         </div>
       </div>
     </div>

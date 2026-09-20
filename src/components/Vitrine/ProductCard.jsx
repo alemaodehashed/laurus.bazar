@@ -1,12 +1,19 @@
 import React from 'react';
 import { useStore } from '../../context/StoreContext';
-import { formatCurrency } from '../../utils/formatters';
-import { ShoppingBag, Eye } from 'lucide-react';
+import { formatCurrency, generateWhatsAppLink } from '../../utils/formatters';
+import { ShoppingBag, MessageCircle } from 'lucide-react';
 
 export const ProductCard = ({ product, onOpenModal }) => {
-  const { addToCart } = useStore();
+  const { addToCart, settings } = useStore();
   const halfPrice = +(product.price / 2).toFixed(2);
   const isOutOfStock = product.stock <= 0;
+
+  const handleEncomendarClick = (e) => {
+    e.stopPropagation();
+    const message = `Olá! Gostaria de encomendar o produto *${product.name}* no valor de ${formatCurrency(product.price)}. Como funciona para fazer o pedido sob encomenda?`;
+    const url = generateWhatsAppLink(settings.whatsapp, message);
+    window.open(url, '_blank');
+  };
 
   return (
     <div className="product-card">
@@ -41,21 +48,46 @@ export const ProductCard = ({ product, onOpenModal }) => {
             <span className="price-installment">
               ou 2x de {formatCurrency(halfPrice)}
             </span>
-            <span className={`stock-indicator ${isOutOfStock ? 'out-of-stock' : ''}`}>
-              {isOutOfStock ? 'Esgotado' : `${product.stock} un disponíveis`}
+            <span
+              className={`stock-indicator ${isOutOfStock ? 'out-of-stock' : ''}`}
+              style={isOutOfStock ? { color: '#b45309', fontWeight: 600 } : {}}
+            >
+              {isOutOfStock ? '📦 Sob Encomenda' : `${product.stock} un disponíveis`}
             </span>
           </div>
 
-          <button
-            type="button"
-            className="btn btn-primary btn-sm"
-            onClick={() => (product.sizes?.length > 1 ? onOpenModal(product) : addToCart(product))}
-            disabled={isOutOfStock}
-            title={isOutOfStock ? 'Produto indisponível' : 'Adicionar ao pedido'}
-          >
-            <ShoppingBag size={16} />
-            {isOutOfStock ? 'Esgotado' : 'Pedir'}
-          </button>
+          {isOutOfStock ? (
+            <button
+              type="button"
+              className="btn btn-warning btn-sm"
+              style={{
+                background: '#d97706',
+                borderColor: '#b45309',
+                color: '#fff',
+                fontSize: '0.78rem',
+                padding: '5px 10px',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '4px',
+                fontWeight: 700
+              }}
+              onClick={handleEncomendarClick}
+              title="Pedir este produto sob encomenda via WhatsApp"
+            >
+              <MessageCircle size={14} />
+              Encomendar
+            </button>
+          ) : (
+            <button
+              type="button"
+              className="btn btn-primary btn-sm"
+              onClick={() => (product.sizes?.length > 1 ? onOpenModal(product) : addToCart(product))}
+              title="Adicionar à sacola"
+            >
+              <ShoppingBag size={16} />
+              Pedir
+            </button>
+          )}
         </div>
       </div>
     </div>
