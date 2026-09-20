@@ -72,13 +72,9 @@ export const LoginModal = ({ isOpen, onClose }) => {
               </div>
               {error && (
                 <span style={{ color: 'var(--color-danger)', fontSize: '0.82rem', marginTop: '4px' }}>
-                  Senha incorreta! A senha padrão é <strong>1234</strong> (você pode alterá-la depois).
+                  Senha incorreta! Verifique e tente novamente.
                 </span>
               )}
-            </div>
-
-            <div style={{ background: 'var(--bg-subtle)', padding: '10px 14px', borderRadius: '8px', fontSize: '0.82rem', color: 'var(--color-secondary-muted)' }}>
-              💡 <em>Dica:</em> A senha inicial de fábrica é <strong>1234</strong>.
             </div>
           </div>
 
