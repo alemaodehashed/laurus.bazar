@@ -150,7 +150,7 @@ export const DashboardOverview = () => {
 
         <div className="metric-card card-danger">
           <div className="metric-info">
-            <h4>A Receber ("De Boca 2x")</h4>
+            <h4>A Receber (Fiado)</h4>
             <div className="metric-value" style={{ color: 'var(--color-danger)' }}>
               {formatCurrency(totalToReceiveFiado)}
             </div>
@@ -212,7 +212,7 @@ export const DashboardOverview = () => {
           style={{ borderColor: 'var(--color-danger)', color: 'var(--color-danger)' }}
         >
           <Clock size={18} />
-          Cobranças "De Boca 2x" ({pendingInstallments.length})
+          Cobranças Fiado ({pendingInstallments.length})
         </button>
 
         <button
@@ -224,17 +224,17 @@ export const DashboardOverview = () => {
         </button>
       </div>
 
-      {/* Grid with 2 columns: Pending 2x installments + Sales breakdown */}
+      {/* Grid with 2 columns: Pending fiado installments + Sales breakdown */}
       <div className="admin-two-cols">
-        {/* Pending Installments ("De Boca 2x") */}
+        {/* Pending Installments */}
         <div className="card">
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
             <div>
               <h3 style={{ fontSize: '1.1rem', color: 'var(--color-secondary)' }}>
-                Próximas Parcelas a Receber ("De Boca")
+                Próximas Parcelas a Receber (Fiado)
               </h3>
               <p style={{ fontSize: '0.82rem', color: 'var(--color-secondary-muted)' }}>
-                Controle de pagamento em 2x de boca / fiado familiar
+                Controle de pagamento em parcelas no fiado
               </p>
             </div>
             <button
@@ -354,7 +354,7 @@ export const DashboardOverview = () => {
 
               <div>
                 <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.88rem', marginBottom: '4px' }}>
-                  <span>🤝 Em 2x "De Boca" (A Prazo / Fiado)</span>
+                  <span>🤝 Fiado (A Prazo)</span>
                   <strong>{formatCurrency(paymentBreakdown.boca_2x)}</strong>
                 </div>
                 <div style={{ width: '100%', height: '8px', backgroundColor: '#e2e8f0', borderRadius: '4px', overflow: 'hidden' }}>

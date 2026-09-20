@@ -244,7 +244,7 @@ export const FiadoManager = () => {
       <div className="admin-section-header">
         <div className="admin-section-title">
           <h2>Vendas no Geral & Histórico</h2>
-          <p>Acompanhe todas as vendas realizadas (À Vista, Cartão e Fiado/De Boca) com filtros detalhados e controle de cobrança</p>
+          <p>Acompanhe todas as vendas realizadas (À Vista, Cartão e Fiado) com filtros detalhados e controle de cobrança</p>
         </div>
 
         {sales.length > 0 && (
@@ -381,7 +381,7 @@ export const FiadoManager = () => {
               onClick={() => setFilterPayment('boca_2x')}
             >
               <Clock size={14} />
-              Fiado / "De Boca" ({countFiado})
+              Fiado ({countFiado})
             </button>
           </div>
 
@@ -561,7 +561,7 @@ export const FiadoManager = () => {
                         )}
                         {sale.paymentMethod === 'boca_2x' && (
                           <span className="badge badge-warning" style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
-                            <Clock size={13} /> Fiado ({totalInst}x de Boca)
+                            <Clock size={13} /> Fiado ({totalInst}x)
                           </span>
                         )}
                       </td>

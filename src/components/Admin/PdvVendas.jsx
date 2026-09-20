@@ -365,7 +365,7 @@ export const PdvVendas = () => {
                 <strong style={{ color: '#065f46', fontSize: '1.05rem' }}>Venda finalizada com sucesso!</strong>
                 <div style={{ color: '#047857', fontSize: '0.85rem' }}>
                   Cliente: <strong>{lastSale.customerName}</strong> • Total: <strong>{formatCurrency(lastSale.total)}</strong> •
-                  Pagamento: <strong>{lastSale.paymentMethod === 'boca_2x' ? `Fiado (${lastSale.installments?.length || 2}x De Boca)` : lastSale.paymentMethod === 'cartao' ? 'Cartão' : 'À Vista'}</strong>
+                  Pagamento: <strong>{lastSale.paymentMethod === 'boca_2x' ? `Fiado (${lastSale.installments?.length || 2}x)` : lastSale.paymentMethod === 'cartao' ? 'Cartão' : 'À Vista'}</strong>
                 </div>
               </div>
             </div>
@@ -377,7 +377,7 @@ export const PdvVendas = () => {
                     lastSale.customerPhone,
                     `Olá ${lastSale.customerName}! Obrigado pela sua compra no valor de ${lastSale.total ? formatCurrency(lastSale.total) : ''}. ${
                       lastSale.paymentMethod === 'boca_2x'
-                        ? `Sua compra foi parcelada em ${lastSale.installments?.length || 2}x no fiado/de boca. Qualquer dúvida estamos à disposição!`
+                        ? `Sua compra foi parcelada em ${lastSale.installments?.length || 2}x no fiado. Qualquer dúvida estamos à disposição!`
                         : `Pagamento recebido com sucesso. Volte sempre!`
                     }`
                   )}
@@ -872,12 +872,12 @@ export const PdvVendas = () => {
                 onClick={() => setPaymentMethod('boca_2x')}
               >
                 <Clock size={20} />
-                <span>Fiado / "De Boca"</span>
+                <span>Fiado</span>
               </button>
             </div>
           </div>
 
-          {/* Specific Box for Fiado / "De Boca" with Configurable Installments */}
+          {/* Specific Box for Fiado with Configurable Installments */}
           {paymentMethod === 'boca_2x' && (
             <div className="fiado-special-box" style={{ background: '#fffbeb', border: '1px solid #fde68a', borderRadius: '10px', padding: '14px', marginTop: '12px' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px', flexWrap: 'wrap', gap: '8px' }}>
@@ -894,16 +894,16 @@ export const PdvVendas = () => {
                     style={{ width: 'auto', padding: '4px 8px', fontSize: '0.82rem', fontWeight: 700, background: '#fff' }}
                   >
                     <option value="1">1x (A Prazo)</option>
-                    <option value="2">2x de Boca</option>
-                    <option value="3">3x de Boca</option>
-                    <option value="4">4x de Boca</option>
-                    <option value="5">5x de Boca</option>
-                    <option value="6">6x de Boca</option>
-                    <option value="7">7x de Boca</option>
-                    <option value="8">8x de Boca</option>
-                    <option value="9">9x de Boca</option>
-                    <option value="10">10x de Boca</option>
-                    <option value="12">12x de Boca</option>
+                    <option value="2">2x</option>
+                    <option value="3">3x</option>
+                    <option value="4">4x</option>
+                    <option value="5">5x</option>
+                    <option value="6">6x</option>
+                    <option value="7">7x</option>
+                    <option value="8">8x</option>
+                    <option value="9">9x</option>
+                    <option value="10">10x</option>
+                    <option value="12">12x</option>
                   </select>
                 </div>
               </div>
