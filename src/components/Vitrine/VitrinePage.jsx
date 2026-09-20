@@ -45,8 +45,8 @@ export const VitrinePage = ({ onOpenAdminLogin }) => {
       {/* Top Announcement Bar */}
       <div className="top-announcement">
         <div className="top-announcement-content">
-          <Sparkles size={16} color="#fbbf24" />
-          <span>Bazar da Família: Roupas, Perfumes & Variedades com facilidade no pagamento!</span>
+          <Sparkles size={16} color="var(--color-accent)" />
+          <span>Promoção de Setembro</span>
         </div>
         <a
           href={generateWhatsAppLink(settings.whatsapp, 'Olá! Gostaria de tirar uma dúvida sobre o bazar.')}
