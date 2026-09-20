@@ -1,16 +1,37 @@
-# React + Vite
+# 🛍️ Bazar & Loja da Família (Vitrine + Gestão)
 
-This template provides a minimal setup to get React working in Vite with HMR and some Oxlint rules.
+Sistema web completo para bazar e loja familiar (Roupas, Perfumes e Variedades) com expositor online para os clientes e painel administrativo protegido por senha.
 
-Currently, two official plugins are available:
+## ✨ Recursos
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+- **Expositor Online (Vitrine Pública):**
+  - Catálogo categorizado (Roupas, Perfumes, Bazar & Variedades)
+  - Simulação de parcelas (*"ou em até 2x de R$ ..."*)
+  - Sacola de compras com envio do pedido pronto para o **WhatsApp**
+- **Área da Família (Painel Administrativo):**
+  - Senha padrão: `1234`
+  - **Controle de Estoque & Produtos:** cálculo automático de margem de lucro % e alerta de estoque baixo
+  - **Frente de Caixa (PDV):** vendas rápidas à vista (PIX/dinheiro), cartão e **2x de boca**
+  - **Controle de Fiado ("2x de Boca"):** acompanhamento de parcelas com botão de cobrança amigável no WhatsApp
+  - **Clientes:** histórico de compras e saldo devedor
+  - **Finanças Pessoais:** contas da casa (mercado, luz, água) separadas do caixa da loja
+  - **Backup:** exportação e restauração em arquivo `.json`
 
-## React Compiler
+---
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+## 🚀 Como Subir para o GitHub e Vercel
 
-## Expanding the Oxlint configuration
+### 1. Subir para o GitHub
+1. Crie um novo repositório vazio no [GitHub](https://github.com/new) (ex: `sistema-de-loja`).
+2. No terminal da pasta do projeto, execute:
+```bash
+git remote add origin https://github.com/SEU_USUARIO/NOME_DO_REPOSITORIO.git
+git push -u origin main
+```
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and Oxlint's TypeScript related rules in your project.
+### 2. Publicar na Vercel (Gratuito)
+1. Acesse [vercel.com](https://vercel.com) e faça login com sua conta do GitHub.
+2. Clique em **"Add New..."** > **"Project"**.
+3. Selecione o repositório do seu bazar e clique em **"Import"**.
+4. A Vercel detectará automaticamente a configuração do Vite e o arquivo `vercel.json`.
+5. Clique em **"Deploy"**. Em segundos sua loja estará no ar na internet!
