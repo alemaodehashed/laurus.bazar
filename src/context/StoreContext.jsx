@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useRef } from 'react';
 import { initialData } from '../data/initialData';
 import { loadStoredData, saveStoredData } from '../utils/storage';
 import { generateId } from '../utils/formatters';
@@ -37,6 +37,7 @@ export const StoreProvider = ({ children }) => {
 
   const [isCartOpen, setIsCartOpen] = useState(false);
   const [toastMessage, setToastMessage] = useState(null);
+  const toastTimerRef = useRef(null);
   const [isCloudConnected, setIsCloudConnected] = useState(isSupabaseConfigured());
 
   // Auto-save whenever data changes (keeps local backup always up to date)
@@ -197,11 +198,23 @@ export const StoreProvider = ({ children }) => {
     showToast('Planilhas reais de perfumes, clientes e fiados sincronizadas com sucesso!');
   };
 
+  const hideToast = () => {
+    if (toastTimerRef.current) {
+      clearTimeout(toastTimerRef.current);
+      toastTimerRef.current = null;
+    }
+    setToastMessage(null);
+  };
+
   const showToast = (message, type = 'success') => {
-    setToastMessage({ message, type, id: Date.now() });
-    setTimeout(() => {
-      setToastMessage((prev) => (prev?.id === toastMessage?.id ? null : prev));
-    }, 3500);
+    const id = Date.now();
+    setToastMessage({ message, type, id });
+    if (toastTimerRef.current) {
+      clearTimeout(toastTimerRef.current);
+    }
+    toastTimerRef.current = setTimeout(() => {
+      setToastMessage((prev) => (prev?.id === id ? null : prev));
+    }, 3000);
   };
 
   // Auth
@@ -909,6 +922,7 @@ export const StoreProvider = ({ children }) => {
         loadSpreadsheetData,
         importBackupData,
         showToast,
+        hideToast,
       }}
     >
       {children}
