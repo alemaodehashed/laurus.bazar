@@ -18,7 +18,7 @@ import {
 import { PeriodFilterBar, isDateInPeriod, getPeriodLabel } from './PeriodFilterBar';
 
 export const DashboardOverview = () => {
-  const { products, sales, customers, setActiveAdminTab, settings } = useStore();
+  const { products, sales, customers, setActiveAdminTab, settings, personalFinance } = useStore();
 
   const now = new Date();
   const currentMonth = now.getMonth();
@@ -66,6 +66,7 @@ export const DashboardOverview = () => {
       currentYear,
       currentYear + 1,
       ...sales.map((s) => Number(s.date?.split('-')[0])).filter(Boolean),
+      ...(personalFinance || []).map((f) => Number(f.date?.split('-')[0])).filter(Boolean),
     ])
   ).sort((a, b) => b - a);
 
@@ -78,13 +79,22 @@ export const DashboardOverview = () => {
     selectedYear,
   };
 
-  // Filter sales by period
+  // Filter sales and finances by period
   const periodSales = sales.filter((s) => isDateInPeriod(s.date, periodState));
+  const periodFinance = (personalFinance || []).filter((f) => isDateInPeriod(f.date, periodState));
 
   // Calculations based on period
   const totalSalesAmount = periodSales.reduce((acc, s) => acc + s.total, 0);
   const totalReceivedCash = periodSales.reduce((acc, s) => acc + s.paidAtSale, 0);
   const totalToReceiveFiado = periodSales.reduce((acc, s) => acc + (s.remainingBalance || 0), 0);
+
+  // Store purchases & expenses in the period (stock restocking, packaging, freight)
+  const totalDespesasLoja = periodFinance
+    .filter((f) => f.type === 'despesa_loja')
+    .reduce((acc, f) => acc + (Number(f.amount) || 0), 0);
+
+  // Net Cash Balance: in cash inflows minus store stock expenses
+  const saldoCaixaLiquido = +(totalReceivedCash - totalDespesasLoja).toFixed(2);
 
   // Cost of Goods Sold (CMV) and Profit Calculation
   let totalCostAmount = 0;
@@ -193,13 +203,21 @@ export const DashboardOverview = () => {
           </div>
         </div>
 
-        <div className="metric-card card-success">
+        <div className="metric-card card-success" style={saldoCaixaLiquido < 0 ? { borderLeft: '4px solid var(--color-danger)' } : {}}>
           <div className="metric-info">
-            <h4>Recebido no Caixa</h4>
-            <div className="metric-value" style={{ color: 'var(--color-success)' }}>
-              {formatCurrency(totalReceivedCash)}
+            <h4>Saldo em Caixa</h4>
+            <div className="metric-value" style={{ color: saldoCaixaLiquido >= 0 ? 'var(--color-success)' : 'var(--color-danger)' }}>
+              {formatCurrency(saldoCaixaLiquido)}
             </div>
-            <div className="metric-sub">Entradas já pagas pelos clientes</div>
+            <div className="metric-sub">
+              {totalDespesasLoja > 0 ? (
+                <span>
+                  Entradas: <strong>{formatCurrency(totalReceivedCash)}</strong> • Saídas/Estoque: <strong style={{ color: 'var(--color-danger)' }}>-{formatCurrency(totalDespesasLoja)}</strong>
+                </span>
+              ) : (
+                'Entradas já pagas pelos clientes'
+              )}
+            </div>
           </div>
           <div className="metric-icon-box">
             <Wallet size={24} />
@@ -432,9 +450,16 @@ export const DashboardOverview = () => {
                 <strong style={{ fontSize: '1.05rem' }}>{formatCurrency(totalEstimatedProfit)}</strong>
               </div>
 
+              {totalDespesasLoja > 0 && (
+                <div style={{ display: 'flex', justifyContent: 'space-between', color: '#dc2626' }}>
+                  <span>(-) Compras / Reposições de Estoque pagas no Caixa:</span>
+                  <strong>- {formatCurrency(totalDespesasLoja)}</strong>
+                </div>
+              )}
+
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', color: '#0369a1', fontSize: '0.82rem', background: '#f0f9ff', border: '1px solid #bae6fd', padding: '8px 12px', borderRadius: '6px', marginTop: '4px' }}>
-                <span>💵 Lucro já Realizado no Caixa (entradas pagas):</span>
-                <strong style={{ color: '#0284c7' }}>{formatCurrency(realizedProfitCash)}</strong>
+                <span>💵 Saldo Líquido no Caixa da Loja:</span>
+                <strong style={{ color: saldoCaixaLiquido >= 0 ? '#0284c7' : '#dc2626' }}>{formatCurrency(saldoCaixaLiquido)}</strong>
               </div>
             </div>
           </div>

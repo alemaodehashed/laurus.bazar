@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useState, useEffect, useRef } from 'react';
 import { initialData } from '../data/initialData';
 import { loadStoredData, saveStoredData } from '../utils/storage';
-import { generateId } from '../utils/formatters';
+import { generateId, formatCurrency } from '../utils/formatters';
 import { supabase, isSupabaseConfigured } from '../utils/supabaseClient';
 
 const StoreContext = createContext();
@@ -324,9 +324,24 @@ export const StoreProvider = ({ children }) => {
       stock: Number(productData.stock) || 0,
     };
 
+    let finRecord = null;
+    if (newProduct.stock > 0 && newProduct.costPrice > 0) {
+      const expenseAmount = +(newProduct.stock * newProduct.costPrice).toFixed(2);
+      const today = new Date().toISOString().split('T')[0];
+      finRecord = {
+        id: generateId('fin'),
+        date: today,
+        type: 'despesa_loja',
+        category: 'Compra de Mercadorias',
+        description: `Compra de estoque (${newProduct.stock} un): ${newProduct.name}`,
+        amount: expenseAmount,
+      };
+    }
+
     setData((prev) => ({
       ...prev,
       products: [newProduct, ...prev.products],
+      personalFinance: finRecord ? [finRecord, ...(prev.personalFinance || [])] : (prev.personalFinance || []),
     }));
 
     if (supabase) {
@@ -344,30 +359,68 @@ export const StoreProvider = ({ children }) => {
           featured: newProduct.featured,
           active: newProduct.active,
         });
+
+        if (finRecord) {
+          await supabase.from('personal_finance').insert({
+            id: finRecord.id,
+            date: finRecord.date,
+            type: finRecord.type,
+            category: finRecord.category,
+            description: finRecord.description,
+            amount: finRecord.amount,
+          });
+        }
       } catch (err) {
-        console.warn('Erro ao salvar produto no Supabase:', err);
+        console.warn('Erro ao salvar produto ou finança no Supabase:', err);
       }
     }
 
-    showToast('Produto cadastrado com sucesso!');
+    if (finRecord) {
+      showToast(`Produto cadastrado! (Descontado ${formatCurrency(finRecord.amount)} do caixa)`);
+    } else {
+      showToast('Produto cadastrado com sucesso!');
+    }
     return newProduct;
   };
 
   const updateProduct = async (id, updatedData) => {
-    setData((prev) => ({
-      ...prev,
-      products: prev.products.map((p) =>
-        p.id === id
-          ? {
-              ...p,
-              ...updatedData,
-              costPrice: Number(updatedData.costPrice ?? p.costPrice),
-              price: Number(updatedData.price ?? p.price),
-              stock: Number(updatedData.stock ?? p.stock),
-            }
-          : p
-      ),
-    }));
+    let finRecord = null;
+    setData((prev) => {
+      const existing = prev.products.find((p) => p.id === id);
+      const newStock = Number(updatedData.stock ?? existing?.stock ?? 0);
+      const oldStock = Number(existing?.stock ?? 0);
+      const cost = Number(updatedData.costPrice ?? existing?.costPrice ?? 0);
+
+      if (newStock > oldStock && cost > 0) {
+        const addedQty = newStock - oldStock;
+        const expenseAmount = +(addedQty * cost).toFixed(2);
+        const today = new Date().toISOString().split('T')[0];
+        finRecord = {
+          id: generateId('fin'),
+          date: today,
+          type: 'despesa_loja',
+          category: 'Compra de Mercadorias',
+          description: `Reposição de estoque (+${addedQty} un): ${updatedData.name || existing?.name}`,
+          amount: expenseAmount,
+        };
+      }
+
+      return {
+        ...prev,
+        products: prev.products.map((p) =>
+          p.id === id
+            ? {
+                ...p,
+                ...updatedData,
+                costPrice: Number(updatedData.costPrice ?? p.costPrice),
+                price: Number(updatedData.price ?? p.price),
+                stock: Number(updatedData.stock ?? p.stock),
+              }
+            : p
+        ),
+        personalFinance: finRecord ? [finRecord, ...(prev.personalFinance || [])] : (prev.personalFinance || []),
+      };
+    });
 
     if (supabase) {
       try {
@@ -383,12 +436,27 @@ export const StoreProvider = ({ children }) => {
           featured: updatedData.featured,
           active: updatedData.active,
         }).eq('id', id);
+
+        if (finRecord) {
+          await supabase.from('personal_finance').insert({
+            id: finRecord.id,
+            date: finRecord.date,
+            type: finRecord.type,
+            category: finRecord.category,
+            description: finRecord.description,
+            amount: finRecord.amount,
+          });
+        }
       } catch (err) {
-        console.warn('Erro ao atualizar produto no Supabase:', err);
+        console.warn('Erro ao atualizar produto ou finança no Supabase:', err);
       }
     }
 
-    showToast('Produto atualizado!');
+    if (finRecord) {
+      showToast(`Produto atualizado! (Descontado ${formatCurrency(finRecord.amount)} do caixa)`);
+    } else {
+      showToast('Produto atualizado!');
+    }
   };
 
   const deleteProduct = async (id) => {
@@ -410,23 +478,60 @@ export const StoreProvider = ({ children }) => {
 
   const adjustProductStock = async (id, delta) => {
     let newStockVal = 0;
-    setData((prev) => ({
-      ...prev,
-      products: prev.products.map((p) => {
-        if (p.id === id) {
-          newStockVal = Math.max(0, p.stock + delta);
-          return { ...p, stock: newStockVal };
-        }
-        return p;
-      }),
-    }));
+    let targetProduct = null;
+    let finRecord = null;
 
-    if (supabase) {
+    setData((prev) => {
+      const prod = prev.products.find((p) => p.id === id);
+      if (!prod) return prev;
+      targetProduct = prod;
+      newStockVal = Math.max(0, prod.stock + delta);
+
+      let updatedFinance = prev.personalFinance || [];
+      const cost = Number(prod.costPrice) || 0;
+      if (delta > 0 && cost > 0) {
+        const expenseAmount = +(delta * cost).toFixed(2);
+        const today = new Date().toISOString().split('T')[0];
+        finRecord = {
+          id: generateId('fin'),
+          date: today,
+          type: 'despesa_loja',
+          category: 'Compra de Mercadorias',
+          description: `Reposição de estoque (+${delta} un): ${prod.name}`,
+          amount: expenseAmount,
+        };
+        updatedFinance = [finRecord, ...updatedFinance];
+      }
+
+      return {
+        ...prev,
+        products: prev.products.map((p) => (p.id === id ? { ...p, stock: newStockVal } : p)),
+        personalFinance: updatedFinance,
+      };
+    });
+
+    if (supabase && targetProduct) {
       try {
         await supabase.from('products').update({ stock: newStockVal }).eq('id', id);
+        if (finRecord) {
+          await supabase.from('personal_finance').insert({
+            id: finRecord.id,
+            date: finRecord.date,
+            type: finRecord.type,
+            category: finRecord.category,
+            description: finRecord.description,
+            amount: finRecord.amount,
+          });
+        }
       } catch (err) {
-        console.warn('Erro ao ajustar estoque no Supabase:', err);
+        console.warn('Erro ao ajustar estoque ou salvar finança no Supabase:', err);
       }
+    }
+
+    if (finRecord) {
+      showToast(`+${delta} un de ${targetProduct.name} adicionado (Descontado ${formatCurrency(finRecord.amount)} do caixa)`);
+    } else {
+      showToast(delta > 0 ? `Estoque aumentado (+${delta} un)` : `Estoque diminuído (-${Math.abs(delta)} un)`);
     }
   };
 

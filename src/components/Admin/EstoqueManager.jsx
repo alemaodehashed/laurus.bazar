@@ -185,12 +185,17 @@ export const EstoqueManager = () => {
   const profit = sell - cost;
   const marginPct = cost > 0 ? ((profit / cost) * 100).toFixed(0) : 100;
 
+  const modalAddedStock = editingProduct
+    ? Math.max(0, (parseInt(formData.stock, 10) || 0) - (editingProduct.stock || 0))
+    : (parseInt(formData.stock, 10) || 0);
+  const modalCostTotal = modalAddedStock * cost;
+
   return (
     <div>
       <div className="admin-section-header">
         <div className="admin-section-title">
           <h2>Controle de Estoque & Produtos</h2>
-          <p>Cadastre roupas, perfumes e variedades, atualize preços e controle unidades</p>
+          <p>Cadastre roupas, perfumes e variedades, controle unidades e reposições (o custo das peças adicionadas desconta automaticamente do seu Caixa)</p>
         </div>
 
         <button className="btn btn-primary" onClick={openNewModal}>
@@ -318,7 +323,7 @@ export const EstoqueManager = () => {
                             type="button"
                             onClick={() => adjustProductStock(p.id, 1)}
                             style={{ color: 'var(--color-primary)' }}
-                            title="Aumentar estoque"
+                            title={p.costPrice ? `Repor +1 un (Debita ${formatCurrency(p.costPrice)} do caixa)` : 'Aumentar estoque (+1 un)'}
                           >
                             <PlusCircle size={18} />
                           </button>
@@ -472,9 +477,16 @@ export const EstoqueManager = () => {
 
                 {/* Profit indicator box */}
                 {sell > 0 && (
-                  <div style={{ background: 'var(--color-success-bg)', padding: '10px 14px', borderRadius: '8px', marginBottom: '16px', fontSize: '0.85rem', color: 'var(--color-success-text)', display: 'flex', justifyContent: 'space-between' }}>
+                  <div style={{ background: 'var(--color-success-bg)', padding: '10px 14px', borderRadius: '8px', marginBottom: '12px', fontSize: '0.85rem', color: 'var(--color-success-text)', display: 'flex', justifyContent: 'space-between' }}>
                     <span>Lucro estimado por peça: <strong>{formatCurrency(profit)}</strong></span>
                     <span>Margem: <strong>+{marginPct}%</strong></span>
+                  </div>
+                )}
+
+                {/* Cash deduction impact notice */}
+                {modalCostTotal > 0 && (
+                  <div style={{ background: '#f0fdf4', border: '1px solid #bbf7d0', padding: '9px 13px', borderRadius: '8px', marginBottom: '16px', fontSize: '0.83rem', color: '#166534', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <span>💳 <strong>Impacto no Caixa:</strong> Será debitado <strong>{formatCurrency(modalCostTotal)}</strong> do Caixa da loja ({modalAddedStock} {modalAddedStock === 1 ? 'peça adicionada' : 'peças adicionadas'} a {formatCurrency(cost)} de custo cada).</span>
                   </div>
                 )}
 
