@@ -66,26 +66,107 @@ export const FinanceiroPessoal = () => {
     'Outros Gastos da Loja',
   ];
 
-  // Totals calculations
-  const totalVendasLoja = sales.reduce((acc, s) => acc + s.paidAtSale, 0);
+  const MONTHS = [
+    { value: 0, label: 'Janeiro' },
+    { value: 1, label: 'Fevereiro' },
+    { value: 2, label: 'Março' },
+    { value: 3, label: 'Abril' },
+    { value: 4, label: 'Maio' },
+    { value: 5, label: 'Junho' },
+    { value: 6, label: 'Julho' },
+    { value: 7, label: 'Agosto' },
+    { value: 8, label: 'Setembro' },
+    { value: 9, label: 'Outubro' },
+    { value: 10, label: 'Novembro' },
+    { value: 11, label: 'Dezembro' },
+  ];
 
-  const totalRenda = personalFinance
+  const now = new Date();
+  const currentMonth = now.getMonth();
+  const currentYear = now.getFullYear();
+
+  // Determine initial period (if entries exist, pick the month/year of the latest entry)
+  const getInitialPeriod = () => {
+    if (personalFinance && personalFinance.length > 0) {
+      const sorted = [...personalFinance].sort((a, b) => (b.date || '').localeCompare(a.date || ''));
+      if (sorted[0]?.date) {
+        const [y, m] = sorted[0].date.split('-').map(Number);
+        if (y && m) {
+          return { year: y, month: m - 1 };
+        }
+      }
+    }
+    return { year: currentYear, month: currentMonth };
+  };
+
+  const initialPeriod = getInitialPeriod();
+  const [viewMode, setViewMode] = useState('mes'); // 'mes', 'ano', 'todos'
+  const [selectedMonth, setSelectedMonth] = useState(initialPeriod.month);
+  const [selectedYear, setSelectedYear] = useState(initialPeriod.year);
+
+  const availableYears = Array.from(
+    new Set([
+      currentYear - 1,
+      currentYear,
+      currentYear + 1,
+      ...personalFinance.map((f) => Number(f.date?.split('-')[0])).filter(Boolean),
+    ])
+  ).sort((a, b) => b - a);
+
+  const handlePrevMonth = () => {
+    if (selectedMonth === 0) {
+      setSelectedMonth(11);
+      setSelectedYear((y) => y - 1);
+    } else {
+      setSelectedMonth((m) => m - 1);
+    }
+  };
+
+  const handleNextMonth = () => {
+    if (selectedMonth === 11) {
+      setSelectedMonth(0);
+      setSelectedYear((y) => y + 1);
+    } else {
+      setSelectedMonth((m) => m + 1);
+    }
+  };
+
+  // Filter records by selected period (month, year or all)
+  const periodFinanceRecords = personalFinance.filter((f) => {
+    if (!f.date) return false;
+    if (viewMode === 'todos') return true;
+
+    const parts = f.date.split('-');
+    const y = Number(parts[0]);
+    const m = Number(parts[1]) - 1;
+
+    if (viewMode === 'ano') {
+      return y === selectedYear;
+    }
+    if (viewMode === 'mes') {
+      return y === selectedYear && m === selectedMonth;
+    }
+    return true;
+  });
+
+  // Totals calculations based on selected period
+  const totalRenda = periodFinanceRecords
     .filter((f) => f.type === 'renda')
     .reduce((acc, f) => acc + f.amount, 0);
 
-  const totalRendaExtra = personalFinance
+  const totalRendaExtra = periodFinanceRecords
     .filter((f) => f.type === 'renda_extra')
     .reduce((acc, f) => acc + f.amount, 0);
 
-  const totalRetiradasFamilia = personalFinance
+  const totalRetiradasFamilia = periodFinanceRecords
     .filter((f) => f.type === 'retirada_loja')
     .reduce((acc, f) => acc + f.amount, 0);
 
-  const totalDespesasCasa = personalFinance
+  const totalDespesasCasa = periodFinanceRecords
     .filter((f) => f.type === 'despesa_casa')
     .reduce((acc, f) => acc + f.amount, 0);
 
-  const totalDespesasLoja = personalFinance
+  const totalDespesasLoja = periodFinanceRecords
     .filter((f) => f.type === 'despesa_loja')
     .reduce((acc, f) => acc + f.amount, 0);
 
@@ -115,7 +196,7 @@ export const FinanceiroPessoal = () => {
     setIsModalOpen(false);
   };
 
-  const filteredRecords = personalFinance.filter((f) => {
+  const filteredRecords = periodFinanceRecords.filter((f) => {
     if (filterType === 'todos') return true;
     return f.type === filterType;
   });
@@ -134,11 +215,123 @@ export const FinanceiroPessoal = () => {
         </button>
       </div>
 
+      {/* Period Selector Card */}
+      <div className="card" style={{ marginBottom: '20px', padding: '14px 20px', background: '#fff', border: '1px solid var(--border-color)', borderRadius: '12px' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px' }}>
+          {/* Mode Toggle Tabs */}
+          <div style={{ display: 'flex', gap: '6px', background: 'var(--bg-subtle)', padding: '4px', borderRadius: '8px' }}>
+            <button
+              type="button"
+              className={`btn btn-sm ${viewMode === 'mes' ? 'btn-primary' : 'btn-outline'}`}
+              style={{ border: 'none', fontWeight: 700, fontSize: '0.82rem', display: 'flex', alignItems: 'center', gap: '5px' }}
+              onClick={() => setViewMode('mes')}
+            >
+              <Calendar size={14} /> Mensal
+            </button>
+            <button
+              type="button"
+              className={`btn btn-sm ${viewMode === 'ano' ? 'btn-primary' : 'btn-outline'}`}
+              style={{ border: 'none', fontWeight: 700, fontSize: '0.82rem' }}
+              onClick={() => setViewMode('ano')}
+            >
+              🗓️ Anual
+            </button>
+            <button
+              type="button"
+              className={`btn btn-sm ${viewMode === 'todos' ? 'btn-primary' : 'btn-outline'}`}
+              style={{ border: 'none', fontWeight: 700, fontSize: '0.82rem' }}
+              onClick={() => setViewMode('todos')}
+            >
+              ♾️ Todo o Histórico
+            </button>
+          </div>
+
+          {/* Month / Year Controls */}
+          {viewMode === 'mes' && (
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <button
+                type="button"
+                className="btn btn-outline btn-sm"
+                onClick={handlePrevMonth}
+                title="Mês anterior"
+                style={{ padding: '6px 10px', fontWeight: 700 }}
+              >
+                ◀
+              </button>
+
+              <select
+                className="form-control"
+                style={{ width: 'auto', fontWeight: 700, fontSize: '0.9rem', color: 'var(--color-primary)' }}
+                value={selectedMonth}
+                onChange={(e) => setSelectedMonth(Number(e.target.value))}
+              >
+                {MONTHS.map((m) => (
+                  <option key={m.value} value={m.value}>
+                    {m.label}
+                  </option>
+                ))}
+              </select>
+
+              <select
+                className="form-control"
+                style={{ width: 'auto', fontWeight: 700, fontSize: '0.9rem', color: 'var(--color-primary)' }}
+                value={selectedYear}
+                onChange={(e) => setSelectedYear(Number(e.target.value))}
+              >
+                {availableYears.map((yr) => (
+                  <option key={yr} value={yr}>
+                    {yr}
+                  </option>
+                ))}
+              </select>
+
+              <button
+                type="button"
+                className="btn btn-outline btn-sm"
+                onClick={handleNextMonth}
+                title="Próximo mês"
+                style={{ padding: '6px 10px', fontWeight: 700 }}
+              >
+                ▶
+              </button>
+            </div>
+          )}
+
+          {viewMode === 'ano' && (
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <span style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--color-secondary)' }}>Ano de Referência:</span>
+              <select
+                className="form-control"
+                style={{ width: 'auto', fontWeight: 700, fontSize: '0.95rem', color: 'var(--color-primary)' }}
+                value={selectedYear}
+                onChange={(e) => setSelectedYear(Number(e.target.value))}
+              >
+                {availableYears.map((yr) => (
+                  <option key={yr} value={yr}>
+                    {yr}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
+
+          {viewMode === 'todos' && (
+            <span style={{ fontSize: '0.85rem', color: 'var(--color-taupe)', fontWeight: 600 }}>
+              Visualizando todos os lançamentos acumulados
+            </span>
+          )}
+        </div>
+      </div>
+
       {/* Main Household Balance Banner */}
       <div className="finance-balance-banner">
         <div>
           <div style={{ fontSize: '0.85rem', color: '#e0e7ff', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-            Balanço Familiar do Mês
+            {viewMode === 'mes'
+              ? `Balanço Familiar • ${MONTHS[selectedMonth]?.label} de ${selectedYear}`
+              : viewMode === 'ano'
+              ? `Balanço Familiar Anual • ${selectedYear}`
+              : 'Balanço Familiar • Todo o Histórico'}
           </div>
           <div style={{ fontSize: '2rem', fontWeight: 800, marginTop: '4px' }}>
             {formatCurrency(saldoFamilia)}
@@ -323,13 +516,13 @@ export const FinanceiroPessoal = () => {
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '14px' }}>
             <PieChart size={20} color="var(--color-primary)" />
             <h3 style={{ fontSize: '1.1rem', color: 'var(--color-secondary)' }}>
-              Para Onde Vai o Dinheiro da Casa?
+              Para Onde Vai o Dinheiro da Casa? {viewMode === 'mes' ? `(${MONTHS[selectedMonth]?.label}/${selectedYear})` : viewMode === 'ano' ? `(${selectedYear})` : ''}
             </h3>
           </div>
 
           {(() => {
             const expensesByCategory = {};
-            personalFinance
+            periodFinanceRecords
               .filter((f) => f.type === 'despesa_casa')
               .forEach((f) => {
                 expensesByCategory[f.category] = (expensesByCategory[f.category] || 0) + f.amount;
@@ -343,7 +536,11 @@ export const FinanceiroPessoal = () => {
                 <div style={{ textAlign: 'center', padding: '36px 16px', color: 'var(--color-secondary-muted)' }}>
                   <PieChart size={40} color="#cbd5e1" style={{ margin: '0 auto 12px auto' }} />
                   <p style={{ fontWeight: 600, fontSize: '0.9rem', color: 'var(--color-secondary)', marginBottom: '4px' }}>
-                    Nenhuma despesa de casa lançada ainda
+                    {viewMode === 'mes'
+                      ? `Nenhuma despesa de casa lançada em ${MONTHS[selectedMonth]?.label} de ${selectedYear}`
+                      : viewMode === 'ano'
+                      ? `Nenhuma despesa de casa lançada em ${selectedYear}`
+                      : 'Nenhuma despesa de casa lançada ainda'}
                   </p>
                   <p style={{ fontSize: '0.8rem', maxWidth: '300px', margin: '0 auto 14px auto' }}>
                     Clique no botão <strong>"+ Lançar Entrada / Despesa"</strong> acima e anote mercado, luz, água para ver a divisão colorida em gráfico!
@@ -491,7 +688,11 @@ export const FinanceiroPessoal = () => {
               {filteredRecords.length === 0 ? (
                 <tr>
                   <td colSpan="6" style={{ textAlign: 'center', padding: '40px', color: 'var(--color-secondary-muted)' }}>
-                    Nenhum lançamento registrado neste filtro.
+                    {viewMode === 'mes'
+                      ? `Nenhum lançamento registrado em ${MONTHS[selectedMonth]?.label} de ${selectedYear} neste filtro.`
+                      : viewMode === 'ano'
+                      ? `Nenhum lançamento registrado no ano de ${selectedYear} neste filtro.`
+                      : 'Nenhum lançamento registrado neste filtro.'}
                   </td>
                 </tr>
               ) : (
