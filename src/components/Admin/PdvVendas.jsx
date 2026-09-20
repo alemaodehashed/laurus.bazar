@@ -42,6 +42,7 @@ export const PdvVendas = () => {
   const [isAddingCustomProduct, setIsAddingCustomProduct] = useState(false);
   const [customName, setCustomName] = useState('');
   const [customPrice, setCustomPrice] = useState('');
+  const [customCostPrice, setCustomCostPrice] = useState('');
   const [customSize, setCustomSize] = useState('Único');
   const [customQty, setCustomQty] = useState(1);
   const [saveToStock, setSaveToStock] = useState(false);
@@ -99,6 +100,7 @@ export const PdvVendas = () => {
           productId: product.id,
           name: product.name,
           unitPrice: product.price,
+          costPrice: product.costPrice || 0,
           originalPrice: product.price,
           specialPrice: product.specialPrice || null,
           priceTier: 'padrao',
@@ -121,9 +123,10 @@ export const PdvVendas = () => {
     }
     const cleanPrice = parseFloat(String(customPrice).replace(',', '.'));
     if (isNaN(cleanPrice) || cleanPrice < 0) {
-      alert('Informe um valor válido em reais (ex: 29,90)!');
+      alert('Informe um valor de venda válido em reais (ex: 29,90)!');
       return;
     }
+    const cleanCost = parseFloat(String(customCostPrice).replace(',', '.')) || 0;
 
     const qty = Math.max(1, parseInt(customQty) || 1);
     const size = customSize.trim() || 'Único';
@@ -136,7 +139,7 @@ export const PdvVendas = () => {
       const created = await addProduct({
         name: customName.trim(),
         price: cleanPrice,
-        costPrice: 0,
+        costPrice: cleanCost,
         stock: totalInitialStock,
         sizes: [size],
         category: customCategory || 'Bazar',
@@ -148,6 +151,7 @@ export const PdvVendas = () => {
         productId: created ? created.id : ('prod_' + Date.now()),
         name: customName.trim(),
         unitPrice: cleanPrice,
+        costPrice: cleanCost,
         originalPrice: cleanPrice,
         specialPrice: null,
         priceTier: 'padrao',
@@ -162,6 +166,7 @@ export const PdvVendas = () => {
         productId: 'avulso_' + Date.now() + '_' + Math.random().toString(36).substring(2, 6),
         name: customName.trim(),
         unitPrice: cleanPrice,
+        costPrice: cleanCost,
         originalPrice: cleanPrice,
         specialPrice: null,
         priceTier: 'padrao',
@@ -176,6 +181,7 @@ export const PdvVendas = () => {
     setSaleItems((prev) => [...prev, newItem]);
     setCustomName('');
     setCustomPrice('');
+    setCustomCostPrice('');
     setCustomSize('Único');
     setCustomQty(1);
     setSaveToStock(false);
@@ -557,9 +563,9 @@ export const PdvVendas = () => {
                   />
                 </div>
 
-                <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 1fr 0.8fr', gap: '8px' }}>
+                <div style={{ display: 'grid', gridTemplateColumns: '1.1fr 1.1fr', gap: '8px' }}>
                   <div>
-                    <label style={{ fontSize: '0.74rem', fontWeight: 600, color: '#78350f', display: 'block', marginBottom: '2px' }}>Preço R$:</label>
+                    <label style={{ fontSize: '0.74rem', fontWeight: 600, color: '#78350f', display: 'block', marginBottom: '2px' }}>Preço Venda R$:</label>
                     <input
                       type="number"
                       step="0.01"
@@ -572,6 +578,22 @@ export const PdvVendas = () => {
                     />
                   </div>
 
+                  <div>
+                    <label style={{ fontSize: '0.74rem', fontWeight: 600, color: '#78350f', display: 'block', marginBottom: '2px' }}>Valor de Compra (Custo) R$:</label>
+                    <input
+                      type="number"
+                      step="0.01"
+                      min="0"
+                      placeholder="0,00"
+                      className="form-control"
+                      style={{ fontSize: '0.85rem', padding: '6px 8px', background: '#fff' }}
+                      value={customCostPrice}
+                      onChange={(e) => setCustomCostPrice(e.target.value)}
+                    />
+                  </div>
+                </div>
+
+                <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 0.8fr', gap: '8px' }}>
                   <div>
                     <label style={{ fontSize: '0.74rem', fontWeight: 600, color: '#78350f', display: 'block', marginBottom: '2px' }}>Tamanho:</label>
                     <input
@@ -596,6 +618,20 @@ export const PdvVendas = () => {
                     />
                   </div>
                 </div>
+
+                {/* Profit preview if cost is provided */}
+                {customPrice && Number(customPrice) > 0 && (
+                  <div style={{ fontSize: '0.74rem', padding: '4px 8px', borderRadius: '4px', background: '#f0fdf4', border: '1px solid #bbf7d0', color: '#166534', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <span>
+                      Lucro estimado: <strong>{formatCurrency(Math.max(0, Number(customPrice) - (Number(customCostPrice) || 0)))}</strong> / un
+                    </span>
+                    {Number(customCostPrice) > 0 && (
+                      <span style={{ fontSize: '0.7rem', color: '#15803d', fontWeight: 600 }}>
+                        Margem: {(((Number(customPrice) - Number(customCostPrice)) / Number(customPrice)) * 100).toFixed(0)}%
+                      </span>
+                    )}
+                  </div>
+                )}
 
                 {/* Option to include or not in store stock/catalog */}
                 <div style={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: '8px', padding: '10px 12px', marginTop: '4px' }}>

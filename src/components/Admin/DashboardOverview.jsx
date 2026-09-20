@@ -12,7 +12,8 @@ import {
   CreditCard,
   Calendar,
   MessageCircle,
-  ArrowUpRight
+  ArrowUpRight,
+  DollarSign
 } from 'lucide-react';
 import { PeriodFilterBar, isDateInPeriod, getPeriodLabel } from './PeriodFilterBar';
 
@@ -85,6 +86,23 @@ export const DashboardOverview = () => {
   const totalReceivedCash = periodSales.reduce((acc, s) => acc + s.paidAtSale, 0);
   const totalToReceiveFiado = periodSales.reduce((acc, s) => acc + (s.remainingBalance || 0), 0);
 
+  // Cost of Goods Sold (CMV) and Profit Calculation
+  let totalCostAmount = 0;
+  periodSales.forEach((sale) => {
+    if (sale.items && sale.items.length > 0) {
+      sale.items.forEach((item) => {
+        const catalogProd = products.find((p) => p.id === item.productId);
+        const unitCost = Number(item.costPrice ?? (catalogProd?.costPrice || 0));
+        totalCostAmount += unitCost * (Number(item.quantity) || 1);
+      });
+    }
+  });
+
+  const totalEstimatedProfit = Math.max(0, totalSalesAmount - totalCostAmount);
+  const profitMarginPercent = totalSalesAmount > 0 ? ((totalEstimatedProfit / totalSalesAmount) * 100).toFixed(1) : '0.0';
+  const cashProfitRatio = totalSalesAmount > 0 ? (totalReceivedCash / totalSalesAmount) : 0;
+  const realizedProfitCash = +(totalEstimatedProfit * cashProfitRatio).toFixed(2);
+
   const lowStockProducts = products.filter((p) => p.stock <= 3);
 
   // Group pending installments in period
@@ -145,6 +163,20 @@ export const DashboardOverview = () => {
           </div>
           <div className="metric-icon-box">
             <TrendingUp size={24} />
+          </div>
+        </div>
+
+        {/* Lucro Bruto Estimado Card */}
+        <div className="metric-card" style={{ borderLeft: '4px solid #10b981', background: 'linear-gradient(135deg, #ffffff 0%, #f0fdf4 100%)' }}>
+          <div className="metric-info">
+            <h4 style={{ color: '#047857' }}>Lucro Bruto Estimado</h4>
+            <div className="metric-value" style={{ color: '#059669' }}>{formatCurrency(totalEstimatedProfit)}</div>
+            <div className="metric-sub" style={{ color: '#065f46' }}>
+              Margem: <strong>{profitMarginPercent}%</strong> • Custo: {formatCurrency(totalCostAmount)}
+            </div>
+          </div>
+          <div className="metric-icon-box" style={{ background: '#dcfce7', color: '#059669' }}>
+            <DollarSign size={24} />
           </div>
         </div>
 
@@ -366,6 +398,43 @@ export const DashboardOverview = () => {
                     }}
                   />
                 </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Demonstrativo de Lucro & Custos Card */}
+          <div className="card" style={{ borderLeft: '4px solid #10b981' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <DollarSign size={20} color="#059669" />
+                <h3 style={{ fontSize: '1.05rem', color: 'var(--color-secondary)' }}>
+                  Demonstrativo de Lucro & Custos
+                </h3>
+              </div>
+              <span className="badge badge-success" style={{ fontSize: '0.75rem', padding: '3px 8px' }}>
+                Margem: {profitMarginPercent}%
+              </span>
+            </div>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', fontSize: '0.86rem' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', color: '#475569' }}>
+                <span>(+) Faturamento Bruto:</span>
+                <strong>{formatCurrency(totalSalesAmount)}</strong>
+              </div>
+
+              <div style={{ display: 'flex', justifyContent: 'space-between', color: '#dc2626' }}>
+                <span>(-) Custo Total de Compra das Peças:</span>
+                <strong>- {formatCurrency(totalCostAmount)}</strong>
+              </div>
+
+              <div style={{ borderTop: '1px dashed #cbd5e1', paddingTop: '10px', display: 'flex', justifyContent: 'space-between', color: '#047857', fontSize: '0.98rem' }}>
+                <span>(=) Lucro Bruto no Período:</span>
+                <strong style={{ fontSize: '1.05rem' }}>{formatCurrency(totalEstimatedProfit)}</strong>
+              </div>
+
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', color: '#0369a1', fontSize: '0.82rem', background: '#f0f9ff', border: '1px solid #bae6fd', padding: '8px 12px', borderRadius: '6px', marginTop: '4px' }}>
+                <span>💵 Lucro já Realizado no Caixa (entradas pagas):</span>
+                <strong style={{ color: '#0284c7' }}>{formatCurrency(realizedProfitCash)}</strong>
               </div>
             </div>
           </div>
