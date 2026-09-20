@@ -64,7 +64,7 @@ export const VitrinePage = ({ onOpenAdminLogin }) => {
         <div className="vitrine-header-container">
           <div className="store-brand">
             <div className="brand-logo-wrapper">
-              <img src="/logo.jpg" alt="Laurus Bazar - Brasão da Família" className="brand-logo-img" />
+              <img src="/monogram.png" alt="Laurus Bazar - Monograma Oficial LL" className="brand-logo-img" />
             </div>
             <div className="brand-text">
               <h1>{settings.storeName}</h1>
@@ -138,8 +138,8 @@ export const VitrinePage = ({ onOpenAdminLogin }) => {
             </div>
           </div>
 
-          <div className="hero-logo-showcase">
-            <img src="/logo.jpg" alt="Brasão da Família Laurus" className="hero-logo-img" />
+          <div className="hero-logo-showcase" title="Monograma Oficial da Família">
+            <img src="/monogram.png" alt="Monograma da Família Laurus" className="hero-logo-img" />
           </div>
         </div>
       </section>

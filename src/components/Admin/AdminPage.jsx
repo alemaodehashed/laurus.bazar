@@ -47,18 +47,29 @@ export const AdminPage = ({ onGoToVitrine }) => {
       <header className="admin-navbar">
         <div className="admin-nav-container">
           <div className="admin-brand">
-            <img
-              src="/logo.jpg"
-              alt="Laurus Bazar"
-              style={{
-                width: '38px',
-                height: '38px',
-                borderRadius: '8px',
-                border: '2px solid #d97706',
-                objectFit: 'cover',
-                boxShadow: '0 2px 8px rgba(217, 119, 6, 0.4)',
-              }}
-            />
+            <div style={{
+              width: '40px',
+              height: '40px',
+              borderRadius: '8px',
+              border: '2px solid #C5A063',
+              background: '#ffffff',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              boxShadow: '0 2px 8px rgba(197, 160, 99, 0.4)',
+              overflow: 'hidden'
+            }}>
+              <img
+                src="/monogram.png"
+                alt="Laurus Bazar - Monograma LL"
+                style={{
+                  width: '100%',
+                  height: '100%',
+                  objectFit: 'contain',
+                  padding: '2px'
+                }}
+              />
+            </div>
             <h2 style={{ fontSize: '1.15rem', color: '#ffffff', fontWeight: 700 }}>
               {settings.storeName}
             </h2>
@@ -69,7 +80,7 @@ export const AdminPage = ({ onGoToVitrine }) => {
             <button
               type="button"
               className="btn btn-outline btn-sm"
-              style={{ color: '#e2e8f0', borderColor: '#334155' }}
+              style={{ color: '#F5F5DC', borderColor: '#C5A063' }}
               onClick={onGoToVitrine}
               title="Abrir a vitrine que os clientes visualizam"
             >

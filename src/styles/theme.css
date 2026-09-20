@@ -1,59 +1,78 @@
 :root {
   /* Typography */
-  --font-heading: 'Outfit', sans-serif;
+  --font-heading: 'Outfit', serif, sans-serif;
   --font-body: 'Plus Jakarta Sans', sans-serif;
 
-  /* Primary Theme Colors (Warm Amber Boutique & Deep Slate) */
-  --color-primary: #d97706;
-  --color-primary-hover: #b45309;
-  --color-primary-light: #fef3c7;
-  --color-primary-subtle: #fffbeb;
+  /* Official Brand Palette */
+  /* Cor Primária (Burgundy): #5F2D3F - logotipo, títulos principais e elementos de destaque */
+  --color-primary: #5F2D3F;
+  --color-primary-hover: #482230;
+  --color-primary-light: #f6eef2;
+  --color-primary-subtle: #fcf9fa;
 
-  --color-secondary: #0f172a;
-  --color-secondary-light: #1e293b;
-  --color-secondary-muted: #64748b;
+  /* Cor de Acento (Antique Gold): #C5A063 - detalhes, bordas finas ou botões de destaque */
+  --color-accent: #C5A063;
+  --color-accent-hover: #b38d4f;
+  --color-accent-light: #fbf6ee;
+  --color-accent-subtle: #fdfaf4;
 
-  /* Accents & Status */
-  --color-success: #10b981;
-  --color-success-bg: #ecfdf5;
-  --color-success-text: #065f46;
+  /* Neutro Secundário (Warm Taupe): #B09D7A - fundos secundários ou seções de apoio */
+  --color-taupe: #B09D7A;
+  --color-taupe-hover: #9c8864;
+  --color-taupe-light: #f4f0e8;
+  --color-taupe-subtle: #faf8f4;
 
-  --color-danger: #f43f5e;
-  --color-danger-bg: #fff1f2;
-  --color-danger-text: #9f1239;
+  /* Fundo Claro (Soft Buttercream): #F5F5DC - fundo geral da página */
+  --bg-app: #F5F5DC;
+  --bg-surface: #FFFFFF;
+  --bg-surface-elevated: #FAF7EE;
+  --bg-subtle: #EDE8D5;
 
-  --color-warning: #f59e0b;
-  --color-warning-bg: #fffbeb;
-  --color-warning-text: #92400e;
+  /* Cor de Texto (Charcoal Slate): #4A4A4A - textos e parágrafos */
+  --color-text-main: #4A4A4A;
+  --color-text-muted: #6e6e6e;
+  --color-text-light: #8e8e8e;
 
-  --color-purple: #8b5cf6;
-  --color-purple-bg: #f5f3ff;
-  --color-purple-text: #5b21b6;
+  /* Aliases for structural compatibility */
+  --color-secondary: #5F2D3F;
+  --color-secondary-light: #73374d;
+  --color-secondary-muted: #756a6e;
 
-  --color-info: #0284c7;
-  --color-info-bg: #f0f9ff;
-  --color-info-text: #075985;
+  /* Status Colors */
+  --color-success: #2e7d32;
+  --color-success-bg: #e8f5e9;
+  --color-success-text: #1b5e20;
 
-  /* Backgrounds & Surfaces */
-  --bg-app: #f8fafc;
-  --bg-surface: #ffffff;
-  --bg-surface-elevated: #ffffff;
-  --bg-subtle: #f1f5f9;
+  --color-danger: #c2185b;
+  --color-danger-bg: #fce4ec;
+  --color-danger-text: #880e4f;
+
+  --color-warning: #C5A063;
+  --color-warning-bg: #fbf6ee;
+  --color-warning-text: #7c5c24;
+
+  --color-purple: #5F2D3F;
+  --color-purple-bg: #f6eef2;
+  --color-purple-text: #5F2D3F;
+
+  --color-info: #3b6978;
+  --color-info-bg: #ebf3f5;
+  --color-info-text: #20404a;
 
   /* Borders & Dividers */
-  --border-color: #e2e8f0;
-  --border-color-focus: #f59e0b;
+  --border-color: #E2DAC8;
+  --border-color-focus: #C5A063;
   --border-radius-sm: 8px;
   --border-radius-md: 12px;
   --border-radius-lg: 18px;
   --border-radius-xl: 24px;
   --border-radius-full: 9999px;
 
-  /* Shadows */
-  --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
-  --shadow-md: 0 4px 12px -2px rgba(15, 23, 42, 0.08), 0 2px 6px -1px rgba(15, 23, 42, 0.04);
-  --shadow-lg: 0 12px 28px -4px rgba(15, 23, 42, 0.12), 0 6px 14px -2px rgba(15, 23, 42, 0.06);
-  --shadow-xl: 0 20px 35px -8px rgba(15, 23, 42, 0.18);
+  /* Refined Shadows */
+  --shadow-sm: 0 1px 3px 0 rgba(95, 45, 63, 0.05);
+  --shadow-md: 0 4px 14px -2px rgba(95, 45, 63, 0.08), 0 2px 6px -1px rgba(95, 45, 63, 0.04);
+  --shadow-lg: 0 12px 28px -4px rgba(95, 45, 63, 0.14), 0 6px 14px -2px rgba(95, 45, 63, 0.06);
+  --shadow-xl: 0 20px 36px -8px rgba(95, 45, 63, 0.20);
 
   /* Transitions */
   --transition-fast: 0.15s ease;
@@ -69,7 +88,7 @@
 body {
   font-family: var(--font-body);
   background-color: var(--bg-app);
-  color: var(--color-secondary);
+  color: var(--color-text-main);
   line-height: 1.5;
   -webkit-font-smoothing: antialiased;
 }
@@ -78,6 +97,11 @@ h1, h2, h3, h4, h5, h6 {
   font-family: var(--font-heading);
   font-weight: 700;
   letter-spacing: -0.02em;
+  color: var(--color-primary);
+}
+
+p, span, div, td, th, label, input, select, textarea {
+  color: inherit;
 }
 
 button {

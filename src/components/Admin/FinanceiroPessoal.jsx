@@ -112,7 +112,7 @@ export const FinanceiroPessoal = () => {
           <div style={{ fontSize: '2rem', fontWeight: 800, marginTop: '4px' }}>
             {formatCurrency(saldoFamilia)}
           </div>
-          <div style={{ fontSize: '0.85rem', color: '#c7d2fe', marginTop: '4px' }}>
+          <div style={{ fontSize: '0.85rem', color: '#E2DAC8', marginTop: '4px' }}>
             {saldoFamilia >= 0 ? '✓ Finanças da casa com saldo positivo' : '⚠️ Despesas da casa superaram as retiradas'}
           </div>
         </div>
@@ -279,7 +279,7 @@ export const FinanceiroPessoal = () => {
               });
 
             const categoryEntries = Object.entries(expensesByCategory).sort((a, b) => b[1] - a[1]);
-            const colors = ['#f59e0b', '#3b82f6', '#10b981', '#ec4899', '#8b5cf6', '#06b6d4', '#f97316', '#64748b'];
+            const colors = ['#5F2D3F', '#C5A063', '#B09D7A', '#8d7955', '#73374d', '#2e7d32', '#3b6978', '#64748b'];
 
             if (categoryEntries.length === 0) {
               return (

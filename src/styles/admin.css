@@ -3,18 +3,19 @@
   min-height: 100vh;
   display: flex;
   flex-direction: column;
-  background-color: #f8fafc;
+  background-color: var(--bg-app);
 }
 
 /* Admin Header */
 .admin-navbar {
-  background-color: #0f172a;
+  background: linear-gradient(90deg, #482230 0%, #5F2D3F 60%, #482230 100%);
   color: #ffffff;
   padding: 12px 24px;
-  border-bottom: 1px solid #1e293b;
+  border-bottom: 2px solid var(--color-accent);
   position: sticky;
   top: 0;
   z-index: 100;
+  box-shadow: var(--shadow-sm);
 }
 
 .admin-nav-container {
@@ -29,17 +30,18 @@
 .admin-brand {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 12px;
 }
 
 .admin-badge-family {
-  background: rgba(245, 158, 11, 0.2);
-  color: #fbbf24;
-  border: 1px solid rgba(245, 158, 11, 0.4);
+  background: rgba(197, 160, 99, 0.25);
+  color: #F5F5DC;
+  border: 1px solid var(--color-accent);
   font-size: 0.72rem;
   font-weight: 700;
   padding: 2px 8px;
   border-radius: var(--border-radius-full);
+  letter-spacing: 0.03em;
 }
 
 .admin-nav-actions {
@@ -50,7 +52,7 @@
 
 /* Admin Tabs */
 .admin-tabs-bar {
-  background: #ffffff;
+  background: #FAF7EE;
   border-bottom: 1px solid var(--border-color);
   padding: 0 24px;
   box-shadow: var(--shadow-sm);
@@ -61,7 +63,7 @@
   max-width: 1400px;
   margin: 0 auto;
   display: flex;
-  gap: 8px;
+  gap: 6px;
 }
 
 .admin-tab-btn {
@@ -71,7 +73,7 @@
   padding: 14px 16px;
   font-size: 0.9rem;
   font-weight: 600;
-  color: var(--color-secondary-muted);
+  color: var(--color-text-main);
   border-bottom: 3px solid transparent;
   transition: all var(--transition-fast);
   white-space: nowrap;
@@ -85,7 +87,8 @@
 .admin-tab-btn.active {
   color: var(--color-primary);
   border-bottom-color: var(--color-primary);
-  background: var(--color-primary-subtle);
+  background: var(--color-primary-light);
+  font-weight: 700;
 }
 
 .tab-badge {
@@ -117,12 +120,14 @@
 
 .admin-section-title h2 {
   font-size: 1.5rem;
-  color: var(--color-secondary);
+  color: var(--color-primary);
+  font-family: var(--font-heading);
 }
 
 .admin-section-title p {
-  color: var(--color-secondary-muted);
+  color: var(--color-taupe);
   font-size: 0.88rem;
+  font-weight: 500;
 }
 
 /* Dashboard Metric Cards */
@@ -144,6 +149,12 @@
   box-shadow: var(--shadow-sm);
   position: relative;
   overflow: hidden;
+  transition: all var(--transition-normal);
+}
+
+.metric-card:hover {
+  border-color: var(--color-accent);
+  box-shadow: var(--shadow-md);
 }
 
 .metric-card::after {
@@ -158,26 +169,27 @@
 .metric-card.card-primary::after { background-color: var(--color-primary); }
 .metric-card.card-success::after { background-color: var(--color-success); }
 .metric-card.card-danger::after { background-color: var(--color-danger); }
-.metric-card.card-purple::after { background-color: var(--color-purple); }
+.metric-card.card-purple::after { background-color: var(--color-accent); }
 
 .metric-info h4 {
   font-size: 0.82rem;
-  color: var(--color-secondary-muted);
+  color: var(--color-taupe);
   text-transform: uppercase;
   letter-spacing: 0.05em;
   margin-bottom: 6px;
+  font-weight: 700;
 }
 
 .metric-value {
   font-size: 1.6rem;
   font-weight: 800;
-  color: var(--color-secondary);
+  color: var(--color-primary);
   font-family: var(--font-heading);
 }
 
 .metric-sub {
   font-size: 0.78rem;
-  color: var(--color-secondary-muted);
+  color: var(--color-text-muted);
   margin-top: 4px;
 }
 
@@ -193,7 +205,7 @@
 .card-primary .metric-icon-box { background: var(--color-primary-light); color: var(--color-primary); }
 .card-success .metric-icon-box { background: var(--color-success-bg); color: var(--color-success); }
 .card-danger .metric-icon-box { background: var(--color-danger-bg); color: var(--color-danger); }
-.card-purple .metric-icon-box { background: var(--color-purple-bg); color: var(--color-purple); }
+.card-purple .metric-icon-box { background: var(--color-accent-light); color: var(--color-accent); }
 
 /* PDV Point of Sale Layout */
 .pdv-container {
@@ -207,6 +219,7 @@
   border: 1px solid var(--border-color);
   border-radius: var(--border-radius-lg);
   padding: 20px;
+  box-shadow: var(--shadow-sm);
 }
 
 .pdv-cart-panel {
@@ -217,6 +230,7 @@
   display: flex;
   flex-direction: column;
   height: fit-content;
+  box-shadow: var(--shadow-sm);
 }
 
 .pdv-item-grid {
@@ -229,7 +243,7 @@
 }
 
 .pdv-product-chip {
-  background: var(--bg-subtle);
+  background: var(--bg-surface-elevated);
   border: 1px solid var(--border-color);
   border-radius: var(--border-radius-md);
   padding: 12px;
@@ -241,7 +255,7 @@
 }
 
 .pdv-product-chip:hover {
-  border-color: var(--color-primary);
+  border-color: var(--color-accent);
   background: #ffffff;
   transform: translateY(-2px);
   box-shadow: var(--shadow-sm);
@@ -251,7 +265,7 @@
   font-weight: 600;
   font-size: 0.88rem;
   margin-bottom: 6px;
-  color: var(--color-secondary);
+  color: var(--color-primary);
 }
 
 .pdv-chip-price {
@@ -269,7 +283,7 @@
 }
 
 .payment-btn {
-  border: 2px solid var(--border-color);
+  border: 1.5px solid var(--border-color);
   border-radius: var(--border-radius-md);
   padding: 12px 8px;
   text-align: center;
@@ -281,19 +295,19 @@
   gap: 6px;
   transition: all var(--transition-fast);
   background: #ffffff;
-  color: var(--color-secondary);
+  color: var(--color-text-main);
 }
 
 .payment-btn.selected {
   border-color: var(--color-primary);
-  background: var(--color-primary-subtle);
-  color: var(--color-primary-hover);
+  background: var(--color-primary-light);
+  color: var(--color-primary);
 }
 
 /* Fiado 2x Box */
 .fiado-special-box {
-  background: #fffbeb;
-  border: 1px solid #fcd34d;
+  background: var(--color-accent-light);
+  border: 1px dashed var(--color-accent);
   border-radius: var(--border-radius-md);
   padding: 14px;
   margin: 12px 0;
@@ -310,8 +324,8 @@
 
 /* Personal Finance Summary */
 .finance-balance-banner {
-  background: linear-gradient(135deg, #4f46e5 0%, #3730a3 100%);
-  color: #ffffff;
+  background: linear-gradient(135deg, #5F2D3F 0%, #482230 100%);
+  color: #F5F5DC;
   border-radius: var(--border-radius-lg);
   padding: 24px;
   margin-bottom: 24px;
@@ -320,6 +334,8 @@
   align-items: center;
   flex-wrap: wrap;
   gap: 20px;
+  border: 1px solid var(--color-accent);
+  box-shadow: var(--shadow-md);
 }
 
 .finance-breakdown {
@@ -335,13 +351,15 @@
 
 .breakdown-label {
   font-size: 0.8rem;
-  color: #c7d2fe;
+  color: var(--color-accent);
+  font-weight: 600;
 }
 
 .breakdown-val {
   font-size: 1.4rem;
   font-weight: 800;
   font-family: var(--font-heading);
+  color: #ffffff;
 }
 
 @media (max-width: 900px) {
