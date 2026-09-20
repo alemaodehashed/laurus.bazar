@@ -26,7 +26,7 @@ import {
 import { PeriodFilterBar, isDateInPeriod, getPeriodLabel } from './PeriodFilterBar';
 
 export const FiadoManager = () => {
-  const { sales, payInstallment, updateInstallmentDueDate, deleteSale, clearAllSales, customers, settings } = useStore();
+  const { sales, payInstallment, updateInstallmentDueDate, deleteSale, customers, settings } = useStore();
 
   const now = new Date();
   const currentMonth = now.getMonth();
@@ -246,22 +246,6 @@ export const FiadoManager = () => {
           <h2>Vendas no Geral & Histórico</h2>
           <p>Acompanhe todas as vendas realizadas (À Vista, Cartão e Fiado) com filtros detalhados e controle de cobrança</p>
         </div>
-
-        {sales.length > 0 && (
-          <button
-            type="button"
-            className="btn btn-outline btn-sm"
-            style={{ borderColor: '#fca5a5', color: '#be123c' }}
-            onClick={() => {
-              if (window.confirm('Atenção: deseja realmente excluir todas as vendas e parcelas fictícias de teste para zerar tudo?')) {
-                clearAllSales();
-              }
-            }}
-          >
-            <Trash2 size={15} />
-            Zerar Todas as Vendas de Teste
-          </button>
-        )}
       </div>
 
       {/* Period Filter Bar */}
