@@ -636,6 +636,50 @@ export const StoreProvider = ({ children }) => {
     showToast(`Parcela ${installmentNumber} recebida com sucesso!`);
   };
 
+  // Update installment due date (e.g., renegotiated or corrected due date)
+  const updateInstallmentDueDate = async (saleId, installmentNumber, newDueDate) => {
+    let updatedSaleToSync = null;
+
+    setData((prev) => {
+      const sale = prev.sales.find((s) => s.id === saleId);
+      if (!sale) return prev;
+
+      const updatedInstallments = sale.installments.map((inst) => {
+        if (inst.number === installmentNumber) {
+          return {
+            ...inst,
+            dueDate: newDueDate,
+          };
+        }
+        return inst;
+      });
+
+      const updatedSale = {
+        ...sale,
+        installments: updatedInstallments,
+      };
+
+      updatedSaleToSync = updatedSale;
+
+      return {
+        ...prev,
+        sales: prev.sales.map((s) => (s.id === saleId ? updatedSale : s)),
+      };
+    });
+
+    if (supabase && updatedSaleToSync) {
+      try {
+        await supabase.from('sales').update({
+          installments: updatedSaleToSync.installments,
+        }).eq('id', saleId);
+      } catch (err) {
+        console.warn('Erro ao atualizar vencimento da parcela no Supabase:', err);
+      }
+    }
+
+    showToast('Data de vencimento atualizada com sucesso!');
+  };
+
   const deleteSale = async (saleId) => {
     setData((prev) => ({
       ...prev,
@@ -791,6 +835,7 @@ export const StoreProvider = ({ children }) => {
         deleteSale,
         clearAllSales,
         payInstallment,
+        updateInstallmentDueDate,
         addFinanceRecord,
         deleteFinanceRecord,
         updateSettings,

@@ -12,14 +12,18 @@ import {
   Calendar,
   X,
   User,
-  Trash2
+  Trash2,
+  Edit2,
+  Save
 } from 'lucide-react';
 
 export const FiadoManager = () => {
-  const { sales, payInstallment, deleteSale, clearAllSales, customers, settings } = useStore();
+  const { sales, payInstallment, updateInstallmentDueDate, deleteSale, clearAllSales, customers, settings } = useStore();
   const [filterStatus, setFilterStatus] = useState('pendente'); // todos, pendente, vencido, pago
   const [searchCustomer, setSearchCustomer] = useState('');
   const [selectedForReminder, setSelectedForReminder] = useState(null);
+  const [editingDueDateItem, setEditingDueDateItem] = useState(null);
+  const [newDueDateValue, setNewDueDateValue] = useState('');
   const [customPixKey, setCustomPixKey] = useState(settings.whatsapp);
 
   // Flatten all installments with sale context
@@ -258,11 +262,29 @@ export const FiadoManager = () => {
                       </td>
 
                       <td>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                          <Calendar size={14} color="#64748b" />
-                          <span style={{ fontWeight: item.isOverdue ? 700 : 500, color: item.isOverdue ? 'var(--color-danger)' : 'inherit' }}>
-                            {formatDate(item.dueDate)}
-                          </span>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                            <Calendar size={14} color={item.isOverdue ? 'var(--color-danger)' : 'var(--color-taupe)'} />
+                            <span style={{ fontWeight: item.isOverdue ? 700 : 600, color: item.isOverdue ? 'var(--color-danger)' : 'inherit' }}>
+                              {formatDate(item.dueDate)}
+                            </span>
+                          </div>
+
+                          {!item.paid && (
+                            <button
+                              type="button"
+                              className="btn btn-outline btn-sm"
+                              style={{ padding: '2px 7px', fontSize: '0.72rem', borderColor: 'var(--color-accent)', color: 'var(--color-primary)' }}
+                              onClick={() => {
+                                setEditingDueDateItem(item);
+                                setNewDueDateValue(item.dueDate);
+                              }}
+                              title="Alterar data de vencimento desta parcela"
+                            >
+                              <Edit2 size={11} />
+                              <span>Alterar</span>
+                            </button>
+                          )}
                         </div>
                       </td>
 
@@ -383,6 +405,135 @@ export const FiadoManager = () => {
               <button type="button" className="btn btn-whatsapp" onClick={handleSendReminder}>
                 <Send size={16} />
                 Abrir e Enviar no WhatsApp
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal for Editing Due Date */}
+      {editingDueDateItem && (
+        <div className="modal-overlay" onClick={() => setEditingDueDateItem(null)}>
+          <div className="modal-content" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '460px' }}>
+            <div className="modal-header">
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <Calendar size={20} color="var(--color-primary)" />
+                <h3>Alterar Vencimento da Parcela</h3>
+              </div>
+              <button
+                type="button"
+                className="modal-close-btn"
+                onClick={() => setEditingDueDateItem(null)}
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            <div className="modal-body">
+              <div style={{ background: 'var(--bg-surface-elevated)', border: '1px solid var(--border-color)', borderRadius: '10px', padding: '14px', marginBottom: '16px' }}>
+                <div style={{ fontWeight: 700, fontSize: '1rem', color: 'var(--color-primary)' }}>
+                  {editingDueDateItem.customerName}
+                </div>
+                <div style={{ fontSize: '0.85rem', color: 'var(--color-text-main)', marginTop: '4px' }}>
+                  {editingDueDateItem.number}ª Parcela (de 2) • <strong>{formatCurrency(editingDueDateItem.amount)}</strong>
+                </div>
+                <div style={{ fontSize: '0.82rem', color: 'var(--color-taupe)', marginTop: '4px' }}>
+                  Vencimento atual cadastrado: <strong>{formatDate(editingDueDateItem.dueDate)}</strong>
+                </div>
+              </div>
+
+              <div className="form-group">
+                <label className="form-label">Selecione a Nova Data de Vencimento:</label>
+                <input
+                  type="date"
+                  className="form-control"
+                  value={newDueDateValue}
+                  onChange={(e) => setNewDueDateValue(e.target.value)}
+                  required
+                  style={{ fontSize: '1rem', padding: '10px 14px' }}
+                />
+              </div>
+
+              {/* Quick shortcut buttons */}
+              <div style={{ marginTop: '12px' }}>
+                <span style={{ fontSize: '0.78rem', fontWeight: 600, color: 'var(--color-taupe)' }}>
+                  Atalhos Rápidos de Vencimento:
+                </span>
+                <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', marginTop: '6px' }}>
+                  <button
+                    type="button"
+                    className="btn btn-outline btn-sm"
+                    style={{ fontSize: '0.75rem', padding: '4px 8px' }}
+                    onClick={() => {
+                      const d = new Date();
+                      d.setDate(d.getDate() + 15);
+                      setNewDueDateValue(d.toISOString().split('T')[0]);
+                    }}
+                  >
+                    +15 dias
+                  </button>
+                  <button
+                    type="button"
+                    className="btn btn-outline btn-sm"
+                    style={{ fontSize: '0.75rem', padding: '4px 8px' }}
+                    onClick={() => {
+                      const d = new Date();
+                      d.setDate(d.getDate() + 30);
+                      setNewDueDateValue(d.toISOString().split('T')[0]);
+                    }}
+                  >
+                    +30 dias
+                  </button>
+                  <button
+                    type="button"
+                    className="btn btn-outline btn-sm"
+                    style={{ fontSize: '0.75rem', padding: '4px 8px' }}
+                    onClick={() => {
+                      const now = new Date();
+                      const nextMonth = new Date(now.getFullYear(), now.getMonth() + 1, 10);
+                      setNewDueDateValue(nextMonth.toISOString().split('T')[0]);
+                    }}
+                  >
+                    Dia 10 do próx. mês
+                  </button>
+                  <button
+                    type="button"
+                    className="btn btn-outline btn-sm"
+                    style={{ fontSize: '0.75rem', padding: '4px 8px' }}
+                    onClick={() => {
+                      const now = new Date();
+                      const nextMonth = new Date(now.getFullYear(), now.getMonth() + 1, 20);
+                      setNewDueDateValue(nextMonth.toISOString().split('T')[0]);
+                    }}
+                  >
+                    Dia 20 do próx. mês
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <div className="modal-footer">
+              <button
+                type="button"
+                className="btn btn-outline"
+                onClick={() => setEditingDueDateItem(null)}
+              >
+                Cancelar
+              </button>
+              <button
+                type="button"
+                className="btn btn-primary"
+                onClick={() => {
+                  if (!newDueDateValue) {
+                    alert('Por favor, selecione uma data válida!');
+                    return;
+                  }
+                  updateInstallmentDueDate(editingDueDateItem.saleId, editingDueDateItem.number, newDueDateValue);
+                  setEditingDueDateItem(null);
+                }}
+              >
+                <Save size={16} />
+                Salvar Novo Vencimento
               </button>
             </div>
           </div>
