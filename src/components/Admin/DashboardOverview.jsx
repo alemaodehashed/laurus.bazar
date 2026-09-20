@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useStore } from '../../context/StoreContext';
 import { formatCurrency, formatDate, generateWhatsAppLink } from '../../utils/formatters';
 import {
@@ -14,20 +14,82 @@ import {
   MessageCircle,
   ArrowUpRight
 } from 'lucide-react';
+import { PeriodFilterBar, isDateInPeriod, getPeriodLabel } from './PeriodFilterBar';
 
 export const DashboardOverview = () => {
   const { products, sales, customers, setActiveAdminTab, settings } = useStore();
 
-  // Calculations
-  const totalSalesAmount = sales.reduce((acc, s) => acc + s.total, 0);
-  const totalReceivedCash = sales.reduce((acc, s) => acc + s.paidAtSale, 0);
-  const totalToReceiveFiado = sales.reduce((acc, s) => acc + (s.remainingBalance || 0), 0);
+  const now = new Date();
+  const currentMonth = now.getMonth();
+  const currentYear = now.getFullYear();
+  const currentQuarter = Math.floor(currentMonth / 3) + 1;
+  const currentSemester = currentMonth < 6 ? 1 : 2;
+
+  // Find latest sale date if any to initialize period
+  const getInitialPeriod = () => {
+    if (sales && sales.length > 0) {
+      const sorted = [...sales].sort((a, b) => (b.date || '').localeCompare(a.date || ''));
+      if (sorted[0]?.date) {
+        const [y, m] = sorted[0].date.split('T')[0].split('-').map(Number);
+        if (y && m) {
+          return {
+            year: y,
+            month: m - 1,
+            date: sorted[0].date.split('T')[0],
+            quarter: Math.floor((m - 1) / 3) + 1,
+            semester: m <= 6 ? 1 : 2,
+          };
+        }
+      }
+    }
+    return {
+      year: currentYear,
+      month: currentMonth,
+      date: now.toISOString().split('T')[0],
+      quarter: currentQuarter,
+      semester: currentSemester,
+    };
+  };
+
+  const initialPeriod = getInitialPeriod();
+  const [viewMode, setViewMode] = useState('mes'); // 'mes', 'data', 'trimestre', 'semestre', 'ano', 'todos'
+  const [selectedDate, setSelectedDate] = useState(initialPeriod.date);
+  const [selectedMonth, setSelectedMonth] = useState(initialPeriod.month);
+  const [selectedQuarter, setSelectedQuarter] = useState(initialPeriod.quarter);
+  const [selectedSemester, setSelectedSemester] = useState(initialPeriod.semester);
+  const [selectedYear, setSelectedYear] = useState(initialPeriod.year);
+
+  const availableYears = Array.from(
+    new Set([
+      currentYear - 1,
+      currentYear,
+      currentYear + 1,
+      ...sales.map((s) => Number(s.date?.split('-')[0])).filter(Boolean),
+    ])
+  ).sort((a, b) => b - a);
+
+  const periodState = {
+    viewMode,
+    selectedDate,
+    selectedMonth,
+    selectedQuarter,
+    selectedSemester,
+    selectedYear,
+  };
+
+  // Filter sales by period
+  const periodSales = sales.filter((s) => isDateInPeriod(s.date, periodState));
+
+  // Calculations based on period
+  const totalSalesAmount = periodSales.reduce((acc, s) => acc + s.total, 0);
+  const totalReceivedCash = periodSales.reduce((acc, s) => acc + s.paidAtSale, 0);
+  const totalToReceiveFiado = periodSales.reduce((acc, s) => acc + (s.remainingBalance || 0), 0);
 
   const lowStockProducts = products.filter((p) => p.stock <= 3);
 
-  // Group pending installments
+  // Group pending installments in period
   const pendingInstallments = [];
-  sales.forEach((sale) => {
+  periodSales.forEach((sale) => {
     if (sale.installments && sale.installments.length > 0) {
       sale.installments.forEach((inst) => {
         if (!inst.paid) {
@@ -47,22 +109,39 @@ export const DashboardOverview = () => {
   // Sort by due date
   pendingInstallments.sort((a, b) => new Date(a.dueDate) - new Date(b.dueDate));
 
-  // Payment methods breakdown
+  // Payment methods breakdown in period
   const paymentBreakdown = {
-    a_vista: sales.filter((s) => s.paymentMethod === 'a_vista').reduce((acc, s) => acc + s.total, 0),
-    cartao: sales.filter((s) => s.paymentMethod === 'cartao').reduce((acc, s) => acc + s.total, 0),
-    boca_2x: sales.filter((s) => s.paymentMethod === 'boca_2x').reduce((acc, s) => acc + s.total, 0),
+    a_vista: periodSales.filter((s) => s.paymentMethod === 'a_vista').reduce((acc, s) => acc + s.total, 0),
+    cartao: periodSales.filter((s) => s.paymentMethod === 'cartao').reduce((acc, s) => acc + s.total, 0),
+    boca_2x: periodSales.filter((s) => s.paymentMethod === 'boca_2x').reduce((acc, s) => acc + s.total, 0),
   };
 
   return (
     <div>
+      {/* Period Filter Bar */}
+      <PeriodFilterBar
+        viewMode={viewMode}
+        setViewMode={setViewMode}
+        selectedDate={selectedDate}
+        setSelectedDate={setSelectedDate}
+        selectedMonth={selectedMonth}
+        setSelectedMonth={setSelectedMonth}
+        selectedQuarter={selectedQuarter}
+        setSelectedQuarter={setSelectedQuarter}
+        selectedSemester={selectedSemester}
+        setSelectedSemester={setSelectedSemester}
+        selectedYear={selectedYear}
+        setSelectedYear={setSelectedYear}
+        availableYears={availableYears}
+      />
+
       {/* Metric Cards */}
       <div className="metrics-grid">
         <div className="metric-card card-primary">
           <div className="metric-info">
-            <h4>Total Faturado</h4>
+            <h4>Total Faturado ({getPeriodLabel(periodState)})</h4>
             <div className="metric-value">{formatCurrency(totalSalesAmount)}</div>
-            <div className="metric-sub">{sales.length} vendas registradas</div>
+            <div className="metric-sub">{periodSales.length} vendas no período</div>
           </div>
           <div className="metric-icon-box">
             <TrendingUp size={24} />

@@ -21,8 +21,71 @@ import {
   ShoppingBag
 } from 'lucide-react';
 
+import { PeriodFilterBar, isDateInPeriod, getPeriodLabel } from './PeriodFilterBar';
+
 export const FiadoManager = () => {
   const { sales, payInstallment, updateInstallmentDueDate, deleteSale, clearAllSales, customers, settings } = useStore();
+
+  const now = new Date();
+  const currentMonth = now.getMonth();
+  const currentYear = now.getFullYear();
+  const currentQuarter = Math.floor(currentMonth / 3) + 1;
+  const currentSemester = currentMonth < 6 ? 1 : 2;
+
+  // Find latest sale date if any to initialize period
+  const getInitialPeriod = () => {
+    if (sales && sales.length > 0) {
+      const sorted = [...sales].sort((a, b) => (b.date || '').localeCompare(a.date || ''));
+      if (sorted[0]?.date) {
+        const [y, m] = sorted[0].date.split('T')[0].split('-').map(Number);
+        if (y && m) {
+          return {
+            year: y,
+            month: m - 1,
+            date: sorted[0].date.split('T')[0],
+            quarter: Math.floor((m - 1) / 3) + 1,
+            semester: m <= 6 ? 1 : 2,
+          };
+        }
+      }
+    }
+    return {
+      year: currentYear,
+      month: currentMonth,
+      date: now.toISOString().split('T')[0],
+      quarter: currentQuarter,
+      semester: currentSemester,
+    };
+  };
+
+  const initialPeriod = getInitialPeriod();
+  const [viewMode, setViewMode] = useState('mes'); // 'mes', 'data', 'trimestre', 'semestre', 'ano', 'todos'
+  const [selectedDate, setSelectedDate] = useState(initialPeriod.date);
+  const [selectedMonth, setSelectedMonth] = useState(initialPeriod.month);
+  const [selectedQuarter, setSelectedQuarter] = useState(initialPeriod.quarter);
+  const [selectedSemester, setSelectedSemester] = useState(initialPeriod.semester);
+  const [selectedYear, setSelectedYear] = useState(initialPeriod.year);
+
+  const availableYears = Array.from(
+    new Set([
+      currentYear - 1,
+      currentYear,
+      currentYear + 1,
+      ...sales.map((s) => Number(s.date?.split('-')[0])).filter(Boolean),
+    ])
+  ).sort((a, b) => b - a);
+
+  const periodState = {
+    viewMode,
+    selectedDate,
+    selectedMonth,
+    selectedQuarter,
+    selectedSemester,
+    selectedYear,
+  };
+
+  // Filter sales by selected period (month, date, quarter, semester, year, all)
+  const periodSales = sales.filter((s) => isDateInPeriod(s.date, periodState));
 
   // Filters
   const [filterPayment, setFilterPayment] = useState('todas'); // todas, a_vista, cartao, boca_2x
@@ -38,9 +101,9 @@ export const FiadoManager = () => {
 
   const today = new Date().toISOString().split('T')[0];
 
-  // Flatten installments for metric counts
+  // Flatten installments for metric counts based on period
   const allInstallments = [];
-  sales.forEach((sale) => {
+  periodSales.forEach((sale) => {
     if (sale.paymentMethod === 'boca_2x' && sale.installments) {
       const totalInstallments = sale.installments.length;
       const paidInstallmentsCount = sale.installments.filter((i) => i.paid).length;
@@ -74,10 +137,10 @@ export const FiadoManager = () => {
     }
   });
 
-  // Metrics
-  const totalSalesAmount = sales.reduce((acc, s) => acc + s.total, 0);
+  // Metrics based on periodSales
+  const totalSalesAmount = periodSales.reduce((acc, s) => acc + s.total, 0);
 
-  const totalAVistaCartao = sales
+  const totalAVistaCartao = periodSales
     .filter((s) => s.paymentMethod !== 'boca_2x')
     .reduce((acc, s) => acc + s.total, 0);
 
@@ -91,16 +154,16 @@ export const FiadoManager = () => {
 
   const overdueCount = allInstallments.filter((i) => i.isOverdue).length;
   const pendingInstallmentsCount = allInstallments.filter((i) => !i.paid).length;
-  const totalSalesFullyPaid = sales.filter(
+  const totalSalesFullyPaid = periodSales.filter(
     (s) => s.paymentMethod === 'boca_2x' && s.installments && s.installments.length > 0 && s.installments.every((i) => i.paid)
   ).length;
 
-  const countAVista = sales.filter((s) => s.paymentMethod === 'a_vista').length;
-  const countCartao = sales.filter((s) => s.paymentMethod === 'cartao').length;
-  const countFiado = sales.filter((s) => s.paymentMethod === 'boca_2x').length;
+  const countAVista = periodSales.filter((s) => s.paymentMethod === 'a_vista').length;
+  const countCartao = periodSales.filter((s) => s.paymentMethod === 'cartao').length;
+  const countFiado = periodSales.filter((s) => s.paymentMethod === 'boca_2x').length;
 
-  // Filtered Sales
-  const filteredSales = sales.filter((sale) => {
+  // Filtered Sales within period
+  const filteredSales = periodSales.filter((sale) => {
     // 1. Payment Method Filter
     if (filterPayment !== 'todas' && sale.paymentMethod !== filterPayment) {
       return false;
@@ -190,15 +253,32 @@ export const FiadoManager = () => {
         )}
       </div>
 
+      {/* Period Filter Bar */}
+      <PeriodFilterBar
+        viewMode={viewMode}
+        setViewMode={setViewMode}
+        selectedDate={selectedDate}
+        setSelectedDate={setSelectedDate}
+        selectedMonth={selectedMonth}
+        setSelectedMonth={setSelectedMonth}
+        selectedQuarter={selectedQuarter}
+        setSelectedQuarter={setSelectedQuarter}
+        selectedSemester={selectedSemester}
+        setSelectedSemester={setSelectedSemester}
+        selectedYear={selectedYear}
+        setSelectedYear={setSelectedYear}
+        availableYears={availableYears}
+      />
+
       {/* Summary Metrics Grid */}
       <div className="metrics-grid" style={{ marginBottom: '24px' }}>
         <div className="metric-card card-primary">
           <div className="metric-info">
-            <h4>Total Vendido (Geral)</h4>
+            <h4>Total Vendido ({getPeriodLabel(periodState)})</h4>
             <div className="metric-value" style={{ color: 'var(--color-primary)' }}>
               {formatCurrency(totalSalesAmount)}
             </div>
-            <div className="metric-sub">{sales.length} vendas registradas</div>
+            <div className="metric-sub">{periodSales.length} vendas no período</div>
           </div>
           <div className="metric-icon-box">
             <Receipt size={24} />
@@ -263,7 +343,7 @@ export const FiadoManager = () => {
                 setFilterFiadoStatus('todos');
               }}
             >
-              Todas as Vendas ({sales.length})
+              Todas as Vendas ({periodSales.length})
             </button>
 
             <button
@@ -370,7 +450,7 @@ export const FiadoManager = () => {
               {filteredSales.length === 0 ? (
                 <tr>
                   <td colSpan="7" style={{ textAlign: 'center', padding: '40px', color: 'var(--color-secondary-muted)' }}>
-                    Nenhuma venda encontrada para os filtros selecionados.
+                    Nenhuma venda encontrada para o período selecionado ({getPeriodLabel(periodState)}).
                   </td>
                 </tr>
               ) : (
