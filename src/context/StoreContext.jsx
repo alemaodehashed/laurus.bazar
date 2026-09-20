@@ -497,10 +497,13 @@ export const StoreProvider = ({ children }) => {
     installmentCount = 2,
     installmentDates = null,
     customInstallments = null,
+    saleDate = null,
   }) => {
     const total = items.reduce((acc, item) => acc + item.unitPrice * item.quantity, 0);
     const saleId = generateId('sale');
-    const nowIso = new Date().toISOString();
+    const nowIso = saleDate 
+      ? (saleDate.includes('T') ? saleDate : `${saleDate}T12:00:00.000Z`)
+      : new Date().toISOString();
 
     let installments = [];
     let remainingBalance = 0;

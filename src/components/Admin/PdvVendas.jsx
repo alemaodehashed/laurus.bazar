@@ -16,7 +16,8 @@ import {
   ShoppingBag,
   Receipt,
   Edit3,
-  Tag
+  Tag,
+  Calendar
 } from 'lucide-react';
 
 export const PdvVendas = () => {
@@ -27,6 +28,9 @@ export const PdvVendas = () => {
   const [saleItems, setSaleItems] = useState([]);
   const [selectedCustomerId, setSelectedCustomerId] = useState('');
   const [paymentMethod, setPaymentMethod] = useState('a_vista'); // a_vista, cartao, boca_2x
+
+  // Automatic sale date (defaults to today, can be changed for retroactive sales)
+  const [saleDate, setSaleDate] = useState(() => new Date().toISOString().split('T')[0]);
 
   // Quick customer registration state
   const [isAddingCustomer, setIsAddingCustomer] = useState(false);
@@ -248,6 +252,7 @@ export const PdvVendas = () => {
       firstPaidAtSale: firstPaidToday,
       installmentCount,
       installmentDates: datesToSend,
+      saleDate,
     });
 
     try {
@@ -257,6 +262,7 @@ export const PdvVendas = () => {
     setLastSale(saleRecord);
     setSaleItems([]);
     setSelectedCustomerId('');
+    setSaleDate(new Date().toISOString().split('T')[0]);
   };
 
   return (
@@ -400,10 +406,22 @@ export const PdvVendas = () => {
 
         {/* Right column: Current Sale Checkout */}
         <div className="pdv-cart-panel">
-          <h3 style={{ fontSize: '1.15rem', color: 'var(--color-secondary)', marginBottom: '12px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <ShoppingBag size={20} color="var(--color-primary)" />
-            Resumo da Venda ({saleItems.length})
-          </h3>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px', flexWrap: 'wrap', gap: '8px' }}>
+            <h3 style={{ fontSize: '1.15rem', color: 'var(--color-secondary)', margin: 0, display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <ShoppingBag size={20} color="var(--color-primary)" />
+              Resumo da Venda ({saleItems.length})
+            </h3>
+
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', background: 'var(--bg-subtle)', padding: '4px 10px', borderRadius: '6px' }} title="A data da venda é puxada automaticamente para hoje. Você pode alterar caso esteja registrando uma venda passada.">
+              <Calendar size={13} color="var(--color-taupe)" />
+              <input
+                type="date"
+                value={saleDate}
+                onChange={(e) => setSaleDate(e.target.value)}
+                style={{ fontSize: '0.78rem', border: 'none', background: 'transparent', color: 'var(--color-secondary)', fontWeight: 600, cursor: 'pointer', padding: 0 }}
+              />
+            </div>
+          </div>
 
           {/* Quick Custom Product Toggle Button */}
           <div style={{ marginBottom: '12px' }}>
