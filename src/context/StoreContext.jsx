@@ -146,6 +146,21 @@ export const StoreProvider = ({ children }) => {
     }
   };
 
+  const loadSpreadsheetData = async () => {
+    setData(initialData);
+    saveStoredData(initialData);
+    if (supabase) {
+      // Clear old test data in Supabase and re-seed with real data
+      try {
+        await supabase.from('products').delete().neq('id', 'none');
+        await supabase.from('customers').delete().neq('id', 'none');
+        await supabase.from('sales').delete().neq('id', 'none');
+      } catch (e) {}
+      await seedSupabaseInitialData();
+    }
+    showToast('Planilhas reais de perfumes, clientes e fiados sincronizadas com sucesso!');
+  };
+
   const showToast = (message, type = 'success') => {
     setToastMessage({ message, type, id: Date.now() });
     setTimeout(() => {
@@ -780,6 +795,7 @@ export const StoreProvider = ({ children }) => {
         deleteFinanceRecord,
         updateSettings,
         resetToInitialData,
+        loadSpreadsheetData,
         importBackupData,
         showToast,
       }}

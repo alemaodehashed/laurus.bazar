@@ -15,7 +15,7 @@ import {
 } from 'lucide-react';
 
 export const BackupSettings = () => {
-  const { data, settings, updateSettings, resetToInitialData, importBackupData, showToast, isCloudConnected } = useStore();
+  const { data, settings, updateSettings, resetToInitialData, loadSpreadsheetData, importBackupData, showToast, isCloudConnected } = useStore();
 
   const [formSettings, setFormSettings] = useState({
     storeName: settings.storeName || '',
@@ -177,6 +177,29 @@ export const BackupSettings = () => {
           </p>
 
           <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+            {/* Real Spreadsheet Sync */}
+            <div style={{ background: '#ecfdf5', border: '1px solid #6ee7b7', padding: '16px', borderRadius: '10px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px' }}>
+              <div>
+                <strong style={{ fontSize: '0.95rem', color: '#065f46' }}>📊 Carregar Planilhas Reais</strong>
+                <div style={{ fontSize: '0.78rem', color: '#047857' }}>
+                  Carrega instantaneamente seus 42 perfumes importados, 27 clientes e todos os fiados reais da planilha.
+                </div>
+              </div>
+
+              <button
+                type="button"
+                className="btn btn-success btn-sm"
+                onClick={() => {
+                  if (window.confirm('Deseja carregar e sincronizar todos os 42 perfumes, 27 clientes e fiados reais da sua planilha?')) {
+                    loadSpreadsheetData();
+                  }
+                }}
+              >
+                <RefreshCw size={15} />
+                Sincronizar Planilha Real
+              </button>
+            </div>
+
             {/* Export */}
             <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', padding: '16px', borderRadius: '10px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <div>

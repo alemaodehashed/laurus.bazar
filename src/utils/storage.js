@@ -1,4 +1,4 @@
-const STORAGE_KEY = 'bazar_familia_data_v1';
+const STORAGE_KEY = 'bazar_familia_data_v2';
 
 export const loadStoredData = (fallbackData) => {
   try {
