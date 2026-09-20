@@ -17,10 +17,11 @@ import {
 } from 'lucide-react';
 
 export const EstoqueManager = () => {
-  const { products, addProduct, updateProduct, deleteProduct, adjustProductStock } = useStore();
+  const { products, addProduct, updateProduct, deleteProduct, adjustProductStock, addBatchPurchase } = useStore();
   const [search, setSearch] = useState('');
   const [filterCategory, setFilterCategory] = useState('Todas');
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isBatchModalOpen, setIsBatchModalOpen] = useState(false);
   const [editingProduct, setEditingProduct] = useState(null);
   const [isUploadingImage, setIsUploadingImage] = useState(false);
   const fileInputRef = useRef(null);
@@ -41,6 +42,63 @@ export const EstoqueManager = () => {
   };
 
   const [formData, setFormData] = useState(initialFormState);
+
+  // Batch purchase form state
+  const initialBatchState = {
+    totalAmount: '',
+    totalPieces: '',
+    description: '',
+    date: new Date().toISOString().split('T')[0],
+    targetMode: 'new_product', // 'new_product' | 'existing_product' | 'cash_only'
+    productId: '',
+    newProductName: '',
+    newProductPrice: '',
+    newProductCategory: 'Roupas',
+  };
+
+  const [batchData, setBatchData] = useState(initialBatchState);
+
+  const openBatchModal = () => {
+    setBatchData({
+      ...initialBatchState,
+      date: new Date().toISOString().split('T')[0],
+    });
+    setIsBatchModalOpen(true);
+  };
+
+  const handleBatchSubmit = async (e) => {
+    e.preventDefault();
+    const totalAmount = parseFloat(batchData.totalAmount) || 0;
+    const totalPieces = parseInt(batchData.totalPieces, 10) || 0;
+
+    if (totalAmount <= 0) {
+      alert('Por favor, informe o valor total pago no lote!');
+      return;
+    }
+    if (totalPieces <= 0) {
+      alert('Por favor, informe a quantidade de peças no lote!');
+      return;
+    }
+
+    const avgCost = +(totalAmount / totalPieces).toFixed(2);
+    const desc = batchData.description?.trim() || `Lote de Roupas (${totalPieces} peças)`;
+
+    await addBatchPurchase({
+      totalAmount,
+      totalPieces,
+      description: desc,
+      targetMode: batchData.targetMode,
+      productId: batchData.productId,
+      date: batchData.date,
+      newProductData: {
+        name: batchData.newProductName?.trim() || desc,
+        price: parseFloat(batchData.newProductPrice) || +(avgCost * 2).toFixed(2),
+        category: batchData.newProductCategory || 'Roupas',
+      },
+    });
+
+    setIsBatchModalOpen(false);
+  };
 
   const categories = ['Todas', 'Roupas', 'Perfumes', 'Bazar'];
 
@@ -190,6 +248,11 @@ export const EstoqueManager = () => {
     : (parseInt(formData.stock, 10) || 0);
   const modalCostTotal = modalAddedStock * cost;
 
+  const batchTotal = parseFloat(batchData.totalAmount) || 0;
+  const batchPieces = parseInt(batchData.totalPieces, 10) || 0;
+  const batchAvgCost = batchPieces > 0 ? +(batchTotal / batchPieces).toFixed(2) : 0;
+  const selectedBatchProd = products.find((p) => p.id === batchData.productId);
+
   return (
     <div>
       <div className="admin-section-header">
@@ -198,10 +261,32 @@ export const EstoqueManager = () => {
           <p>Cadastre roupas, perfumes e variedades, controle unidades e reposições (o custo das peças adicionadas desconta automaticamente do seu Caixa)</p>
         </div>
 
-        <button className="btn btn-primary" onClick={openNewModal}>
-          <Plus size={18} />
-          Cadastrar Novo Produto
-        </button>
+        <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
+          <button
+            type="button"
+            className="btn btn-secondary"
+            onClick={openBatchModal}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px',
+              background: 'linear-gradient(135deg, #b45309 0%, #d97706 100%)',
+              borderColor: '#b45309',
+              color: '#fff',
+              boxShadow: '0 2px 6px rgba(180, 83, 9, 0.25)',
+              fontWeight: 600,
+            }}
+            title="Entrada rápida de compras de roupas em lote ou fardos com cálculo automático do custo médio"
+          >
+            <Sparkles size={18} />
+            📦 Entrada por Lote (Custo Médio)
+          </button>
+
+          <button className="btn btn-primary" onClick={openNewModal}>
+            <Plus size={18} />
+            Cadastrar Novo Produto
+          </button>
+        </div>
       </div>
 
       {/* Filter and Search Bar */}
@@ -636,6 +721,269 @@ export const EstoqueManager = () => {
                 <button type="submit" className="btn btn-primary">
                   <PackageCheck size={18} />
                   {editingProduct ? 'Salvar Alterações' : 'Cadastrar no Estoque'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Modal: Entrada por Lote com Custo Médio */}
+      {isBatchModalOpen && (
+        <div className="modal-overlay">
+          <div className="modal-content" style={{ maxWidth: '600px' }}>
+            <div className="modal-header">
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <div style={{ background: '#fef3c7', color: '#b45309', padding: '6px', borderRadius: '8px', display: 'flex' }}>
+                  <PackageCheck size={20} />
+                </div>
+                <div>
+                  <h3 style={{ margin: 0, fontSize: '1.15rem' }}>Entrada por Lote com Custo Médio</h3>
+                  <p style={{ margin: 0, fontSize: '0.78rem', color: 'var(--color-taupe)' }}>
+                    Ideal para compras de roupas em atacado, fardos e lotes de peças variadas
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                className="close-btn"
+                onClick={() => setIsBatchModalOpen(false)}
+              >
+                <X size={20} />
+              </button>
+            </div>
+
+            <form onSubmit={handleBatchSubmit}>
+              <div className="modal-body" style={{ maxHeight: '75vh', overflowY: 'auto' }}>
+                {/* Key Inputs: Total Paid + Total Pieces */}
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px', marginBottom: '14px' }}>
+                  <div className="form-group" style={{ marginBottom: 0 }}>
+                    <label className="form-label" style={{ fontWeight: 700, color: 'var(--color-secondary)' }}>
+                      Valor Total Pago no Lote (R$)*:
+                    </label>
+                    <input
+                      type="number"
+                      step="0.01"
+                      min="0.01"
+                      className="form-control"
+                      placeholder="Ex: 800.00"
+                      value={batchData.totalAmount}
+                      onChange={(e) => setBatchData({ ...batchData, totalAmount: e.target.value })}
+                      required
+                      autoFocus
+                    />
+                    <span style={{ fontSize: '0.74rem', color: 'var(--color-danger)' }}>
+                      * Será descontado integralmente do Caixa
+                    </span>
+                  </div>
+
+                  <div className="form-group" style={{ marginBottom: 0 }}>
+                    <label className="form-label" style={{ fontWeight: 700, color: 'var(--color-secondary)' }}>
+                      Quantidade de Peças*:
+                    </label>
+                    <input
+                      type="number"
+                      min="1"
+                      step="1"
+                      className="form-control"
+                      placeholder="Ex: 20"
+                      value={batchData.totalPieces}
+                      onChange={(e) => setBatchData({ ...batchData, totalPieces: e.target.value })}
+                      required
+                    />
+                    <span style={{ fontSize: '0.74rem', color: 'var(--color-taupe)' }}>
+                      * Total de itens contidos no fardo/lote
+                    </span>
+                  </div>
+                </div>
+
+                {/* Realtime Average Cost Highlight */}
+                <div
+                  style={{
+                    background: batchAvgCost > 0 ? '#ecfdf5' : '#f8fafc',
+                    border: `1.5px dashed ${batchAvgCost > 0 ? '#10b981' : '#cbd5e1'}`,
+                    padding: '12px 16px',
+                    borderRadius: '10px',
+                    marginBottom: '18px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    flexWrap: 'wrap',
+                    gap: '10px',
+                  }}
+                >
+                  <div>
+                    <span style={{ fontSize: '0.78rem', color: '#047857', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                      Custo Médio Calculado por Peça
+                    </span>
+                    <div style={{ fontSize: '1.6rem', fontWeight: 800, color: batchAvgCost > 0 ? '#059669' : '#94a3b8' }}>
+                      {batchAvgCost > 0 ? formatCurrency(batchAvgCost) : 'R$ 0,00'}
+                      <span style={{ fontSize: '0.85rem', fontWeight: 500, color: '#047857', marginLeft: '6px' }}>/ un</span>
+                    </div>
+                  </div>
+                  {batchAvgCost > 0 && (
+                    <div style={{ textAlign: 'right', fontSize: '0.8rem', color: '#065f46' }}>
+                      <strong>{batchPieces} peças</strong> x {formatCurrency(batchAvgCost)}<br />
+                      = <strong>{formatCurrency(batchTotal)}</strong> no total
+                    </div>
+                  )}
+                </div>
+
+                {/* Description and Date */}
+                <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '14px', marginBottom: '16px' }}>
+                  <div className="form-group" style={{ marginBottom: 0 }}>
+                    <label className="form-label">Identificação / Fornecedor do Lote:</label>
+                    <input
+                      type="text"
+                      className="form-control"
+                      placeholder="Ex: Lote Blusinhas e Croppeds - Brás"
+                      value={batchData.description}
+                      onChange={(e) => setBatchData({ ...batchData, description: e.target.value })}
+                    />
+                  </div>
+
+                  <div className="form-group" style={{ marginBottom: 0 }}>
+                    <label className="form-label">Data da Compra:</label>
+                    <input
+                      type="date"
+                      className="form-control"
+                      value={batchData.date}
+                      onChange={(e) => setBatchData({ ...batchData, date: e.target.value })}
+                    />
+                  </div>
+                </div>
+
+                {/* Target Mode: How to handle items in stock */}
+                <div className="form-group" style={{ background: '#fdf8f4', border: '1px solid #fed7aa', padding: '14px', borderRadius: '10px', marginBottom: '12px' }}>
+                  <label className="form-label" style={{ fontWeight: 700, color: '#9a3412', marginBottom: '8px' }}>
+                    Como deseja registrar estas peças no estoque?
+                  </label>
+
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                    <label style={{ display: 'flex', alignItems: 'flex-start', gap: '10px', cursor: 'pointer', fontSize: '0.88rem' }}>
+                      <input
+                        type="radio"
+                        name="targetMode"
+                        value="new_product"
+                        checked={batchData.targetMode === 'new_product'}
+                        onChange={() => setBatchData({ ...batchData, targetMode: 'new_product' })}
+                        style={{ marginTop: '3px' }}
+                      />
+                      <div>
+                        <strong>Cadastrar como novo item/lote no catálogo para venda rápida no PDV</strong>
+                        <div style={{ fontSize: '0.78rem', color: 'var(--color-taupe)' }}>
+                          Cria um produto com as {batchPieces || 0} unidades e o custo médio de {formatCurrency(batchAvgCost)}
+                        </div>
+                      </div>
+                    </label>
+
+                    <label style={{ display: 'flex', alignItems: 'flex-start', gap: '10px', cursor: 'pointer', fontSize: '0.88rem' }}>
+                      <input
+                        type="radio"
+                        name="targetMode"
+                        value="existing_product"
+                        checked={batchData.targetMode === 'existing_product'}
+                        onChange={() => setBatchData({ ...batchData, targetMode: 'existing_product' })}
+                        style={{ marginTop: '3px' }}
+                      />
+                      <div>
+                        <strong>Adicionar peças a um produto de roupa já existente</strong>
+                        <div style={{ fontSize: '0.78rem', color: 'var(--color-taupe)' }}>
+                          Soma as unidades e recalcula o custo médio ponderado do produto
+                        </div>
+                      </div>
+                    </label>
+
+                    <label style={{ display: 'flex', alignItems: 'flex-start', gap: '10px', cursor: 'pointer', fontSize: '0.88rem' }}>
+                      <input
+                        type="radio"
+                        name="targetMode"
+                        value="cash_only"
+                        checked={batchData.targetMode === 'cash_only'}
+                        onChange={() => setBatchData({ ...batchData, targetMode: 'cash_only' })}
+                        style={{ marginTop: '3px' }}
+                      />
+                      <div>
+                        <strong>Apenas lançar o gasto no caixa agora</strong>
+                        <div style={{ fontSize: '0.78rem', color: 'var(--color-taupe)' }}>
+                          Desconta do caixa e salva o registro nas finanças (você etiqueta e distribui as peças depois)
+                        </div>
+                      </div>
+                    </label>
+                  </div>
+                </div>
+
+                {/* Sub-fields depending on targetMode */}
+                {batchData.targetMode === 'new_product' && (
+                  <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', padding: '14px', borderRadius: '10px', marginBottom: '8px' }}>
+                    <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '12px' }}>
+                      <div className="form-group" style={{ marginBottom: 0 }}>
+                        <label className="form-label">Nome do Produto / Lote:</label>
+                        <input
+                          type="text"
+                          className="form-control"
+                          placeholder={batchData.description || 'Ex: Roupas Lote Atacado'}
+                          value={batchData.newProductName}
+                          onChange={(e) => setBatchData({ ...batchData, newProductName: e.target.value })}
+                        />
+                      </div>
+                      <div className="form-group" style={{ marginBottom: 0 }}>
+                        <label className="form-label">Preço Sugerido de Venda (R$):</label>
+                        <input
+                          type="number"
+                          step="0.01"
+                          min="0"
+                          className="form-control"
+                          placeholder={batchAvgCost > 0 ? `Ex: ${(batchAvgCost * 2).toFixed(2)}` : 'Ex: 79.90'}
+                          value={batchData.newProductPrice}
+                          onChange={(e) => setBatchData({ ...batchData, newProductPrice: e.target.value })}
+                        />
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {batchData.targetMode === 'existing_product' && (
+                  <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', padding: '14px', borderRadius: '10px', marginBottom: '8px' }}>
+                    <label className="form-label" style={{ fontWeight: 700 }}>Selecione o produto de destino:</label>
+                    <select
+                      className="form-control"
+                      value={batchData.productId}
+                      onChange={(e) => setBatchData({ ...batchData, productId: e.target.value })}
+                      required
+                    >
+                      <option value="">Selecione um produto cadastrado...</option>
+                      {products.map((p) => (
+                        <option key={p.id} value={p.id}>
+                          {p.name} (Atual: {p.stock} un • Custo atual: {formatCurrency(p.costPrice || 0)})
+                        </option>
+                      ))}
+                    </select>
+
+                    {selectedBatchProd && batchAvgCost > 0 && (
+                      <div style={{ marginTop: '8px', fontSize: '0.82rem', color: '#047857' }}>
+                        ✓ Novo estoque total: <strong>{(Number(selectedBatchProd.stock) || 0) + batchPieces} un</strong> • 
+                        Novo custo médio: <strong>{formatCurrency(
+                          +(((Number(selectedBatchProd.stock) || 0) * (Number(selectedBatchProd.costPrice) || 0) + batchTotal) / 
+                          ((Number(selectedBatchProd.stock) || 0) + batchPieces)).toFixed(2)
+                        )}/un</strong>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+
+              <div className="modal-footer" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <button type="button" className="btn btn-outline" onClick={() => setIsBatchModalOpen(false)}>
+                  Cancelar
+                </button>
+                <button
+                  type="submit"
+                  className="btn btn-primary"
+                  style={{ background: '#059669', borderColor: '#059669', display: 'flex', alignItems: 'center', gap: '8px' }}
+                >
+                  <PackageCheck size={18} />
+                  Confirmar e Descontar {batchTotal > 0 ? formatCurrency(batchTotal) : ''} do Caixa
                 </button>
               </div>
             </form>

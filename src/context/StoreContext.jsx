@@ -535,6 +535,119 @@ export const StoreProvider = ({ children }) => {
     }
   };
 
+  // Batch/Lot purchases with average cost (ideal for clothes and wholesale packages)
+  const addBatchPurchase = async ({
+    totalAmount,
+    totalPieces,
+    description,
+    targetMode, // 'new_product' | 'existing_product' | 'cash_only'
+    productId,
+    newProductData,
+    date,
+  }) => {
+    const expenseAmount = Number(totalAmount) || 0;
+    const pieces = Math.max(1, Number(totalPieces) || 1);
+    const avgCost = +(expenseAmount / pieces).toFixed(2);
+    const purchaseDate = date || new Date().toISOString().split('T')[0];
+    const desc = description?.trim() || `Lote de Roupas (${pieces} peças)`;
+
+    const finRecord = {
+      id: generateId('fin'),
+      date: purchaseDate,
+      type: 'despesa_loja',
+      category: 'Compra de Mercadorias',
+      description: `Compra de Lote (${pieces} un): ${desc} - Custo Médio ${formatCurrency(avgCost)}/un`,
+      amount: expenseAmount,
+    };
+
+    let newProdCreated = null;
+    let updatedExistingProd = null;
+
+    setData((prev) => {
+      let updatedProducts = [...prev.products];
+
+      if (targetMode === 'new_product') {
+        newProdCreated = {
+          id: generateId('prod'),
+          active: true,
+          featured: false,
+          name: newProductData?.name?.trim() || desc,
+          category: newProductData?.category || 'Roupas',
+          costPrice: avgCost,
+          price: Number(newProductData?.price) || +(avgCost * 2).toFixed(2),
+          specialPrice: newProductData?.specialPrice ? Number(newProductData.specialPrice) : null,
+          stock: pieces,
+          sizes: newProductData?.sizes && newProductData.sizes.length > 0 ? newProductData.sizes : ['Variados'],
+          image: newProductData?.image || 'https://images.unsplash.com/photo-1572804013309-59a88b7e92f1?w=700&auto=format&fit=crop&q=80',
+          description: newProductData?.description || `Peças adquiridas em lote com custo médio de ${formatCurrency(avgCost)} por unidade.`,
+        };
+        updatedProducts = [newProdCreated, ...updatedProducts];
+      } else if (targetMode === 'existing_product' && productId) {
+        updatedProducts = updatedProducts.map((p) => {
+          if (p.id === productId) {
+            const oldStock = Number(p.stock) || 0;
+            const oldCost = Number(p.costPrice) || 0;
+            const newStock = oldStock + pieces;
+            // Weighted average cost
+            const weightedCost = newStock > 0 ? +((oldStock * oldCost + pieces * avgCost) / newStock).toFixed(2) : avgCost;
+            updatedExistingProd = {
+              ...p,
+              stock: newStock,
+              costPrice: weightedCost,
+            };
+            return updatedExistingProd;
+          }
+          return p;
+        });
+      }
+
+      return {
+        ...prev,
+        products: updatedProducts,
+        personalFinance: [finRecord, ...(prev.personalFinance || [])],
+      };
+    });
+
+    if (supabase) {
+      try {
+        await supabase.from('personal_finance').insert({
+          id: finRecord.id,
+          date: finRecord.date,
+          type: finRecord.type,
+          category: finRecord.category,
+          description: finRecord.description,
+          amount: finRecord.amount,
+        });
+
+        if (newProdCreated) {
+          await supabase.from('products').insert({
+            id: newProdCreated.id,
+            name: newProdCreated.name,
+            category: newProdCreated.category,
+            cost_price: newProdCreated.costPrice,
+            price: newProdCreated.price,
+            stock: newProdCreated.stock,
+            sizes: newProdCreated.sizes || [],
+            image: newProdCreated.image || '',
+            description: newProdCreated.description || '',
+            featured: newProdCreated.featured,
+            active: newProdCreated.active,
+          });
+        } else if (updatedExistingProd) {
+          await supabase.from('products').update({
+            stock: updatedExistingProd.stock,
+            cost_price: updatedExistingProd.costPrice,
+          }).eq('id', updatedExistingProd.id);
+        }
+      } catch (err) {
+        console.warn('Erro ao salvar entrada de lote no Supabase:', err);
+      }
+    }
+
+    showToast(`Lote registrado! ${formatCurrency(expenseAmount)} descontado do caixa (Custo médio: ${formatCurrency(avgCost)}/un)`);
+    return { finRecord, product: newProdCreated || updatedExistingProd };
+  };
+
   // Customers
   const addCustomer = async (customerData) => {
     const newCustomer = {
@@ -1018,6 +1131,7 @@ export const StoreProvider = ({ children }) => {
         updateProduct,
         deleteProduct,
         adjustProductStock,
+        addBatchPurchase,
         addCustomer,
         updateCustomer,
         deleteCustomer,
