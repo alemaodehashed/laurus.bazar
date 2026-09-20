@@ -47,30 +47,13 @@ export const AdminPage = ({ onGoToVitrine }) => {
       <header className="admin-navbar">
         <div className="admin-nav-container">
           <div className="admin-brand">
-            <div style={{
-              width: '40px',
-              height: '40px',
-              borderRadius: '8px',
-              border: '2px solid #C5A063',
-              background: '#ffffff',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              boxShadow: '0 2px 8px rgba(197, 160, 99, 0.4)',
-              overflow: 'hidden'
-            }}>
+            <div className="admin-brand-logo">
               <img
                 src="/monogram.png"
                 alt="Laurus Bazar - Monograma LL"
-                style={{
-                  width: '100%',
-                  height: '100%',
-                  objectFit: 'contain',
-                  padding: '2px'
-                }}
               />
             </div>
-            <h2 style={{ fontSize: '1.15rem', color: '#ffffff', fontWeight: 700 }}>
+            <h2>
               {settings.storeName}
             </h2>
             <span className="admin-badge-family">Painel da Família</span>
@@ -85,7 +68,8 @@ export const AdminPage = ({ onGoToVitrine }) => {
               title="Abrir a vitrine que os clientes visualizam"
             >
               <ExternalLink size={15} />
-              <span>Ver Vitrine dos Clientes</span>
+              <span className="desktop-nav-text">Ver Vitrine dos Clientes</span>
+              <span className="mobile-nav-text">Vitrine</span>
             </button>
 
             <button

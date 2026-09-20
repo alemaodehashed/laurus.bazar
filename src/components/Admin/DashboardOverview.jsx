@@ -146,7 +146,7 @@ export const DashboardOverview = () => {
       </div>
 
       {/* Grid with 2 columns: Pending 2x installments + Sales breakdown */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(400px, 1fr))', gap: '24px' }}>
+      <div className="admin-two-cols">
         {/* Pending Installments ("De Boca 2x") */}
         <div className="card">
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>

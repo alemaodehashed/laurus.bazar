@@ -92,7 +92,7 @@ export const ClientesManager = () => {
       {/* Search Bar */}
       <div className="card" style={{ marginBottom: '20px', padding: '14px 20px' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px' }}>
-          <div style={{ position: 'relative', width: '320px' }}>
+          <div style={{ position: 'relative', width: '100%', maxWidth: '320px' }}>
             <Search size={16} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: '#94a3b8' }} />
             <input
               type="text"

@@ -109,7 +109,7 @@ export const VitrinePage = ({ onOpenAdminLogin }) => {
 
       {/* Hero Section */}
       <section className="vitrine-hero">
-        <div className="hero-container" style={{ display: 'flex', flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: '32px' }}>
+        <div className="hero-container">
           <div style={{ flex: 1 }}>
             <div className="hero-pill">
               <Tag size={14} />

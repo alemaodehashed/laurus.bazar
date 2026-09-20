@@ -154,7 +154,7 @@ export const EstoqueManager = () => {
             ))}
           </div>
 
-          <div style={{ position: 'relative', width: '300px' }}>
+          <div style={{ position: 'relative', width: '100%', maxWidth: '300px' }}>
             <Search size={16} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: '#94a3b8' }} />
             <input
               type="text"

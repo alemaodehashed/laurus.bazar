@@ -224,8 +224,10 @@
   position: relative;
   z-index: 2;
   display: flex;
-  flex-direction: column;
-  gap: 16px;
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+  gap: 32px;
 }
 
 .hero-pill {
@@ -677,26 +679,169 @@
 }
 
 /* Responsive */
-@media (max-width: 768px) {
-  .vitrine-header-container {
+@media (max-width: 900px) {
+  .hero-container {
     flex-direction: column;
-    align-items: stretch;
-    gap: 12px;
-  }
-  .header-actions {
-    justify-content: space-between;
-  }
-  .hero-title {
-    font-size: 1.6rem;
-  }
-  .product-grid {
-    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
-    gap: 14px;
-  }
-  .product-info {
-    padding: 12px;
-  }
-  .price-main {
-    font-size: 1.15rem;
+    align-items: flex-start;
+    gap: 20px;
   }
 }
+
+@media (max-width: 768px) {
+  .top-announcement {
+    padding: 6px 12px;
+    font-size: 0.74rem;
+    flex-direction: column;
+    gap: 4px;
+    text-align: center;
+  }
+
+  .vitrine-header {
+    padding: 10px 14px;
+  }
+
+  .vitrine-header-container {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: 10px;
+    align-items: center;
+  }
+
+  .store-brand {
+    grid-column: 1;
+  }
+
+  .brand-text h1 {
+    font-size: 1.1rem;
+  }
+
+  .brand-text p {
+    font-size: 0.72rem;
+  }
+
+  .brand-logo-wrapper {
+    width: 42px;
+    height: 42px;
+  }
+
+  .header-actions {
+    grid-column: 2;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .header-search {
+    grid-column: span 2;
+    max-width: 100%;
+    width: 100%;
+  }
+
+  .cart-button {
+    padding: 7px 12px;
+    font-size: 0.82rem;
+  }
+
+  .vitrine-hero {
+    padding: 30px 16px;
+  }
+
+  .hero-title {
+    font-size: 1.55rem;
+    line-height: 1.2;
+  }
+
+  .hero-subtitle {
+    font-size: 0.88rem;
+  }
+
+  .hero-highlights {
+    gap: 8px;
+  }
+
+  .highlight-item {
+    padding: 6px 10px;
+    font-size: 0.78rem;
+  }
+
+  .vitrine-content {
+    padding: 18px 12px 48px 12px;
+  }
+
+  .category-bar {
+    margin-bottom: 20px;
+    padding-bottom: 8px;
+    gap: 6px;
+  }
+
+  .category-btn {
+    padding: 8px 14px;
+    font-size: 0.84rem;
+  }
+
+  .product-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 12px;
+  }
+
+  .product-card {
+    border-radius: var(--border-radius-md);
+  }
+
+  .product-info {
+    padding: 10px 8px;
+  }
+
+  .product-name {
+    font-size: 0.9rem;
+    margin-bottom: 3px;
+  }
+
+  .product-desc {
+    display: none;
+  }
+
+  .product-sizes-bar {
+    margin-bottom: 6px;
+    gap: 3px;
+  }
+
+  .size-pill {
+    font-size: 0.68rem;
+    padding: 1px 5px;
+  }
+
+  .product-footer {
+    padding-top: 8px;
+  }
+
+  .price-main {
+    font-size: 1.1rem;
+  }
+
+  .price-installment {
+    font-size: 0.7rem;
+  }
+
+  .cart-drawer {
+    max-width: 100%;
+  }
+
+  .footer-copy {
+    flex-direction: column;
+    gap: 8px;
+    text-align: center;
+  }
+}
+
+@media (max-width: 420px) {
+  .product-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 8px;
+  }
+
+  .brand-text p {
+    display: none;
+  }
+}
+
