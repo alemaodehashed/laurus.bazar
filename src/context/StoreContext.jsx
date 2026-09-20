@@ -7,10 +7,34 @@ import { supabase, isSupabaseConfigured } from '../utils/supabaseClient';
 const StoreContext = createContext();
 
 export const StoreProvider = ({ children }) => {
+  const AUTH_STORAGE_KEY = 'bazar_admin_session';
+  const ADMIN_TAB_STORAGE_KEY = 'bazar_admin_tab';
+
   const [data, setData] = useState(() => loadStoredData(initialData));
   const [cart, setCart] = useState([]);
-  const [isAdminAuthenticated, setIsAdminAuthenticated] = useState(false);
-  const [activeAdminTab, setActiveAdminTab] = useState('dashboard');
+  const [isAdminAuthenticated, setIsAdminAuthenticated] = useState(() => {
+    try {
+      return localStorage.getItem(AUTH_STORAGE_KEY) === 'true';
+    } catch (e) {
+      return false;
+    }
+  });
+
+  const [activeAdminTab, setActiveAdminTabState] = useState(() => {
+    try {
+      return localStorage.getItem(ADMIN_TAB_STORAGE_KEY) || 'dashboard';
+    } catch (e) {
+      return 'dashboard';
+    }
+  });
+
+  const setActiveAdminTab = (tabId) => {
+    setActiveAdminTabState(tabId);
+    try {
+      localStorage.setItem(ADMIN_TAB_STORAGE_KEY, tabId);
+    } catch (e) {}
+  };
+
   const [isCartOpen, setIsCartOpen] = useState(false);
   const [toastMessage, setToastMessage] = useState(null);
   const [isCloudConnected, setIsCloudConnected] = useState(isSupabaseConfigured());
@@ -171,6 +195,9 @@ export const StoreProvider = ({ children }) => {
   // Auth
   const loginAdmin = (password) => {
     if (password === data.settings.adminPassword) {
+      try {
+        localStorage.setItem(AUTH_STORAGE_KEY, 'true');
+      } catch (e) {}
       setIsAdminAuthenticated(true);
       showToast('Bem-vindo à Área de Gestão!');
       return true;
@@ -180,6 +207,10 @@ export const StoreProvider = ({ children }) => {
   };
 
   const logoutAdmin = () => {
+    try {
+      localStorage.removeItem(AUTH_STORAGE_KEY);
+      localStorage.removeItem('bazar_current_view');
+    } catch (e) {}
     setIsAdminAuthenticated(false);
     showToast('Você saiu da Área de Gestão.');
   };
