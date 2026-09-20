@@ -21,7 +21,7 @@ import {
 } from 'lucide-react';
 
 export const PdvVendas = () => {
-  const { products, customers, addCustomer, createSale, setActiveAdminTab } = useStore();
+  const { products, customers, addCustomer, createSale, addProduct, setActiveAdminTab } = useStore();
 
   const [search, setSearch] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('Todas');
@@ -44,6 +44,9 @@ export const PdvVendas = () => {
   const [customPrice, setCustomPrice] = useState('');
   const [customSize, setCustomSize] = useState('Único');
   const [customQty, setCustomQty] = useState(1);
+  const [saveToStock, setSaveToStock] = useState(false);
+  const [customCategory, setCustomCategory] = useState('Bazar');
+  const [extraStockQty, setExtraStockQty] = useState(0);
 
   // Fiado parcelado parameters (Configurable installments)
   const [installmentCount, setInstallmentCount] = useState(2);
@@ -107,7 +110,7 @@ export const PdvVendas = () => {
   };
 
   // Add custom / random item that is not in the catalog
-  const handleAddCustomProduct = (e) => {
+  const handleAddCustomProduct = async (e) => {
     if (e) e.preventDefault();
     if (!customName.trim()) {
       alert('Informe o nome ou descrição do produto avulso!');
@@ -119,22 +122,55 @@ export const PdvVendas = () => {
       return;
     }
 
-    const newItem = {
-      productId: 'avulso_' + Date.now() + '_' + Math.random().toString(36).substring(2, 6),
-      name: customName.trim(),
-      unitPrice: cleanPrice,
-      quantity: Math.max(1, parseInt(customQty) || 1),
-      size: customSize.trim() || 'Único',
-      availableSizes: [customSize.trim() || 'Único'],
-      maxStock: 99999,
-      isCustomItem: true,
-    };
+    const qty = Math.max(1, parseInt(customQty) || 1);
+    const size = customSize.trim() || 'Único';
+
+    let newItem;
+
+    if (saveToStock) {
+      // Include this product into store stock / catalog
+      const totalInitialStock = qty + Math.max(0, parseInt(extraStockQty) || 0);
+      const created = await addProduct({
+        name: customName.trim(),
+        price: cleanPrice,
+        costPrice: 0,
+        stock: totalInitialStock,
+        sizes: [size],
+        category: customCategory || 'Bazar',
+        active: true,
+        description: 'Cadastrado direto pelo Caixa / PDV',
+      });
+
+      newItem = {
+        productId: created ? created.id : ('prod_' + Date.now()),
+        name: customName.trim(),
+        unitPrice: cleanPrice,
+        quantity: qty,
+        size: size,
+        availableSizes: [size],
+        maxStock: totalInitialStock,
+        isCustomItem: false, // will update catalog stock
+      };
+    } else {
+      newItem = {
+        productId: 'avulso_' + Date.now() + '_' + Math.random().toString(36).substring(2, 6),
+        name: customName.trim(),
+        unitPrice: cleanPrice,
+        quantity: qty,
+        size: size,
+        availableSizes: [size],
+        maxStock: 99999,
+        isCustomItem: true, // will not affect catalog
+      };
+    }
 
     setSaleItems((prev) => [...prev, newItem]);
     setCustomName('');
     setCustomPrice('');
     setCustomSize('Único');
     setCustomQty(1);
+    setSaveToStock(false);
+    setExtraStockQty(0);
     setIsAddingCustomProduct(false);
   };
 
@@ -515,14 +551,63 @@ export const PdvVendas = () => {
                   </div>
                 </div>
 
+                {/* Option to include or not in store stock/catalog */}
+                <div style={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: '8px', padding: '10px 12px', marginTop: '4px' }}>
+                  <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', fontSize: '0.82rem', fontWeight: 600, color: 'var(--color-secondary)', margin: 0 }}>
+                    <input
+                      type="checkbox"
+                      checked={saveToStock}
+                      onChange={(e) => setSaveToStock(e.target.checked)}
+                      style={{ width: '16px', height: '16px', accentColor: 'var(--color-primary)' }}
+                    />
+                    <span>📦 Cadastrar e incluir este produto no Estoque / Catálogo da loja?</span>
+                  </label>
+
+                  {saveToStock && (
+                    <div style={{ marginTop: '10px', paddingTop: '10px', borderTop: '1px dashed #cbd5e1', display: 'grid', gridTemplateColumns: '1.2fr 1fr', gap: '8px' }}>
+                      <div>
+                        <label style={{ fontSize: '0.72rem', color: 'var(--color-secondary-muted)', display: 'block', marginBottom: '2px' }}>
+                          Categoria no Catálogo:
+                        </label>
+                        <select
+                          className="form-control"
+                          style={{ fontSize: '0.8rem', padding: '5px 8px', background: '#fff' }}
+                          value={customCategory}
+                          onChange={(e) => setCustomCategory(e.target.value)}
+                        >
+                          <option value="Bazar">Bazar</option>
+                          <option value="Roupas">Roupas</option>
+                          <option value="Perfumes">Perfumes</option>
+                        </select>
+                      </div>
+
+                      <div>
+                        <label style={{ fontSize: '0.72rem', color: 'var(--color-secondary-muted)', display: 'block', marginBottom: '2px' }}>
+                          Estoque Extra Restante:
+                        </label>
+                        <input
+                          type="number"
+                          min="0"
+                          placeholder="Ex: 0 ou 5 un"
+                          className="form-control"
+                          style={{ fontSize: '0.8rem', padding: '5px 8px', background: '#fff' }}
+                          value={extraStockQty}
+                          onChange={(e) => setExtraStockQty(Math.max(0, parseInt(e.target.value) || 0))}
+                          title="Quantas peças vão sobrar no estoque além da que você está vendendo agora"
+                        />
+                      </div>
+                    </div>
+                  )}
+                </div>
+
                 <button
                   type="button"
                   className="btn btn-primary btn-sm"
-                  style={{ width: '100%', padding: '8px', marginTop: '4px' }}
+                  style={{ width: '100%', padding: '9px', marginTop: '6px' }}
                   onClick={handleAddCustomProduct}
                 >
                   <Plus size={14} />
-                  Adicionar Este Produto à Venda
+                  {saveToStock ? 'Cadastrar no Estoque e Adicionar à Venda' : 'Adicionar Item Avulso à Venda'}
                 </button>
               </div>
             </div>
