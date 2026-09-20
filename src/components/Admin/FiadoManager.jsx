@@ -2,6 +2,9 @@ import React, { useState } from 'react';
 import { useStore } from '../../context/StoreContext';
 import { formatCurrency, formatDate, generateWhatsAppLink } from '../../utils/formatters';
 import {
+  Receipt,
+  Banknote,
+  CreditCard,
   Clock,
   CheckCircle,
   AlertCircle,
@@ -14,22 +17,28 @@ import {
   User,
   Trash2,
   Edit2,
-  Save
+  Filter,
+  ShoppingBag
 } from 'lucide-react';
 
 export const FiadoManager = () => {
   const { sales, payInstallment, updateInstallmentDueDate, deleteSale, clearAllSales, customers, settings } = useStore();
-  const [filterStatus, setFilterStatus] = useState('pendente'); // todos, pendente, vencido, pago
-  const [searchCustomer, setSearchCustomer] = useState('');
+
+  // Filters
+  const [filterPayment, setFilterPayment] = useState('todas'); // todas, a_vista, cartao, boca_2x
+  const [filterFiadoStatus, setFilterFiadoStatus] = useState('todos'); // todos, pendente, vencido, pago
+  const [searchQuery, setSearchQuery] = useState('');
+
+  // Modals state
   const [selectedForReminder, setSelectedForReminder] = useState(null);
   const [editingDueDateItem, setEditingDueDateItem] = useState(null);
   const [newDueDateValue, setNewDueDateValue] = useState('');
   const [customPixKey, setCustomPixKey] = useState(settings.whatsapp);
 
-  // Flatten all installments with sale context
   const today = new Date().toISOString().split('T')[0];
-  const allInstallments = [];
 
+  // Flatten installments for metric counts
+  const allInstallments = [];
   sales.forEach((sale) => {
     if (sale.paymentMethod === 'boca_2x' && sale.installments) {
       const totalInstallments = sale.installments.length;
@@ -64,35 +73,62 @@ export const FiadoManager = () => {
     }
   });
 
-  // Totals
-  const totalPendente = allInstallments
+  // Metrics
+  const totalSalesAmount = sales.reduce((acc, s) => acc + s.total, 0);
+
+  const totalAVistaCartao = sales
+    .filter((s) => s.paymentMethod !== 'boca_2x')
+    .reduce((acc, s) => acc + s.total, 0);
+
+  const totalPendenteFiado = allInstallments
     .filter((i) => !i.paid)
     .reduce((acc, i) => acc + i.amount, 0);
 
-  const totalQuitado = allInstallments
+  const totalQuitadoFiado = allInstallments
     .filter((i) => i.paid)
     .reduce((acc, i) => acc + i.amount, 0);
 
   const overdueCount = allInstallments.filter((i) => i.isOverdue).length;
-  const pendingCount = allInstallments.filter((i) => !i.paid).length;
-  const fullyPaidCount = allInstallments.filter((i) => i.paid && i.isSaleFullyPaid).length;
+  const pendingInstallmentsCount = allInstallments.filter((i) => !i.paid).length;
   const totalSalesFullyPaid = sales.filter(
     (s) => s.paymentMethod === 'boca_2x' && s.installments && s.installments.length > 0 && s.installments.every((i) => i.paid)
   ).length;
 
-  // Filtered List: "Quitadas / Pagas" only displays fully paid sales (all installments paid, e.g. 2/2)
-  const filteredInstallments = allInstallments.filter((item) => {
-    const matchesSearch = item.customerName.toLowerCase().includes(searchCustomer.toLowerCase());
+  const countAVista = sales.filter((s) => s.paymentMethod === 'a_vista').length;
+  const countCartao = sales.filter((s) => s.paymentMethod === 'cartao').length;
+  const countFiado = sales.filter((s) => s.paymentMethod === 'boca_2x').length;
 
-    if (!matchesSearch) return false;
+  // Filtered Sales
+  const filteredSales = sales.filter((sale) => {
+    // 1. Payment Method Filter
+    if (filterPayment !== 'todas' && sale.paymentMethod !== filterPayment) {
+      return false;
+    }
 
-    if (filterStatus === 'pendente') return !item.paid;
-    if (filterStatus === 'vencido') return item.isOverdue;
-    if (filterStatus === 'pago') return item.paid && item.isSaleFullyPaid;
-    return true; // todos
+    // 2. Fiado Status Filter (if filtering Fiado or looking at Fiado sales)
+    if (sale.paymentMethod === 'boca_2x' && filterFiadoStatus !== 'todos') {
+      const hasUnpaid = sale.installments && sale.installments.some((i) => !i.paid);
+      const isFullyPaid = sale.installments && sale.installments.length > 0 && sale.installments.every((i) => i.paid);
+      const hasOverdue = sale.installments && sale.installments.some((i) => !i.paid && i.dueDate < today);
+
+      if (filterFiadoStatus === 'pendente' && !hasUnpaid) return false;
+      if (filterFiadoStatus === 'vencido' && !hasOverdue) return false;
+      if (filterFiadoStatus === 'pago' && !isFullyPaid) return false;
+    }
+
+    // 3. Search Query Filter
+    if (searchQuery.trim()) {
+      const q = searchQuery.toLowerCase();
+      const matchesCustomer = (sale.customerName || '').toLowerCase().includes(q);
+      const matchesPhone = (sale.customerPhone || '').includes(q);
+      const matchesItem = sale.items && sale.items.some((it) => (it.name || '').toLowerCase().includes(q));
+      if (!matchesCustomer && !matchesPhone && !matchesItem) return false;
+    }
+
+    return true;
   });
 
-  // Build Friendly WhatsApp message
+  // Build Friendly WhatsApp reminder for installment
   const buildReminderMessage = (item) => {
     const statusText = item.isOverdue
       ? `que venceu em ${formatDate(item.dueDate)}`
@@ -115,13 +151,14 @@ export const FiadoManager = () => {
 
   return (
     <div>
+      {/* Section Header */}
       <div className="admin-section-header">
         <div className="admin-section-title">
-          <h2>Controle de Fiado ("2x de Boca")</h2>
-          <p>Acompanhe datas de vencimento, registre recebimentos e envie lembretes amigáveis no WhatsApp</p>
+          <h2>Vendas no Geral & Histórico</h2>
+          <p>Acompanhe todas as vendas realizadas (À Vista, Cartão e Fiado/De Boca) com filtros detalhados e controle de cobrança</p>
         </div>
 
-        {allInstallments.length > 0 && (
+        {sales.length > 0 && (
           <button
             type="button"
             className="btn btn-outline btn-sm"
@@ -133,48 +170,61 @@ export const FiadoManager = () => {
             }}
           >
             <Trash2 size={15} />
-            Zerar Todas as Vendas e Fiados de Teste
+            Zerar Todas as Vendas de Teste
           </button>
         )}
       </div>
 
-      {/* Summary Stat Cards */}
+      {/* Summary Metrics Grid */}
       <div className="metrics-grid" style={{ marginBottom: '24px' }}>
+        <div className="metric-card card-primary">
+          <div className="metric-info">
+            <h4>Total Vendido (Geral)</h4>
+            <div className="metric-value" style={{ color: 'var(--color-primary)' }}>
+              {formatCurrency(totalSalesAmount)}
+            </div>
+            <div className="metric-sub">{sales.length} vendas registradas</div>
+          </div>
+          <div className="metric-icon-box">
+            <Receipt size={24} />
+          </div>
+        </div>
+
+        <div className="metric-card card-success">
+          <div className="metric-info">
+            <h4>À Vista & Cartão (Recebido)</h4>
+            <div className="metric-value" style={{ color: 'var(--color-success)' }}>
+              {formatCurrency(totalAVistaCartao)}
+            </div>
+            <div className="metric-sub">{countAVista + countCartao} vendas pagas no ato</div>
+          </div>
+          <div className="metric-icon-box">
+            <Banknote size={24} />
+          </div>
+        </div>
+
         <div className="metric-card card-danger">
           <div className="metric-info">
-            <h4>A Receber ("De Boca")</h4>
+            <h4>A Receber do Fiado</h4>
             <div className="metric-value" style={{ color: 'var(--color-danger)' }}>
-              {formatCurrency(totalPendente)}
+              {formatCurrency(totalPendenteFiado)}
             </div>
-            <div className="metric-sub">{allInstallments.filter((i) => !i.paid).length} parcelas a receber</div>
+            <div className="metric-sub">{pendingInstallmentsCount} parcelas a receber</div>
           </div>
           <div className="metric-icon-box">
             <Clock size={24} />
           </div>
         </div>
 
-        <div className="metric-card card-success">
+        <div className="metric-card card-warning">
           <div className="metric-info">
-            <h4>Já Recebido do Fiado</h4>
-            <div className="metric-value" style={{ color: 'var(--color-success)' }}>
-              {formatCurrency(totalQuitado)}
-            </div>
-            <div className="metric-sub">
-              {totalSalesFullyPaid} {totalSalesFullyPaid === 1 ? 'venda 100% quitada' : 'vendas 100% quitadas'} ({allInstallments.filter((i) => i.paid).length} parcelas pagas)
-            </div>
-          </div>
-          <div className="metric-icon-box">
-            <CheckCircle size={24} />
-          </div>
-        </div>
-
-        <div className="metric-card card-primary">
-          <div className="metric-info">
-            <h4>Parcelas em Atraso</h4>
+            <h4>Fiados em Atraso</h4>
             <div className="metric-value" style={{ color: overdueCount > 0 ? '#b91c1c' : '#10b981' }}>
               {overdueCount} atrasadas
             </div>
-            <div className="metric-sub">requerem atenção amigável</div>
+            <div className="metric-sub">
+              {totalSalesFullyPaid} fiados 100% quitados
+            </div>
           </div>
           <div className="metric-icon-box">
             <AlertCircle size={24} />
@@ -183,239 +233,355 @@ export const FiadoManager = () => {
       </div>
 
       {/* Filter and Search Bar */}
-      <div className="card" style={{ marginBottom: '20px', padding: '14px 20px' }}>
+      <div className="card" style={{ marginBottom: '20px', padding: '16px 20px' }}>
         <div style={{ display: 'flex', gap: '16px', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between' }}>
-          <div style={{ display: 'flex', gap: '8px' }}>
+          {/* Primary Payment Method Filters */}
+          <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', alignItems: 'center' }}>
+            <span style={{ fontSize: '0.82rem', fontWeight: 700, color: 'var(--color-secondary)', marginRight: '4px' }}>
+              Forma:
+            </span>
             <button
-              className={`btn btn-sm ${filterStatus === 'pendente' ? 'btn-secondary' : 'btn-outline'}`}
-              onClick={() => setFilterStatus('pendente')}
+              type="button"
+              className={`btn btn-sm ${filterPayment === 'todas' ? 'btn-secondary' : 'btn-outline'}`}
+              onClick={() => {
+                setFilterPayment('todas');
+                setFilterFiadoStatus('todos');
+              }}
             >
-              Pendentes a Receber ({pendingCount})
+              Todas as Vendas ({sales.length})
             </button>
+
             <button
-              className={`btn btn-sm ${filterStatus === 'vencido' ? 'btn-danger' : 'btn-outline'}`}
-              onClick={() => setFilterStatus('vencido')}
+              type="button"
+              className={`btn btn-sm ${filterPayment === 'a_vista' ? 'btn-secondary' : 'btn-outline'}`}
+              onClick={() => setFilterPayment('a_vista')}
             >
-              Vencidas ({overdueCount})
+              <Banknote size={14} />
+              À Vista ({countAVista})
             </button>
+
             <button
-              className={`btn btn-sm ${filterStatus === 'pago' ? 'btn-secondary' : 'btn-outline'}`}
-              onClick={() => setFilterStatus('pago')}
-              title="Apenas compras em que todas as parcelas foram pagas (100% quitado)"
+              type="button"
+              className={`btn btn-sm ${filterPayment === 'cartao' ? 'btn-secondary' : 'btn-outline'}`}
+              onClick={() => setFilterPayment('cartao')}
             >
-              Quitadas / Pagas (2/2) {totalSalesFullyPaid > 0 ? `(${totalSalesFullyPaid})` : ''}
+              <CreditCard size={14} />
+              Cartão ({countCartao})
             </button>
+
             <button
-              className={`btn btn-sm ${filterStatus === 'todos' ? 'btn-secondary' : 'btn-outline'}`}
-              onClick={() => setFilterStatus('todos')}
+              type="button"
+              className={`btn btn-sm ${filterPayment === 'boca_2x' ? 'btn-secondary' : 'btn-outline'}`}
+              onClick={() => setFilterPayment('boca_2x')}
             >
-              Todas ({allInstallments.length})
+              <Clock size={14} />
+              Fiado / "De Boca" ({countFiado})
             </button>
           </div>
 
-          <div style={{ position: 'relative', width: '100%', maxWidth: '280px' }}>
+          {/* Search Box */}
+          <div style={{ position: 'relative', width: '100%', maxWidth: '300px' }}>
             <Search size={16} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: '#94a3b8' }} />
             <input
               type="text"
               className="form-control"
-              placeholder="Buscar pelo nome do cliente..."
-              value={searchCustomer}
-              onChange={(e) => setSearchCustomer(e.target.value)}
+              placeholder="Buscar por cliente ou produto..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
               style={{ paddingLeft: '36px', paddingBottom: '7px', paddingTop: '7px' }}
             />
           </div>
         </div>
+
+        {/* Secondary Subfilter: Fiado Status (Visible when Fiado is active or all is selected) */}
+        {(filterPayment === 'boca_2x' || filterPayment === 'todas') && (
+          <div style={{ display: 'flex', gap: '8px', marginTop: '14px', paddingTop: '12px', borderTop: '1px solid var(--border-color)', flexWrap: 'wrap', alignItems: 'center' }}>
+            <span style={{ fontSize: '0.78rem', color: 'var(--color-taupe)', fontWeight: 600 }}>
+              Filtro do Fiado:
+            </span>
+            <button
+              type="button"
+              className={`btn btn-sm ${filterFiadoStatus === 'todos' ? 'btn-primary' : 'btn-outline'}`}
+              style={{ fontSize: '0.75rem', padding: '3px 8px' }}
+              onClick={() => setFilterFiadoStatus('todos')}
+            >
+              Todos os Fiados
+            </button>
+            <button
+              type="button"
+              className={`btn btn-sm ${filterFiadoStatus === 'pendente' ? 'btn-secondary' : 'btn-outline'}`}
+              style={{ fontSize: '0.75rem', padding: '3px 8px' }}
+              onClick={() => setFilterFiadoStatus('pendente')}
+            >
+              Pendentes a Receber ({pendingInstallmentsCount})
+            </button>
+            <button
+              type="button"
+              className={`btn btn-sm ${filterFiadoStatus === 'vencido' ? 'btn-danger' : 'btn-outline'}`}
+              style={{ fontSize: '0.75rem', padding: '3px 8px' }}
+              onClick={() => setFilterFiadoStatus('vencido')}
+            >
+              Vencidas em Atraso ({overdueCount})
+            </button>
+            <button
+              type="button"
+              className={`btn btn-sm ${filterFiadoStatus === 'pago' ? 'btn-secondary' : 'btn-outline'}`}
+              style={{ fontSize: '0.75rem', padding: '3px 8px' }}
+              onClick={() => setFilterFiadoStatus('pago')}
+              title="Apenas compras no fiado onde 100% das parcelas foram pagas"
+            >
+              Quitadas 100% ({totalSalesFullyPaid})
+            </button>
+          </div>
+        )}
       </div>
 
-      {/* Installments Table */}
+      {/* Main Sales Table */}
       <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
         <div className="table-container" style={{ border: 'none' }}>
           <table className="data-table">
             <thead>
               <tr>
+                <th>Data & Venda</th>
                 <th>Cliente</th>
-                <th>Parcela</th>
-                <th>Valor</th>
-                <th>Vencimento</th>
-                <th>Status</th>
-                <th>Ações de Baixa & Cobrança</th>
+                <th>Itens Vendidos</th>
+                <th>Forma de Pagamento</th>
+                <th>Total</th>
+                <th>Status & Cobrança</th>
+                <th style={{ textAlign: 'right' }}>Ações</th>
               </tr>
             </thead>
             <tbody>
-              {filteredInstallments.length === 0 ? (
+              {filteredSales.length === 0 ? (
                 <tr>
-                  <td colSpan="6" style={{ textAlign: 'center', padding: '40px', color: 'var(--color-secondary-muted)' }}>
-                    {filterStatus === 'pago' ? (
-                      <div>
-                        <strong>Nenhuma compra 100% quitada (2/2) encontrada.</strong>
-                        <p style={{ margin: '6px 0 0 0', fontSize: '0.85rem' }}>
-                          Clientes que pagaram apenas 1 de 2 parcelas permanecem em "Pendentes a Receber" até a quitação total da 2ª parcela.
-                        </p>
-                      </div>
-                    ) : (
-                      'Nenhuma parcela encontrada para os filtros selecionados.'
-                    )}
+                  <td colSpan="7" style={{ textAlign: 'center', padding: '40px', color: 'var(--color-secondary-muted)' }}>
+                    Nenhuma venda encontrada para os filtros selecionados.
                   </td>
                 </tr>
               ) : (
-                filteredInstallments.map((item, idx) => {
+                filteredSales.map((sale) => {
+                  const isFiado = sale.paymentMethod === 'boca_2x';
+                  const installments = sale.installments || [];
+                  const paidCount = installments.filter((i) => i.paid).length;
+                  const totalInst = installments.length;
+                  const isFullyPaid = totalInst > 0 && paidCount === totalInst;
+                  const isPartial = paidCount > 0 && !isFullyPaid;
+                  const hasOverdue = installments.some((i) => !i.paid && i.dueDate < today);
+
                   return (
-                    <tr key={idx}>
-                      <td>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                          <div style={{ width: '34px', height: '34px', borderRadius: '50%', background: '#f1f5f9', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--color-secondary-muted)' }}>
-                            <User size={18} />
+                    <tr key={sale.id}>
+                      {/* Date & Time */}
+                      <td style={{ verticalAlign: 'top' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontWeight: 600 }}>
+                          <Calendar size={14} color="var(--color-taupe)" />
+                          <span>{formatDate(sale.date)}</span>
+                        </div>
+                        <div style={{ fontSize: '0.72rem', color: 'var(--color-secondary-muted)', marginTop: '3px' }}>
+                          {sale.date?.includes('T') ? sale.date.split('T')[1].substring(0, 5) : ''}
+                        </div>
+                      </td>
+
+                      {/* Customer */}
+                      <td style={{ verticalAlign: 'top' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                          <div style={{ width: '32px', height: '32px', borderRadius: '50%', background: '#f1f5f9', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--color-secondary-muted)' }}>
+                            <User size={16} />
                           </div>
                           <div>
-                            <strong style={{ color: 'var(--color-secondary)' }}>{item.customerName}</strong>
-                            <div style={{ fontSize: '0.78rem', color: 'var(--color-secondary-muted)' }}>
-                              {item.customerPhone || 'Sem telefone cadastrado'}
+                            <strong style={{ color: 'var(--color-secondary)' }}>{sale.customerName}</strong>
+                            <div style={{ fontSize: '0.75rem', color: 'var(--color-secondary-muted)' }}>
+                              {sale.customerPhone || 'Sem telefone'}
                             </div>
                           </div>
                         </div>
                       </td>
 
-                      <td>
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', alignItems: 'flex-start' }}>
-                          <span className="badge badge-warning" style={{ fontSize: '0.75rem' }}>
-                            {item.number}ª Parcela (de {item.totalInstallments})
-                          </span>
-                          {item.isSaleFullyPaid && (
-                            <span className="badge badge-success" style={{ fontSize: '0.7rem' }}>
-                              ✓ 100% Pago ({item.totalInstallments}/{item.totalInstallments})
-                            </span>
-                          )}
-                          {item.isSalePartiallyPaid && !item.paid && (
-                            <span style={{ fontSize: '0.72rem', color: 'var(--color-primary)', fontWeight: 600, background: 'rgba(197, 160, 99, 0.15)', padding: '2px 6px', borderRadius: '4px' }}>
-                              1 de 2 já paga • Falta 2ª
-                            </span>
-                          )}
+                      {/* Items */}
+                      <td style={{ verticalAlign: 'top' }}>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '3px', maxWidth: '220px' }}>
+                          {sale.items?.map((it, idx) => (
+                            <div key={idx} style={{ fontSize: '0.78rem', color: 'var(--color-text-main)' }}>
+                              <span style={{ fontWeight: 700 }}>{it.quantity}x</span> {it.name}{' '}
+                              <span style={{ color: 'var(--color-taupe)', fontSize: '0.72rem' }}>({it.size})</span>
+                            </div>
+                          ))}
                         </div>
                       </td>
 
-                      <td>
+                      {/* Payment Method Badge */}
+                      <td style={{ verticalAlign: 'top' }}>
+                        {sale.paymentMethod === 'a_vista' && (
+                          <span className="badge badge-success" style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                            <Banknote size={13} /> À Vista (PIX/Dinheiro)
+                          </span>
+                        )}
+                        {sale.paymentMethod === 'cartao' && (
+                          <span className="badge badge-primary" style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                            <CreditCard size={13} /> Cartão Débito/Crédito
+                          </span>
+                        )}
+                        {sale.paymentMethod === 'boca_2x' && (
+                          <span className="badge badge-warning" style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                            <Clock size={13} /> Fiado ({totalInst}x de Boca)
+                          </span>
+                        )}
+                      </td>
+
+                      {/* Total Amount */}
+                      <td style={{ verticalAlign: 'top' }}>
                         <strong style={{ fontSize: '1rem', color: 'var(--color-secondary)' }}>
-                          {formatCurrency(item.amount)}
+                          {formatCurrency(sale.total)}
                         </strong>
                       </td>
 
-                      <td>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                            <Calendar size={14} color={item.isOverdue ? 'var(--color-danger)' : 'var(--color-taupe)'} />
-                            <span style={{ fontWeight: item.isOverdue ? 700 : 600, color: item.isOverdue ? 'var(--color-danger)' : 'inherit' }}>
-                              {formatDate(item.dueDate)}
+                      {/* Status & Detailed Installments for Fiado */}
+                      <td style={{ verticalAlign: 'top' }}>
+                        {!isFiado ? (
+                          <div>
+                            <span className="badge badge-success" style={{ fontSize: '0.78rem' }}>
+                              ✓ Pago no Ato
                             </span>
                           </div>
-
-                          {!item.paid && (
-                            <button
-                              type="button"
-                              className="btn btn-outline btn-sm"
-                              style={{ padding: '2px 7px', fontSize: '0.72rem', borderColor: 'var(--color-accent)', color: 'var(--color-primary)' }}
-                              onClick={() => {
-                                setEditingDueDateItem(item);
-                                setNewDueDateValue(item.dueDate);
-                              }}
-                              title="Alterar data de vencimento desta parcela"
-                            >
-                              <Edit2 size={11} />
-                              <span>Alterar</span>
-                            </button>
-                          )}
-                        </div>
-                      </td>
-
-                      <td>
-                        {item.paid ? (
-                          <div style={{ display: 'flex', flexDirection: 'column', gap: '3px' }}>
-                            <span className="badge badge-success">Paga em {formatDate(item.paidDate)}</span>
-                            {item.isSaleFullyPaid ? (
-                              <span style={{ fontSize: '0.72rem', color: 'var(--color-success)', fontWeight: 600 }}>
-                                ✓ Dívida 100% Quitada (2/2)
-                              </span>
-                            ) : (
-                              <span style={{ fontSize: '0.72rem', color: 'var(--color-primary)', fontWeight: 600 }}>
-                                1ª Parcela recebida (resta 2ª)
-                              </span>
-                            )}
-                          </div>
-                        ) : item.isOverdue ? (
-                          <div style={{ display: 'flex', flexDirection: 'column', gap: '3px' }}>
-                            <span className="badge badge-danger">Vencida em Atraso</span>
-                            {item.isSalePartiallyPaid && (
-                              <span style={{ fontSize: '0.72rem', color: '#b91c1c', fontWeight: 600 }}>
-                                Pagou 1ª • 2ª em atraso
-                              </span>
-                            )}
-                          </div>
-                        ) : item.isDueToday ? (
-                          <div style={{ display: 'flex', flexDirection: 'column', gap: '3px' }}>
-                            <span className="badge badge-warning">Vence Hoje!</span>
-                            {item.isSalePartiallyPaid && (
-                              <span style={{ fontSize: '0.72rem', color: '#b45309', fontWeight: 600 }}>
-                                Pagou 1ª • Falta 2ª
-                              </span>
-                            )}
-                          </div>
                         ) : (
-                          <div style={{ display: 'flex', flexDirection: 'column', gap: '3px' }}>
-                            <span className="badge badge-secondary">A Vencer</span>
-                            {item.isSalePartiallyPaid && (
-                              <span style={{ fontSize: '0.72rem', color: 'var(--color-taupe)', fontWeight: 600 }}>
-                                1ª já paga • Falta 2ª
-                              </span>
-                            )}
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                            <div>
+                              {isFullyPaid ? (
+                                <span className="badge badge-success">✓ 100% Quitado ({paidCount}/{totalInst})</span>
+                              ) : hasOverdue ? (
+                                <span className="badge badge-danger">🚨 Parcela em Atraso</span>
+                              ) : isPartial ? (
+                                <span className="badge badge-warning">⏳ Parcial ({paidCount}/{totalInst} pagas)</span>
+                              ) : (
+                                <span className="badge badge-secondary">⏳ Pendente a Receber</span>
+                              )}
+                            </div>
+
+                            {/* Detailed installments breakdown */}
+                            <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '6px', padding: '8px', display: 'flex', flexDirection: 'column', gap: '6px', minWidth: '260px' }}>
+                              {installments.map((inst) => {
+                                const isOverdue = !inst.paid && inst.dueDate < today;
+                                const isDueToday = !inst.paid && inst.dueDate === today;
+
+                                const instItem = {
+                                  saleId: sale.id,
+                                  number: inst.number,
+                                  amount: inst.amount,
+                                  dueDate: inst.dueDate,
+                                  customerName: sale.customerName,
+                                  customerPhone: sale.customerPhone,
+                                  isOverdue,
+                                };
+
+                                return (
+                                  <div
+                                    key={inst.number}
+                                    style={{
+                                      display: 'flex',
+                                      justifyContent: 'space-between',
+                                      alignItems: 'center',
+                                      fontSize: '0.75rem',
+                                      padding: '4px 6px',
+                                      borderRadius: '4px',
+                                      background: inst.paid ? 'rgba(16, 185, 129, 0.08)' : isOverdue ? 'rgba(239, 68, 68, 0.08)' : '#fff',
+                                      border: '1px solid',
+                                      borderColor: inst.paid ? '#a7f3d0' : isOverdue ? '#fca5a5' : '#e2e8f0',
+                                    }}
+                                  >
+                                    <div>
+                                      <span style={{ fontWeight: 700, color: 'var(--color-secondary)' }}>
+                                        {inst.number}ª Parcela:
+                                      </span>{' '}
+                                      <strong>{formatCurrency(inst.amount)}</strong>
+                                      <div style={{ fontSize: '0.7rem', color: isOverdue ? 'var(--color-danger)' : 'var(--color-taupe)' }}>
+                                        Venc: <strong>{formatDate(inst.dueDate)}</strong>
+                                      </div>
+                                    </div>
+
+                                    <div style={{ display: 'flex', gap: '4px', alignItems: 'center' }}>
+                                      {inst.paid ? (
+                                        <span style={{ color: 'var(--color-success)', fontWeight: 700, fontSize: '0.72rem' }}>
+                                          ✓ Paga ({formatDate(inst.paidDate)})
+                                        </span>
+                                      ) : (
+                                        <>
+                                          <button
+                                            type="button"
+                                            className="btn btn-success btn-sm"
+                                            style={{ padding: '2px 6px', fontSize: '0.7rem' }}
+                                            onClick={() => {
+                                              if (window.confirm(`Dar baixa no recebimento da ${inst.number}ª parcela (${formatCurrency(inst.amount)}) de ${sale.customerName}?`)) {
+                                                payInstallment(sale.id, inst.number);
+                                              }
+                                            }}
+                                            title="Confirmar recebimento desta parcela"
+                                          >
+                                            <Check size={11} /> Receber
+                                          </button>
+
+                                          <button
+                                            type="button"
+                                            className="btn btn-outline btn-sm"
+                                            style={{ padding: '2px 5px', fontSize: '0.7rem', borderColor: 'var(--color-accent)' }}
+                                            onClick={() => {
+                                              setEditingDueDateItem(instItem);
+                                              setNewDueDateValue(inst.dueDate);
+                                            }}
+                                            title="Alterar data de vencimento desta parcela"
+                                          >
+                                            <Edit2 size={11} />
+                                          </button>
+
+                                          {sale.customerPhone && (
+                                            <button
+                                              type="button"
+                                              className="btn btn-whatsapp btn-sm"
+                                              style={{ padding: '2px 5px', fontSize: '0.7rem' }}
+                                              onClick={() => handleOpenReminder(instItem)}
+                                              title="Enviar lembrete amigável via WhatsApp"
+                                            >
+                                              <MessageCircle size={11} />
+                                            </button>
+                                          )}
+                                        </>
+                                      )}
+                                    </div>
+                                  </div>
+                                );
+                              })}
+                            </div>
                           </div>
                         )}
                       </td>
 
-                      <td>
-                        <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-                          {!item.paid ? (
-                            <>
-                              <button
-                                type="button"
-                                className="btn btn-success btn-sm"
-                                onClick={() => {
-                                  if (window.confirm(`Confirmar recebimento de ${formatCurrency(item.amount)} de ${item.customerName}?`)) {
-                                    payInstallment(item.saleId, item.number);
-                                  }
-                                }}
-                                title="Dar baixa nesta parcela (cliente pagou)"
-                              >
-                                <Check size={14} />
-                                Receber
-                              </button>
-
-                              {item.customerPhone && (
-                                <button
-                                  type="button"
-                                  className="btn btn-whatsapp btn-sm"
-                                  onClick={() => handleOpenReminder(item)}
-                                  title="Enviar lembrete amigável no WhatsApp"
-                                >
-                                  <MessageCircle size={14} />
-                                  Cobrança WhatsApp
-                                </button>
+                      {/* Actions */}
+                      <td style={{ verticalAlign: 'top', textAlign: 'right' }}>
+                        <div style={{ display: 'inline-flex', gap: '6px', alignItems: 'center' }}>
+                          {sale.customerPhone && (
+                            <a
+                              href={generateWhatsAppLink(
+                                sale.customerPhone,
+                                `Olá ${sale.customerName}! Aqui é do ${settings.storeName}. Segue o comprovante da sua compra de ${formatCurrency(sale.total)} realizada em ${formatDate(sale.date)}.`
                               )}
-                            </>
-                          ) : (
-                            <span style={{ fontSize: '0.82rem', color: 'var(--color-success-text)', fontWeight: 600 }}>
-                              ✓ Quitado
-                            </span>
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="btn btn-whatsapp btn-sm"
+                              style={{ padding: '5px 8px' }}
+                              title="Enviar comprovante geral via WhatsApp"
+                            >
+                              <MessageCircle size={13} />
+                            </a>
                           )}
 
                           <button
                             type="button"
                             className="btn btn-outline btn-sm"
-                            style={{ padding: '6px 8px', borderColor: '#fca5a5', color: '#e11d48' }}
+                            style={{ padding: '5px 8px', borderColor: '#fca5a5', color: '#e11d48' }}
                             onClick={() => {
-                              if (window.confirm(`Deseja excluir a venda de ${item.customerName} (${formatCurrency(item.amount)})?`)) {
-                                deleteSale(item.saleId);
+                              if (window.confirm(`Deseja excluir permanentemente a venda de ${sale.customerName} (${formatCurrency(sale.total)})?`)) {
+                                deleteSale(sale.id);
                               }
                             }}
-                            title="Excluir esta venda/parcela fictícia"
+                            title="Excluir esta venda"
                           >
                             <Trash2 size={13} />
                           </button>
@@ -505,7 +671,7 @@ export const FiadoManager = () => {
                   {editingDueDateItem.customerName}
                 </div>
                 <div style={{ fontSize: '0.85rem', color: 'var(--color-text-main)', marginTop: '4px' }}>
-                  {editingDueDateItem.number}ª Parcela (de 2) • <strong>{formatCurrency(editingDueDateItem.amount)}</strong>
+                  {editingDueDateItem.number}ª Parcela • <strong>{formatCurrency(editingDueDateItem.amount)}</strong>
                 </div>
                 <div style={{ fontSize: '0.82rem', color: 'var(--color-taupe)', marginTop: '4px' }}>
                   Vencimento atual cadastrado: <strong>{formatDate(editingDueDateItem.dueDate)}</strong>
@@ -559,24 +725,12 @@ export const FiadoManager = () => {
                     className="btn btn-outline btn-sm"
                     style={{ fontSize: '0.75rem', padding: '4px 8px' }}
                     onClick={() => {
-                      const now = new Date();
-                      const nextMonth = new Date(now.getFullYear(), now.getMonth() + 1, 10);
-                      setNewDueDateValue(nextMonth.toISOString().split('T')[0]);
+                      const d = new Date();
+                      d.setMonth(d.getMonth() + 1);
+                      setNewDueDateValue(d.toISOString().split('T')[0]);
                     }}
                   >
-                    Dia 10 do próx. mês
-                  </button>
-                  <button
-                    type="button"
-                    className="btn btn-outline btn-sm"
-                    style={{ fontSize: '0.75rem', padding: '4px 8px' }}
-                    onClick={() => {
-                      const now = new Date();
-                      const nextMonth = new Date(now.getFullYear(), now.getMonth() + 1, 20);
-                      setNewDueDateValue(nextMonth.toISOString().split('T')[0]);
-                    }}
-                  >
-                    Dia 20 do próx. mês
+                    Próximo Mês
                   </button>
                 </div>
               </div>
@@ -595,15 +749,14 @@ export const FiadoManager = () => {
                 className="btn btn-primary"
                 onClick={() => {
                   if (!newDueDateValue) {
-                    alert('Por favor, selecione uma data válida!');
+                    alert('Por favor selecione uma data de vencimento válida.');
                     return;
                   }
                   updateInstallmentDueDate(editingDueDateItem.saleId, editingDueDateItem.number, newDueDateValue);
                   setEditingDueDateItem(null);
                 }}
               >
-                <Save size={16} />
-                Salvar Novo Vencimento
+                Salvar Nova Data
               </button>
             </div>
           </div>
