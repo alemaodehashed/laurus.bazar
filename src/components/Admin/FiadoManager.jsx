@@ -31,6 +31,7 @@ export const FiadoManager = () => {
 
   // Modals state
   const [selectedForReminder, setSelectedForReminder] = useState(null);
+  const [reminderPhone, setReminderPhone] = useState('');
   const [editingDueDateItem, setEditingDueDateItem] = useState(null);
   const [newDueDateValue, setNewDueDateValue] = useState('');
   const [customPixKey, setCustomPixKey] = useState(settings.whatsapp);
@@ -128,23 +129,37 @@ export const FiadoManager = () => {
     return true;
   });
 
-  // Build Friendly WhatsApp reminder for installment
+  // Build Friendly WhatsApp reminder / cobrança for installment
   const buildReminderMessage = (item) => {
-    const statusText = item.isOverdue
-      ? `que venceu em ${formatDate(item.dueDate)}`
-      : `com vencimento para ${formatDate(item.dueDate)}`;
+    const itemsList = (item.items && item.items.length > 0)
+      ? item.items.map((it) => `• ${it.quantity}x ${it.name}${it.size ? ` (${it.size})` : ''} - ${formatCurrency(it.unitPrice)}`).join('\n')
+      : '• Compra na loja';
 
-    return `Olá *${item.customerName}*, tudo bem com você?\n\nPassando aqui com todo o carinho pelo *${settings.storeName}* para lembrar sobre a *${item.number}ª parcela* da sua compra, no valor de *${formatCurrency(item.amount)}* (${statusText}).\n\nCaso prefira transferir via PIX, nossa chave é:\n👉 *${customPixKey}*\n\nSe já tiver acertado ou quiser combinar outra data, me avise por aqui. Muito obrigado e um abraço!`;
+    const statusText = item.isOverdue
+      ? `🚨 *Status:* Vencida em ${formatDate(item.dueDate)}`
+      : `📅 *Vencimento:* ${formatDate(item.dueDate)}`;
+
+    const totalInfo = item.totalInstallments > 1
+      ? `*${item.number}ª parcela* (de ${item.totalInstallments}x)`
+      : `*Parcela única*`;
+
+    return `Olá, *${item.customerName || 'Cliente'}*! Tudo bem? 😊\n\nPassando com carinho pelo *${settings.storeName || 'Laurus Bazar'}* para enviar o lembrete da sua compra:\n\n🛍️ *Produto(s):*\n${itemsList}\n\n💳 *Detalhes da Parcela:*\n• ${totalInfo}\n• *Valor a Pagar:* ${formatCurrency(item.amount)}\n• ${statusText}\n\n👉 *Chave PIX para pagamento:*\n*${customPixKey || settings.whatsapp}*\n\nQualquer dúvida ou comprovante, basta responder por aqui. Agradecemos pela preferência! 💛`;
   };
 
   const handleOpenReminder = (item) => {
     setSelectedForReminder(item);
+    setReminderPhone(item.customerPhone || '');
   };
 
   const handleSendReminder = () => {
     if (!selectedForReminder) return;
+    const cleanPhone = (reminderPhone || selectedForReminder.customerPhone || '').replace(/\D/g, '');
+    if (!cleanPhone || cleanPhone.length < 8) {
+      alert('Por favor, informe o WhatsApp do cliente com DDD (ex: 11999998888)!');
+      return;
+    }
     const msg = buildReminderMessage(selectedForReminder);
-    const url = generateWhatsAppLink(selectedForReminder.customerPhone, msg);
+    const url = generateWhatsAppLink(cleanPhone, msg);
     window.open(url, '_blank');
     setSelectedForReminder(null);
   };
@@ -469,6 +484,9 @@ export const FiadoManager = () => {
                                   dueDate: inst.dueDate,
                                   customerName: sale.customerName,
                                   customerPhone: sale.customerPhone,
+                                  items: sale.items || [],
+                                  totalSale: sale.total,
+                                  totalInstallments: installments.length,
                                   isOverdue,
                                 };
 
@@ -531,17 +549,15 @@ export const FiadoManager = () => {
                                             <Edit2 size={11} />
                                           </button>
 
-                                          {sale.customerPhone && (
-                                            <button
-                                              type="button"
-                                              className="btn btn-whatsapp btn-sm"
-                                              style={{ padding: '2px 5px', fontSize: '0.7rem' }}
-                                              onClick={() => handleOpenReminder(instItem)}
-                                              title="Enviar lembrete amigável via WhatsApp"
-                                            >
-                                              <MessageCircle size={11} />
-                                            </button>
-                                          )}
+                                          <button
+                                            type="button"
+                                            className="btn btn-whatsapp btn-sm"
+                                            style={{ padding: '2px 6px', fontSize: '0.7rem', display: 'inline-flex', alignItems: 'center', gap: '3px' }}
+                                            onClick={() => handleOpenReminder(instItem)}
+                                            title="Enviar cobrança desta parcela no WhatsApp"
+                                          >
+                                            <MessageCircle size={11} /> Cobrar
+                                          </button>
                                         </>
                                       )}
                                     </div>
@@ -556,6 +572,34 @@ export const FiadoManager = () => {
                       {/* Actions */}
                       <td style={{ verticalAlign: 'top', textAlign: 'right' }}>
                         <div style={{ display: 'inline-flex', gap: '6px', alignItems: 'center' }}>
+                          {isFiado && !isFullyPaid && (
+                            <button
+                              type="button"
+                              className="btn btn-whatsapp btn-sm"
+                              style={{ padding: '5px 8px', display: 'inline-flex', alignItems: 'center', gap: '4px', fontSize: '0.75rem' }}
+                              onClick={() => {
+                                const nextUnpaid = installments.find((i) => !i.paid);
+                                if (nextUnpaid) {
+                                  handleOpenReminder({
+                                    saleId: sale.id,
+                                    number: nextUnpaid.number,
+                                    amount: nextUnpaid.amount,
+                                    dueDate: nextUnpaid.dueDate,
+                                    customerName: sale.customerName,
+                                    customerPhone: sale.customerPhone,
+                                    items: sale.items || [],
+                                    totalSale: sale.total,
+                                    totalInstallments: installments.length,
+                                    isOverdue: nextUnpaid.dueDate < today,
+                                  });
+                                }
+                              }}
+                              title="Enviar cobrança da parcela pendente via WhatsApp"
+                            >
+                              <MessageCircle size={13} /> Cobrança WPP
+                            </button>
+                          )}
+
                           {sale.customerPhone && (
                             <a
                               href={generateWhatsAppLink(
@@ -596,14 +640,14 @@ export const FiadoManager = () => {
         </div>
       </div>
 
-      {/* Modal for Friendly WhatsApp Reminder */}
+      {/* Modal for Friendly WhatsApp Cobrança */}
       {selectedForReminder && (
         <div className="modal-overlay" onClick={() => setSelectedForReminder(null)}>
           <div className="modal-content" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '520px' }}>
             <div className="modal-header">
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                 <MessageCircle size={20} color="#25d366" />
-                <h3>Lembrete Amigável de Pagamento</h3>
+                <h3>Enviar Cobrança no WhatsApp</h3>
               </div>
               <button className="modal-close-btn" onClick={() => setSelectedForReminder(null)}>
                 <X size={18} />
@@ -611,12 +655,39 @@ export const FiadoManager = () => {
             </div>
 
             <div className="modal-body">
-              <p style={{ fontSize: '0.9rem', color: 'var(--color-secondary-muted)', marginBottom: '14px' }}>
-                Enviar mensagem carinhosa para <strong>{selectedForReminder.customerName}</strong> referente à {selectedForReminder.number}ª parcela ({formatCurrency(selectedForReminder.amount)}).
-              </p>
+              <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '8px', padding: '12px', marginBottom: '14px' }}>
+                <div style={{ fontWeight: 700, fontSize: '0.95rem', color: 'var(--color-secondary)' }}>
+                  {selectedForReminder.customerName}
+                </div>
+                <div style={{ fontSize: '0.82rem', color: 'var(--color-text-main)', marginTop: '3px' }}>
+                  {selectedForReminder.number}ª Parcela • <strong>{formatCurrency(selectedForReminder.amount)}</strong> • Vencimento: {formatDate(selectedForReminder.dueDate)}
+                </div>
+                {selectedForReminder.items && selectedForReminder.items.length > 0 && (
+                  <div style={{ fontSize: '0.78rem', color: 'var(--color-taupe)', marginTop: '4px' }}>
+                    <strong>Produtos:</strong> {selectedForReminder.items.map((it) => `${it.quantity}x ${it.name}`).join(', ')}
+                  </div>
+                )}
+              </div>
 
               <div className="form-group">
-                <label className="form-label">Sua Chave PIX para envio na mensagem:</label>
+                <label className="form-label">WhatsApp do Cliente (DDD + Número):</label>
+                <input
+                  type="tel"
+                  className="form-control"
+                  placeholder="Ex: 11999998888"
+                  value={reminderPhone}
+                  onChange={(e) => setReminderPhone(e.target.value)}
+                  required
+                />
+                {!selectedForReminder.customerPhone && (
+                  <span style={{ fontSize: '0.74rem', color: '#b45309', display: 'block', marginTop: '4px' }}>
+                    ⚠️ Este cliente não possuía telefone cadastrado. Digite o número acima para enviar a cobrança.
+                  </span>
+                )}
+              </div>
+
+              <div className="form-group">
+                <label className="form-label">Sua Chave PIX para pagamento:</label>
                 <input
                   type="text"
                   className="form-control"
@@ -627,8 +698,8 @@ export const FiadoManager = () => {
               </div>
 
               <div className="form-group">
-                <label className="form-label">Prévia do texto que será enviado no WhatsApp:</label>
-                <div style={{ background: '#f8fafc', border: '1px solid #cbd5e1', padding: '14px', borderRadius: '8px', fontSize: '0.85rem', whiteSpace: 'pre-wrap', lineHeight: '1.5', color: '#1e293b' }}>
+                <label className="form-label">Prévia da Mensagem Padronizada:</label>
+                <div style={{ background: '#f8fafc', border: '1px solid #cbd5e1', padding: '14px', borderRadius: '8px', fontSize: '0.84rem', whiteSpace: 'pre-wrap', lineHeight: '1.5', color: '#1e293b' }}>
                   {buildReminderMessage(selectedForReminder)}
                 </div>
               </div>
