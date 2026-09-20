@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { useStore } from '../../context/StoreContext';
 import { formatCurrency } from '../../utils/formatters';
 import {
@@ -10,7 +10,10 @@ import {
   MinusCircle,
   X,
   Sparkles,
-  PackageCheck
+  PackageCheck,
+  Upload,
+  Camera,
+  Image as ImageIcon
 } from 'lucide-react';
 
 export const EstoqueManager = () => {
@@ -19,6 +22,8 @@ export const EstoqueManager = () => {
   const [filterCategory, setFilterCategory] = useState('Todas');
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingProduct, setEditingProduct] = useState(null);
+  const [isUploadingImage, setIsUploadingImage] = useState(false);
+  const fileInputRef = useRef(null);
 
   // Form State
   const initialFormState = {
@@ -116,6 +121,59 @@ export const EstoqueManager = () => {
         image: 'https://images.unsplash.com/photo-1548036328-c9fa89d128fa?w=700&auto=format&fit=crop&q=80',
       }));
     }
+  };
+
+  // Upload and compress image from device camera / file picker
+  const handleImageFileChange = (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (!file.type.startsWith('image/')) {
+      alert('Por favor, selecione um arquivo de imagem válido (JPG, PNG, WebP).');
+      return;
+    }
+
+    setIsUploadingImage(true);
+
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const img = new Image();
+      img.onload = () => {
+        // Resize image to max 800px to maintain quality while keeping file size small (~60-90kb)
+        const canvas = document.createElement('canvas');
+        const MAX_SIZE = 800;
+        let width = img.width;
+        let height = img.height;
+
+        if (width > height) {
+          if (width > MAX_SIZE) {
+            height = Math.round((height * MAX_SIZE) / width);
+            width = MAX_SIZE;
+          }
+        } else {
+          if (height > MAX_SIZE) {
+            width = Math.round((width * MAX_SIZE) / height);
+            height = MAX_SIZE;
+          }
+        }
+
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(img, 0, 0, width, height);
+
+        const compressedDataUrl = canvas.toDataURL('image/jpeg', 0.84);
+        setFormData((prev) => ({ ...prev, image: compressedDataUrl }));
+        setIsUploadingImage(false);
+      };
+      img.onerror = () => {
+        setIsUploadingImage(false);
+        alert('Erro ao processar a imagem selecionada.');
+      };
+      img.src = event.target.result;
+    };
+    reader.readAsDataURL(file);
+    e.target.value = null; // reset input
   };
 
   // Calculate margin preview
@@ -409,24 +467,100 @@ export const EstoqueManager = () => {
                   />
                 </div>
 
-                <div className="form-group">
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
-                    <label className="form-label">Link da Imagem / Foto:</label>
+                {/* Photo Upload & Preview Section */}
+                <div className="form-group" style={{ background: 'var(--bg-surface-elevated)', border: '1px solid var(--border-color)', borderRadius: '12px', padding: '16px' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px', flexWrap: 'wrap', gap: '8px' }}>
+                    <label className="form-label" style={{ marginBottom: 0, display: 'flex', alignItems: 'center', gap: '6px' }}>
+                      <Camera size={16} color="var(--color-primary)" />
+                      <span>Foto do Produto</span>
+                    </label>
                     <button
                       type="button"
-                      style={{ fontSize: '0.78rem', color: 'var(--color-primary)', fontWeight: 600 }}
+                      style={{ fontSize: '0.78rem', color: 'var(--color-taupe)', fontWeight: 600 }}
                       onClick={() => setQuickImage(formData.category)}
                     >
                       Preencher foto modelo de {formData.category}
                     </button>
                   </div>
+
+                  {/* Hidden File Input for Native Camera/Gallery Picker */}
                   <input
-                    type="url"
-                    className="form-control"
-                    placeholder="https://..."
-                    value={formData.image}
-                    onChange={(e) => setFormData({ ...formData, image: e.target.value })}
+                    type="file"
+                    ref={fileInputRef}
+                    accept="image/*"
+                    onChange={handleImageFileChange}
+                    style={{ display: 'none' }}
                   />
+
+                  {/* Image Preview & Upload Controls */}
+                  <div style={{ display: 'flex', gap: '16px', alignItems: 'center', flexWrap: 'wrap' }}>
+                    {formData.image ? (
+                      <div style={{ position: 'relative', width: '90px', height: '90px', borderRadius: '10px', overflow: 'hidden', border: '2px solid var(--color-accent)', boxShadow: 'var(--shadow-sm)', flexShrink: 0 }}>
+                        <img
+                          src={formData.image}
+                          alt="Prévia do produto"
+                          style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setFormData({ ...formData, image: '' })}
+                          title="Remover foto"
+                          style={{
+                            position: 'absolute',
+                            top: '4px',
+                            right: '4px',
+                            background: 'rgba(0,0,0,0.7)',
+                            color: '#ffffff',
+                            borderRadius: '50%',
+                            width: '22px',
+                            height: '22px',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center'
+                          }}
+                        >
+                          <X size={13} />
+                        </button>
+                      </div>
+                    ) : (
+                      <div style={{ width: '90px', height: '90px', borderRadius: '10px', border: '2px dashed var(--border-color)', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', color: 'var(--color-taupe)', background: '#ffffff', flexShrink: 0 }}>
+                        <Camera size={24} />
+                        <span style={{ fontSize: '0.68rem', marginTop: '4px' }}>Sem foto</span>
+                      </div>
+                    )}
+
+                    <div style={{ flex: 1, minWidth: '200px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                      <button
+                        type="button"
+                        className="btn btn-primary btn-sm"
+                        onClick={() => fileInputRef.current?.click()}
+                        disabled={isUploadingImage}
+                        style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', width: 'fit-content' }}
+                      >
+                        <Upload size={15} />
+                        <span>{isUploadingImage ? 'Carregando foto...' : formData.image ? '📷 Trocar Foto (Celular / PC)' : '📷 Escolher Foto do Celular / PC'}</span>
+                      </button>
+
+                      <span style={{ fontSize: '0.74rem', color: 'var(--color-text-muted)' }}>
+                        Selecione da galeria ou tire uma foto na hora com a câmera.
+                      </span>
+
+                      {/* Or paste link */}
+                      <details style={{ marginTop: '4px' }}>
+                        <summary style={{ fontSize: '0.75rem', color: 'var(--color-taupe)', cursor: 'pointer', fontWeight: 600 }}>
+                          Ou colar link de imagem da internet (URL)
+                        </summary>
+                        <input
+                          type="url"
+                          className="form-control"
+                          placeholder="https://exemplo.com/imagem.jpg"
+                          value={formData.image && formData.image.startsWith('data:') ? '' : formData.image}
+                          onChange={(e) => setFormData({ ...formData, image: e.target.value })}
+                          style={{ marginTop: '6px', fontSize: '0.84rem', padding: '6px 10px' }}
+                        />
+                      </details>
+                    </div>
+                  </div>
                 </div>
 
                 <div className="form-group">
