@@ -14,7 +14,9 @@ import {
   Clock,
   MessageCircle,
   ShoppingBag,
-  Receipt
+  Receipt,
+  Edit3,
+  Tag
 } from 'lucide-react';
 
 export const PdvVendas = () => {
@@ -32,18 +34,22 @@ export const PdvVendas = () => {
   const [newCustPhone, setNewCustPhone] = useState('');
   const [newCustAddress, setNewCustAddress] = useState('');
 
-  // 2x Fiado parameters
-  const todayStr = new Date().toISOString().split('T')[0];
-  const nextMonthDate = new Date();
-  nextMonthDate.setDate(nextMonthDate.getDate() + 30);
-  const nextMonthStr = nextMonthDate.toISOString().split('T')[0];
+  // Custom / Avulso product state (for products outside catalog)
+  const [isAddingCustomProduct, setIsAddingCustomProduct] = useState(false);
+  const [customName, setCustomName] = useState('');
+  const [customPrice, setCustomPrice] = useState('');
+  const [customSize, setCustomSize] = useState('Único');
+  const [customQty, setCustomQty] = useState(1);
 
-  const in15DaysDate = new Date();
-  in15DaysDate.setDate(in15DaysDate.getDate() + 15);
-  const in15DaysStr = in15DaysDate.toISOString().split('T')[0];
-
-  const [firstDueDate, setFirstDueDate] = useState(in15DaysStr);
-  const [secondDueDate, setSecondDueDate] = useState(nextMonthStr);
+  // Fiado parcelado parameters (Configurable installments)
+  const [installmentCount, setInstallmentCount] = useState(2);
+  const [installmentDates, setInstallmentDates] = useState(() => {
+    const d1 = new Date();
+    d1.setDate(d1.getDate() + 15);
+    const d2 = new Date();
+    d2.setDate(d2.getDate() + 30);
+    return [d1.toISOString().split('T')[0], d2.toISOString().split('T')[0]];
+  });
   const [firstPaidToday, setFirstPaidToday] = useState(false);
 
   // Last finished sale for receipt/WhatsApp
@@ -90,9 +96,42 @@ export const PdvVendas = () => {
           size: defaultSize,
           availableSizes: product.sizes || ['Único'],
           maxStock: product.stock,
+          isCustomItem: false,
         },
       ];
     });
+  };
+
+  // Add custom / random item that is not in the catalog
+  const handleAddCustomProduct = (e) => {
+    if (e) e.preventDefault();
+    if (!customName.trim()) {
+      alert('Informe o nome ou descrição do produto avulso!');
+      return;
+    }
+    const cleanPrice = parseFloat(String(customPrice).replace(',', '.'));
+    if (isNaN(cleanPrice) || cleanPrice < 0) {
+      alert('Informe um valor válido em reais (ex: 29,90)!');
+      return;
+    }
+
+    const newItem = {
+      productId: 'avulso_' + Date.now() + '_' + Math.random().toString(36).substring(2, 6),
+      name: customName.trim(),
+      unitPrice: cleanPrice,
+      quantity: Math.max(1, parseInt(customQty) || 1),
+      size: customSize.trim() || 'Único',
+      availableSizes: [customSize.trim() || 'Único'],
+      maxStock: 99999,
+      isCustomItem: true,
+    };
+
+    setSaleItems((prev) => [...prev, newItem]);
+    setCustomName('');
+    setCustomPrice('');
+    setCustomSize('Único');
+    setCustomQty(1);
+    setIsAddingCustomProduct(false);
   };
 
   const updateItemQty = (index, qty) => {
@@ -102,7 +141,7 @@ export const PdvVendas = () => {
     }
     setSaleItems((prev) => {
       const item = prev[index];
-      if (qty > item.maxStock) {
+      if (!item.isCustomItem && qty > item.maxStock) {
         alert(`Estoque disponível: apenas ${item.maxStock} un`);
         return prev;
       }
@@ -125,7 +164,38 @@ export const PdvVendas = () => {
   };
 
   const totalSale = saleItems.reduce((acc, item) => acc + item.unitPrice * item.quantity, 0);
-  const halfSale = +(totalSale / 2).toFixed(2);
+
+  // Dynamic installments calculation
+  const installmentBaseAmount = totalSale > 0 && installmentCount > 0
+    ? +(totalSale / installmentCount).toFixed(2)
+    : 0;
+
+  const handleInstallmentCountChange = (count) => {
+    const num = Math.max(1, Math.min(12, Number(count) || 1));
+    setInstallmentCount(num);
+    setInstallmentDates((prev) => {
+      const newDates = [];
+      for (let i = 0; i < num; i++) {
+        if (prev && prev[i]) {
+          newDates.push(prev[i]);
+        } else {
+          const d = new Date();
+          const daysToAdd = i === 0 ? 15 : (i + 1) * 30;
+          d.setDate(d.getDate() + daysToAdd);
+          newDates.push(d.toISOString().split('T')[0]);
+        }
+      }
+      return newDates;
+    });
+  };
+
+  const handleInstallmentDateChange = (idx, value) => {
+    setInstallmentDates((prev) => {
+      const updated = [...prev];
+      updated[idx] = value;
+      return updated;
+    });
+  };
 
   const handleSaveQuickCustomer = (e) => {
     e.preventDefault();
@@ -150,11 +220,23 @@ export const PdvVendas = () => {
     }
 
     if (paymentMethod === 'boca_2x' && !selectedCustomerId) {
-      alert('Para venda "em 2x de boca", é obrigatório selecionar ou cadastrar o cliente!');
+      alert('Para venda no fiado / "de boca", é obrigatório selecionar ou cadastrar o cliente!');
       return;
     }
 
     const customer = customers.find((c) => c.id === selectedCustomerId);
+
+    // Build installment dates
+    const datesToSend = [];
+    for (let i = 0; i < installmentCount; i++) {
+      if (installmentDates[i]) {
+        datesToSend.push(installmentDates[i]);
+      } else {
+        const d = new Date();
+        d.setDate(d.getDate() + (i === 0 ? 15 : (i + 1) * 30));
+        datesToSend.push(d.toISOString().split('T')[0]);
+      }
+    }
 
     const saleRecord = createSale({
       customerId: customer ? customer.id : null,
@@ -162,10 +244,10 @@ export const PdvVendas = () => {
       customerPhone: customer ? customer.phone : '',
       items: saleItems,
       paymentMethod,
-      paidAtSale: paymentMethod === 'boca_2x' ? (firstPaidToday ? halfSale : 0) : totalSale,
-      firstDueDate,
-      secondDueDate,
+      paidAtSale: paymentMethod === 'boca_2x' ? (firstPaidToday ? installmentBaseAmount : 0) : totalSale,
       firstPaidAtSale: firstPaidToday,
+      installmentCount,
+      installmentDates: datesToSend,
     });
 
     try {
@@ -195,7 +277,7 @@ export const PdvVendas = () => {
                 <strong style={{ color: '#065f46', fontSize: '1.05rem' }}>Venda finalizada com sucesso!</strong>
                 <div style={{ color: '#047857', fontSize: '0.85rem' }}>
                   Cliente: <strong>{lastSale.customerName}</strong> • Total: <strong>{formatCurrency(lastSale.total)}</strong> •
-                  Pagamento: <strong>{lastSale.paymentMethod === 'boca_2x' ? 'Em 2x De Boca' : lastSale.paymentMethod === 'cartao' ? 'Cartão' : 'À Vista'}</strong>
+                  Pagamento: <strong>{lastSale.paymentMethod === 'boca_2x' ? `Fiado (${lastSale.installments?.length || 2}x De Boca)` : lastSale.paymentMethod === 'cartao' ? 'Cartão' : 'À Vista'}</strong>
                 </div>
               </div>
             </div>
@@ -205,9 +287,9 @@ export const PdvVendas = () => {
                 <a
                   href={generateWhatsAppLink(
                     lastSale.customerPhone,
-                    `Olá ${lastSale.customerName}! Obrigado pela sua compra no ${lastSale.total ? formatCurrency(lastSale.total) : ''}. ${
+                    `Olá ${lastSale.customerName}! Obrigado pela sua compra no valor de ${lastSale.total ? formatCurrency(lastSale.total) : ''}. ${
                       lastSale.paymentMethod === 'boca_2x'
-                        ? `Sua compra foi parcelada em 2x. Qualquer dúvida estamos à disposição!`
+                        ? `Sua compra foi parcelada em ${lastSale.installments?.length || 2}x no fiado/de boca. Qualquer dúvida estamos à disposição!`
                         : `Pagamento recebido com sucesso. Volte sempre!`
                     }`
                   )}
@@ -230,20 +312,34 @@ export const PdvVendas = () => {
       <div className="pdv-container">
         {/* Left column: Products catalog to pick from */}
         <div className="pdv-products-panel">
-          <div style={{ display: 'flex', gap: '12px', marginBottom: '16px', flexWrap: 'wrap' }}>
-            <div style={{ position: 'relative', flex: 1, minWidth: '220px' }}>
+          <div style={{ display: 'flex', gap: '10px', marginBottom: '14px', flexWrap: 'wrap', alignItems: 'center' }}>
+            <div style={{ position: 'relative', flex: 1, minWidth: '200px' }}>
               <Search size={16} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: '#94a3b8' }} />
               <input
                 type="text"
                 className="form-control"
-                placeholder="Buscar produto para adicionar..."
+                placeholder="Buscar produto cadastrado..."
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 style={{ paddingLeft: '36px' }}
               />
             </div>
 
-            <div style={{ display: 'flex', gap: '6px', overflowX: 'auto' }}>
+            <button
+              type="button"
+              className="btn btn-outline btn-sm"
+              style={{ borderColor: 'var(--color-accent)', color: 'var(--color-primary)', fontWeight: 700, padding: '7px 12px' }}
+              onClick={() => {
+                setIsAddingCustomProduct(true);
+                if (search.trim()) setCustomName(search.trim());
+              }}
+              title="Adicionar um produto avulso que não está cadastrado no catálogo"
+            >
+              <Plus size={15} />
+              + Item Avulso
+            </button>
+
+            <div style={{ display: 'flex', gap: '6px', overflowX: 'auto', width: '100%' }}>
               {categories.map((cat) => (
                 <button
                   key={cat}
@@ -276,6 +372,29 @@ export const PdvVendas = () => {
                 </div>
               );
             })}
+
+            {filteredProducts.length === 0 && (
+              <div style={{ textAlign: 'center', padding: '30px 14px', background: 'var(--bg-subtle)', borderRadius: '10px', width: '100%', gridColumn: '1 / -1' }}>
+                <p style={{ color: 'var(--color-secondary-muted)', fontSize: '0.9rem', marginBottom: '10px' }}>
+                  {search ? (
+                    <>Produto "<strong>{search}</strong>" não está cadastrado no catálogo.</>
+                  ) : (
+                    <>Nenhum produto cadastrado nesta categoria.</>
+                  )}
+                </p>
+                <button
+                  type="button"
+                  className="btn btn-primary btn-sm"
+                  onClick={() => {
+                    setIsAddingCustomProduct(true);
+                    if (search.trim()) setCustomName(search.trim());
+                  }}
+                >
+                  <Plus size={14} />
+                  {search.trim() ? `Adicionar "${search.trim()}" como Item Avulso` : '+ Digitar Produto Avulso'}
+                </button>
+              </div>
+            )}
           </div>
         </div>
 
@@ -285,6 +404,111 @@ export const PdvVendas = () => {
             <ShoppingBag size={20} color="var(--color-primary)" />
             Resumo da Venda ({saleItems.length})
           </h3>
+
+          {/* Quick Custom Product Toggle Button */}
+          <div style={{ marginBottom: '12px' }}>
+            <button
+              type="button"
+              className="btn btn-outline btn-sm"
+              style={{
+                width: '100%',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '8px',
+                borderColor: isAddingCustomProduct ? 'var(--color-primary)' : 'var(--color-accent)',
+                background: isAddingCustomProduct ? 'rgba(95, 45, 63, 0.06)' : '#fff',
+                color: 'var(--color-primary)',
+                fontWeight: 700,
+                padding: '9px 12px'
+              }}
+              onClick={() => setIsAddingCustomProduct(!isAddingCustomProduct)}
+            >
+              <Edit3 size={15} />
+              {isAddingCustomProduct ? 'Fechar Cadastro de Item Avulso' : '+ Escrever Produto Avulso (Fora do Catálogo)'}
+            </button>
+          </div>
+
+          {/* Form for Custom / Random Product */}
+          {isAddingCustomProduct && (
+            <div style={{ background: '#fffbeb', border: '1px solid #fde68a', borderRadius: '10px', padding: '14px', marginBottom: '14px' }}>
+              <div style={{ fontWeight: 700, fontSize: '0.86rem', color: '#92400e', marginBottom: '8px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <span>✍️ Digitar Produto Fora do Catálogo:</span>
+                <button
+                  type="button"
+                  onClick={() => setIsAddingCustomProduct(false)}
+                  style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#92400e', fontWeight: 700 }}
+                >
+                  ✕
+                </button>
+              </div>
+
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                <div>
+                  <label style={{ fontSize: '0.74rem', fontWeight: 600, color: '#78350f', display: 'block', marginBottom: '2px' }}>Nome / Descrição do Produto:</label>
+                  <input
+                    type="text"
+                    placeholder="Ex: Vestido vintage azul, Bijuteria avulsa, Ajuste..."
+                    className="form-control"
+                    style={{ fontSize: '0.85rem', padding: '7px 10px', background: '#fff' }}
+                    value={customName}
+                    onChange={(e) => setCustomName(e.target.value)}
+                    autoFocus
+                  />
+                </div>
+
+                <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 1fr 0.8fr', gap: '8px' }}>
+                  <div>
+                    <label style={{ fontSize: '0.74rem', fontWeight: 600, color: '#78350f', display: 'block', marginBottom: '2px' }}>Preço R$:</label>
+                    <input
+                      type="number"
+                      step="0.01"
+                      min="0"
+                      placeholder="0,00"
+                      className="form-control"
+                      style={{ fontSize: '0.85rem', padding: '6px 8px', background: '#fff' }}
+                      value={customPrice}
+                      onChange={(e) => setCustomPrice(e.target.value)}
+                    />
+                  </div>
+
+                  <div>
+                    <label style={{ fontSize: '0.74rem', fontWeight: 600, color: '#78350f', display: 'block', marginBottom: '2px' }}>Tamanho:</label>
+                    <input
+                      type="text"
+                      placeholder="Ex: Único, M, G..."
+                      className="form-control"
+                      style={{ fontSize: '0.85rem', padding: '6px 8px', background: '#fff' }}
+                      value={customSize}
+                      onChange={(e) => setCustomSize(e.target.value)}
+                    />
+                  </div>
+
+                  <div>
+                    <label style={{ fontSize: '0.74rem', fontWeight: 600, color: '#78350f', display: 'block', marginBottom: '2px' }}>Qtd:</label>
+                    <input
+                      type="number"
+                      min="1"
+                      className="form-control"
+                      style={{ fontSize: '0.85rem', padding: '6px 8px', background: '#fff' }}
+                      value={customQty}
+                      onChange={(e) => setCustomQty(Math.max(1, parseInt(e.target.value) || 1))}
+                    />
+                  </div>
+                </div>
+
+                <button
+                  type="button"
+                  className="btn btn-primary btn-sm"
+                  style={{ width: '100%', padding: '8px', marginTop: '4px' }}
+                  onClick={handleAddCustomProduct}
+                >
+                  <Plus size={14} />
+                  Adicionar Este Produto à Venda
+                </button>
+              </div>
+            </div>
+          )}
 
           {/* Customer Selection */}
           <div style={{ marginBottom: '16px' }}>
@@ -354,23 +578,36 @@ export const PdvVendas = () => {
           <div style={{ flex: 1, maxHeight: '240px', overflowY: 'auto', marginBottom: '16px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
             {saleItems.length === 0 ? (
               <div style={{ textAlign: 'center', padding: '24px 0', color: '#94a3b8', fontSize: '0.88rem' }}>
-                Nenhum item adicionado à venda. Clique nos produtos ao lado para incluir.
+                Nenhum item adicionado à venda. Clique nos produtos ao lado ou escreva um produto avulso acima.
               </div>
             ) : (
               saleItems.map((item, idx) => (
                 <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 10px', background: 'var(--bg-subtle)', borderRadius: '8px' }}>
                   <div style={{ flex: 1 }}>
-                    <div style={{ fontWeight: 600, fontSize: '0.85rem' }}>{item.name}</div>
+                    <div style={{ fontWeight: 600, fontSize: '0.85rem', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                      <span>{item.name}</span>
+                      {item.isCustomItem && (
+                        <span className="badge" style={{ fontSize: '0.68rem', padding: '1px 6px', background: 'rgba(95, 45, 63, 0.12)', color: 'var(--color-primary)' }}>
+                          Avulso
+                        </span>
+                      )}
+                    </div>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '4px' }}>
-                      <select
-                        value={item.size}
-                        onChange={(e) => updateItemSize(idx, e.target.value)}
-                        style={{ fontSize: '0.75rem', padding: '2px 4px', borderRadius: '4px', border: '1px solid #cbd5e1' }}
-                      >
-                        {item.availableSizes.map((s, sIdx) => (
-                          <option key={sIdx} value={s}>{s}</option>
-                        ))}
-                      </select>
+                      {item.isCustomItem ? (
+                        <span style={{ fontSize: '0.75rem', color: 'var(--color-taupe)', fontWeight: 600 }}>
+                          Tam: {item.size}
+                        </span>
+                      ) : (
+                        <select
+                          value={item.size}
+                          onChange={(e) => updateItemSize(idx, e.target.value)}
+                          style={{ fontSize: '0.75rem', padding: '2px 4px', borderRadius: '4px', border: '1px solid #cbd5e1' }}
+                        >
+                          {item.availableSizes.map((s, sIdx) => (
+                            <option key={sIdx} value={s}>{s}</option>
+                          ))}
+                        </select>
+                      )}
                       <span style={{ fontSize: '0.8rem', color: 'var(--color-secondary-muted)' }}>
                         {formatCurrency(item.unitPrice)}
                       </span>
@@ -433,48 +670,85 @@ export const PdvVendas = () => {
                 onClick={() => setPaymentMethod('boca_2x')}
               >
                 <Clock size={20} />
-                <span>Em 2x "De Boca"</span>
+                <span>Fiado / "De Boca"</span>
               </button>
             </div>
           </div>
 
-          {/* Specific Box for 2x "De Boca" (Fiado) */}
+          {/* Specific Box for Fiado / "De Boca" with Configurable Installments */}
           {paymentMethod === 'boca_2x' && (
-            <div className="fiado-special-box">
-              <div style={{ fontWeight: 700, fontSize: '0.88rem', color: '#92400e' }}>
-                🤝 Condição Especial: 2x de {formatCurrency(halfSale)}
+            <div className="fiado-special-box" style={{ background: '#fffbeb', border: '1px solid #fde68a', borderRadius: '10px', padding: '14px', marginTop: '12px' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px', flexWrap: 'wrap', gap: '8px' }}>
+                <div style={{ fontWeight: 700, fontSize: '0.9rem', color: '#92400e' }}>
+                  🤝 Condição: {installmentCount}x de {formatCurrency(installmentBaseAmount)}
+                </div>
+
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <label style={{ fontSize: '0.78rem', fontWeight: 600, color: '#78350f', margin: 0 }}>Parcelas:</label>
+                  <select
+                    className="form-control"
+                    value={installmentCount}
+                    onChange={(e) => handleInstallmentCountChange(e.target.value)}
+                    style={{ width: 'auto', padding: '4px 8px', fontSize: '0.82rem', fontWeight: 700, background: '#fff' }}
+                  >
+                    <option value="1">1x (A Prazo)</option>
+                    <option value="2">2x de Boca</option>
+                    <option value="3">3x de Boca</option>
+                    <option value="4">4x de Boca</option>
+                    <option value="5">5x de Boca</option>
+                    <option value="6">6x de Boca</option>
+                    <option value="7">7x de Boca</option>
+                    <option value="8">8x de Boca</option>
+                    <option value="9">9x de Boca</option>
+                    <option value="10">10x de Boca</option>
+                    <option value="12">12x de Boca</option>
+                  </select>
+                </div>
               </div>
 
-              <div className="fiado-dates-row">
-                <div>
-                  <label style={{ fontSize: '0.75rem', fontWeight: 600, color: '#78350f' }}>Venc. 1ª Parcela:</label>
-                  <input
-                    type="date"
-                    className="form-control"
-                    style={{ fontSize: '0.82rem', padding: '6px' }}
-                    value={firstDueDate}
-                    onChange={(e) => setFirstDueDate(e.target.value)}
-                  />
-                </div>
-                <div>
-                  <label style={{ fontSize: '0.75rem', fontWeight: 600, color: '#78350f' }}>Venc. 2ª Parcela:</label>
-                  <input
-                    type="date"
-                    className="form-control"
-                    style={{ fontSize: '0.82rem', padding: '6px' }}
-                    value={secondDueDate}
-                    onChange={(e) => setSecondDueDate(e.target.value)}
-                  />
-                </div>
+              {/* Quick shortcut pills for parcelas */}
+              <div style={{ display: 'flex', gap: '5px', marginBottom: '12px', flexWrap: 'wrap' }}>
+                {[1, 2, 3, 4, 5, 6].map((num) => (
+                  <button
+                    key={num}
+                    type="button"
+                    className={`btn btn-sm ${installmentCount === num ? 'btn-primary' : 'btn-outline'}`}
+                    style={{ padding: '3px 10px', fontSize: '0.75rem', minWidth: '38px' }}
+                    onClick={() => handleInstallmentCountChange(num)}
+                  >
+                    {num}x
+                  </button>
+                ))}
               </div>
 
-              <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', fontSize: '0.82rem', color: '#78350f' }}>
+              {/* Installment dates list */}
+              <div style={{ maxHeight: '150px', overflowY: 'auto', paddingRight: '4px', display: 'flex', flexDirection: 'column', gap: '8px', marginBottom: '12px' }}>
+                {Array.from({ length: installmentCount }).map((_, idx) => (
+                  <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '8px' }}>
+                    <label style={{ fontSize: '0.78rem', fontWeight: 600, color: '#78350f', minWidth: '105px', margin: 0 }}>
+                      Venc. {idx + 1}ª Parcela:
+                    </label>
+                    <input
+                      type="date"
+                      className="form-control"
+                      style={{ fontSize: '0.82rem', padding: '5px 8px', background: '#fff' }}
+                      value={installmentDates[idx] || ''}
+                      onChange={(e) => handleInstallmentDateChange(idx, e.target.value)}
+                    />
+                    <span style={{ fontSize: '0.78rem', fontWeight: 700, color: '#92400e', minWidth: '65px', textAlign: 'right' }}>
+                      {formatCurrency(installmentBaseAmount)}
+                    </span>
+                  </div>
+                ))}
+              </div>
+
+              <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', fontSize: '0.82rem', color: '#78350f', margin: 0 }}>
                 <input
                   type="checkbox"
                   checked={firstPaidToday}
                   onChange={(e) => setFirstPaidToday(e.target.checked)}
                 />
-                <span><strong>1ª parcela foi paga hoje no ato?</strong> (Entrada de {formatCurrency(halfSale)})</span>
+                <span><strong>1ª parcela foi paga hoje no ato?</strong> (Entrada de {formatCurrency(installmentBaseAmount)})</span>
               </label>
             </div>
           )}

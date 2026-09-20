@@ -339,7 +339,7 @@ export const ClientesManager = () => {
                     </div>
 
                     <div style={{ fontSize: '0.82rem', color: '#475569', marginBottom: '8px' }}>
-                      Pagamento: <strong>{sale.paymentMethod === 'boca_2x' ? '2x De Boca (Fiado)' : sale.paymentMethod === 'cartao' ? 'Cartão' : 'À Vista'}</strong>
+                      Pagamento: <strong>{sale.paymentMethod === 'boca_2x' ? `${sale.installments?.length || 2}x Fiado ("De Boca")` : sale.paymentMethod === 'cartao' ? 'Cartão' : 'À Vista'}</strong>
                     </div>
 
                     <div style={{ borderTop: '1px solid #e2e8f0', paddingTop: '8px', display: 'flex', flexDirection: 'column', gap: '4px' }}>

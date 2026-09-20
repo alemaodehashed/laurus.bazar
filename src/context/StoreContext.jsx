@@ -483,7 +483,7 @@ export const StoreProvider = ({ children }) => {
     showToast('Cliente removido!');
   };
 
-  // Sales and Fiado (2x de boca)
+  // Sales and Fiado (parcelado / de boca)
   const createSale = async ({
     customerId,
     customerName,
@@ -494,6 +494,9 @@ export const StoreProvider = ({ children }) => {
     firstDueDate = null,
     secondDueDate = null,
     firstPaidAtSale = false,
+    installmentCount = 2,
+    installmentDates = null,
+    customInstallments = null,
   }) => {
     const total = items.reduce((acc, item) => acc + item.unitPrice * item.quantity, 0);
     const saleId = generateId('sale');
@@ -505,53 +508,53 @@ export const StoreProvider = ({ children }) => {
     let status = 'pago';
 
     if (paymentMethod === 'boca_2x') {
-      const half = +(total / 2).toFixed(2);
-      const remainingHalf = +(total - half).toFixed(2);
-
-      const d1 = firstDueDate || new Date(Date.now() + 15 * 86400000).toISOString().split('T')[0];
-      const d2 = secondDueDate || new Date(Date.now() + 30 * 86400000).toISOString().split('T')[0];
-
-      if (firstPaidAtSale) {
-        initialPaid = half;
-        remainingBalance = remainingHalf;
-        status = 'parcial';
-        installments = [
-          {
-            number: 1,
-            amount: half,
-            dueDate: d1,
-            paid: true,
-            paidDate: nowIso.split('T')[0],
-          },
-          {
-            number: 2,
-            amount: remainingHalf,
-            dueDate: d2,
-            paid: false,
-            paidDate: null,
-          },
-        ];
+      if (customInstallments && Array.isArray(customInstallments) && customInstallments.length > 0) {
+        installments = customInstallments.map((inst, idx) => ({
+          number: idx + 1,
+          amount: +(Number(inst.amount)).toFixed(2),
+          dueDate: inst.dueDate,
+          paid: Boolean(inst.paid),
+          paidDate: inst.paid ? (inst.paidDate || nowIso.split('T')[0]) : null,
+        }));
       } else {
-        initialPaid = 0;
-        remainingBalance = total;
-        status = 'pendente';
-        installments = [
-          {
-            number: 1,
-            amount: half,
-            dueDate: d1,
-            paid: false,
-            paidDate: null,
-          },
-          {
-            number: 2,
-            amount: remainingHalf,
-            dueDate: d2,
-            paid: false,
-            paidDate: null,
-          },
-        ];
+        const count = Math.max(1, Number(installmentCount) || 2);
+        const baseAmount = +(total / count).toFixed(2);
+        installments = [];
+        let accumulated = 0;
+
+        for (let i = 0; i < count; i++) {
+          const isLast = i === count - 1;
+          const amt = isLast ? +(total - accumulated).toFixed(2) : baseAmount;
+          accumulated += amt;
+          const isFirstPaid = i === 0 && firstPaidAtSale;
+
+          let d = installmentDates && installmentDates[i] ? installmentDates[i] : null;
+          if (!d) {
+            if (i === 0 && firstDueDate) {
+              d = firstDueDate;
+            } else if (i === 1 && secondDueDate) {
+              d = secondDueDate;
+            } else {
+              const defaultDays = i === 0 ? 15 : (i + 1) * 30;
+              d = new Date(Date.now() + defaultDays * 86400000).toISOString().split('T')[0];
+            }
+          }
+
+          installments.push({
+            number: i + 1,
+            amount: amt,
+            dueDate: d,
+            paid: isFirstPaid,
+            paidDate: isFirstPaid ? nowIso.split('T')[0] : null,
+          });
+        }
       }
+
+      const totalPaid = installments.filter((i) => i.paid).reduce((acc, i) => acc + i.amount, 0);
+      initialPaid = totalPaid;
+      remainingBalance = +(total - totalPaid).toFixed(2);
+      const allPaid = installments.length > 0 && installments.every((i) => i.paid);
+      status = allPaid ? 'pago' : totalPaid > 0 ? 'parcial' : 'pendente';
     } else {
       initialPaid = total;
       remainingBalance = 0;
@@ -573,10 +576,10 @@ export const StoreProvider = ({ children }) => {
       installments,
     };
 
-    // Decrement stock locally
+    // Decrement stock locally (only for catalog items, ignore avulso items)
     setData((prev) => {
       const updatedProducts = prev.products.map((p) => {
-        const boughtItem = items.find((it) => it.productId === p.id);
+        const boughtItem = items.find((it) => it.productId === p.id && !it.isCustomItem);
         if (boughtItem) {
           return { ...p, stock: Math.max(0, p.stock - boughtItem.quantity) };
         }
