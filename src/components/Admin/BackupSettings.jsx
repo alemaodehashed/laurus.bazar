@@ -15,7 +15,7 @@ import {
 } from 'lucide-react';
 
 export const BackupSettings = () => {
-  const { data, settings, updateSettings, resetToInitialData, importBackupData, showToast } = useStore();
+  const { data, settings, updateSettings, resetToInitialData, importBackupData, showToast, isCloudConnected } = useStore();
 
   const [formSettings, setFormSettings] = useState({
     storeName: settings.storeName || '',
@@ -66,6 +66,37 @@ export const BackupSettings = () => {
           <h2>Configurações & Backup do Sistema</h2>
           <p>Personalize os dados da sua loja, altere senhas e salve cópias de segurança dos seus dados</p>
         </div>
+      </div>
+
+      {/* Cloud Status Banner */}
+      <div
+        className="card"
+        style={{
+          marginBottom: '24px',
+          background: isCloudConnected ? '#ecfdf5' : '#fffbeb',
+          borderLeft: `5px solid ${isCloudConnected ? '#10b981' : '#f59e0b'}`,
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          flexWrap: 'wrap',
+          gap: '12px',
+        }}
+      >
+        <div>
+          <div style={{ fontWeight: 700, fontSize: '0.98rem', color: isCloudConnected ? '#065f46' : '#92400e' }}>
+            {isCloudConnected
+              ? '🟢 Banco de Dados na Nuvem Conectado (Supabase)'
+              : '🟡 Armazenamento Local Ativo (Nenhum banco de dados configurado)'}
+          </div>
+          <p style={{ fontSize: '0.82rem', color: isCloudConnected ? '#047857' : '#78350f', marginTop: '2px' }}>
+            {isCloudConnected
+              ? 'Seus produtos, vendas e fiados sincronizam em tempo real entre o celular e computador.'
+              : 'Seus dados estão salvos no navegador. Para sincronizar entre celulares da família, configure as variáveis do Supabase na Vercel.'}
+          </p>
+        </div>
+        <span className={`badge ${isCloudConnected ? 'badge-success' : 'badge-warning'}`}>
+          {isCloudConnected ? 'Nuvem Ativa' : 'Modo Offline'}
+        </span>
       </div>
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(420px, 1fr))', gap: '24px' }}>

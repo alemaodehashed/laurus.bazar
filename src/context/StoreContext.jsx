@@ -2,6 +2,7 @@ import React, { createContext, useContext, useState, useEffect } from 'react';
 import { initialData } from '../data/initialData';
 import { loadStoredData, saveStoredData } from '../utils/storage';
 import { generateId } from '../utils/formatters';
+import { supabase, isSupabaseConfigured } from '../utils/supabaseClient';
 
 const StoreContext = createContext();
 
@@ -12,11 +13,138 @@ export const StoreProvider = ({ children }) => {
   const [activeAdminTab, setActiveAdminTab] = useState('dashboard');
   const [isCartOpen, setIsCartOpen] = useState(false);
   const [toastMessage, setToastMessage] = useState(null);
+  const [isCloudConnected, setIsCloudConnected] = useState(isSupabaseConfigured());
 
-  // Auto-save whenever data changes
+  // Auto-save whenever data changes (keeps local backup always up to date)
   useEffect(() => {
     saveStoredData(data);
   }, [data]);
+
+  // Load from Supabase on mount if configured
+  useEffect(() => {
+    if (!isSupabaseConfigured() || !supabase) return;
+
+    const loadCloudData = async () => {
+      try {
+        const [prodRes, custRes, salesRes, finRes, setRes] = await Promise.all([
+          supabase.from('products').select('*'),
+          supabase.from('customers').select('*'),
+          supabase.from('sales').select('*'),
+          supabase.from('personal_finance').select('*'),
+          supabase.from('store_settings').select('*').eq('id', 'default').single(),
+        ]);
+
+        let hasAnyCloudData = false;
+        const newProducts = (prodRes.data && prodRes.data.length > 0)
+          ? prodRes.data.map((p) => ({
+              ...p,
+              costPrice: p.cost_price,
+            }))
+          : null;
+
+        const newCustomers = custRes.data && custRes.data.length > 0 ? custRes.data : null;
+        const newSales = (salesRes.data && salesRes.data.length > 0)
+          ? salesRes.data.map((s) => ({
+              ...s,
+              customerId: s.customer_id,
+              customerName: s.customer_name,
+              customerPhone: s.customer_phone,
+              paymentMethod: s.payment_method,
+              paidAtSale: s.paid_at_sale,
+              remainingBalance: s.remaining_balance,
+            }))
+          : null;
+
+        const newFinance = finRes.data && finRes.data.length > 0 ? finRes.data : null;
+        const newSettings = setRes.data?.data ? setRes.data.data : null;
+
+        if (newProducts || newCustomers || newSales || newFinance || newSettings) {
+          hasAnyCloudData = true;
+          setData((prev) => ({
+            ...prev,
+            products: newProducts || prev.products,
+            customers: newCustomers || prev.customers,
+            sales: newSales || prev.sales,
+            personalFinance: newFinance || prev.personalFinance,
+            settings: newSettings || prev.settings,
+          }));
+        } else {
+          // If Supabase tables are freshly created and empty, seed them with initial data!
+          seedSupabaseInitialData();
+        }
+
+        setIsCloudConnected(true);
+      } catch (err) {
+        console.warn('Aviso ao carregar dados do Supabase:', err);
+      }
+    };
+
+    loadCloudData();
+  }, []);
+
+  const seedSupabaseInitialData = async () => {
+    if (!supabase) return;
+    try {
+      const prodRows = data.products.map((p) => ({
+        id: p.id,
+        name: p.name,
+        category: p.category,
+        cost_price: p.costPrice || 0,
+        price: p.price,
+        stock: p.stock,
+        sizes: p.sizes || [],
+        image: p.image || '',
+        description: p.description || '',
+        featured: Boolean(p.featured),
+        active: Boolean(p.active),
+      }));
+      await supabase.from('products').upsert(prodRows);
+
+      const custRows = data.customers.map((c) => ({
+        id: c.id,
+        name: c.name,
+        phone: c.phone || '',
+        address: c.address || '',
+        notes: c.notes || '',
+      }));
+      await supabase.from('customers').upsert(custRows);
+
+      const salesRows = data.sales.map((s) => ({
+        id: s.id,
+        date: s.date,
+        customer_id: s.customerId || null,
+        customer_name: s.customerName || 'Cliente Balcão',
+        customer_phone: s.customerPhone || '',
+        items: s.items,
+        total: s.total,
+        payment_method: s.paymentMethod,
+        paid_at_sale: s.paidAtSale || 0,
+        remaining_balance: s.remainingBalance || 0,
+        status: s.status,
+        installments: s.installments || [],
+      }));
+      await supabase.from('sales').upsert(salesRows);
+
+      const finRows = data.personalFinance.map((f) => ({
+        id: f.id,
+        date: f.date,
+        type: f.type,
+        category: f.category,
+        description: f.description,
+        amount: f.amount,
+      }));
+      await supabase.from('personal_finance').upsert(finRows);
+
+      await supabase.from('store_settings').upsert({
+        id: 'default',
+        data: data.settings,
+      });
+
+      console.log('Dados iniciais sincronizados com o Supabase com sucesso!');
+    } catch (e) {
+      console.warn('Erro ao popular dados iniciais no Supabase:', e);
+    }
+  };
 
   const showToast = (message, type = 'success') => {
     setToastMessage({ message, type, id: Date.now() });
@@ -45,7 +173,6 @@ export const StoreProvider = ({ children }) => {
   const addToCart = (product, selectedSize = null) => {
     const size = selectedSize || (product.sizes && product.sizes.length > 0 ? product.sizes[0] : 'Único');
     
-    // Check stock
     if (product.stock <= 0) {
       showToast('Este produto está sem estoque!', 'error');
       return;
@@ -106,7 +233,7 @@ export const StoreProvider = ({ children }) => {
   };
 
   // Products
-  const addProduct = (productData) => {
+  const addProduct = async (productData) => {
     const newProduct = {
       id: generateId('prod'),
       active: true,
@@ -116,15 +243,37 @@ export const StoreProvider = ({ children }) => {
       price: Number(productData.price) || 0,
       stock: Number(productData.stock) || 0,
     };
+
     setData((prev) => ({
       ...prev,
       products: [newProduct, ...prev.products],
     }));
+
+    if (supabase) {
+      try {
+        await supabase.from('products').insert({
+          id: newProduct.id,
+          name: newProduct.name,
+          category: newProduct.category,
+          cost_price: newProduct.costPrice,
+          price: newProduct.price,
+          stock: newProduct.stock,
+          sizes: newProduct.sizes || [],
+          image: newProduct.image || '',
+          description: newProduct.description || '',
+          featured: newProduct.featured,
+          active: newProduct.active,
+        });
+      } catch (err) {
+        console.warn('Erro ao salvar produto no Supabase:', err);
+      }
+    }
+
     showToast('Produto cadastrado com sucesso!');
     return newProduct;
   };
 
-  const updateProduct = (id, updatedData) => {
+  const updateProduct = async (id, updatedData) => {
     setData((prev) => ({
       ...prev,
       products: prev.products.map((p) =>
@@ -139,65 +288,142 @@ export const StoreProvider = ({ children }) => {
           : p
       ),
     }));
+
+    if (supabase) {
+      try {
+        await supabase.from('products').update({
+          name: updatedData.name,
+          category: updatedData.category,
+          cost_price: updatedData.costPrice,
+          price: updatedData.price,
+          stock: updatedData.stock,
+          sizes: updatedData.sizes,
+          image: updatedData.image,
+          description: updatedData.description,
+          featured: updatedData.featured,
+          active: updatedData.active,
+        }).eq('id', id);
+      } catch (err) {
+        console.warn('Erro ao atualizar produto no Supabase:', err);
+      }
+    }
+
     showToast('Produto atualizado!');
   };
 
-  const deleteProduct = (id) => {
+  const deleteProduct = async (id) => {
     setData((prev) => ({
       ...prev,
       products: prev.products.filter((p) => p.id !== id),
     }));
+
+    if (supabase) {
+      try {
+        await supabase.from('products').delete().eq('id', id);
+      } catch (err) {
+        console.warn('Erro ao excluir produto no Supabase:', err);
+      }
+    }
+
     showToast('Produto removido!');
   };
 
-  const adjustProductStock = (id, delta) => {
+  const adjustProductStock = async (id, delta) => {
+    let newStockVal = 0;
     setData((prev) => ({
       ...prev,
       products: prev.products.map((p) => {
         if (p.id === id) {
-          const newStock = Math.max(0, p.stock + delta);
-          return { ...p, stock: newStock };
+          newStockVal = Math.max(0, p.stock + delta);
+          return { ...p, stock: newStockVal };
         }
         return p;
       }),
     }));
+
+    if (supabase) {
+      try {
+        await supabase.from('products').update({ stock: newStockVal }).eq('id', id);
+      } catch (err) {
+        console.warn('Erro ao ajustar estoque no Supabase:', err);
+      }
+    }
   };
 
   // Customers
-  const addCustomer = (customerData) => {
+  const addCustomer = async (customerData) => {
     const newCustomer = {
       id: generateId('cust'),
       createdAt: new Date().toISOString().split('T')[0],
       ...customerData,
     };
+
     setData((prev) => ({
       ...prev,
       customers: [newCustomer, ...prev.customers],
     }));
+
+    if (supabase) {
+      try {
+        await supabase.from('customers').insert({
+          id: newCustomer.id,
+          name: newCustomer.name,
+          phone: newCustomer.phone || '',
+          address: newCustomer.address || '',
+          notes: newCustomer.notes || '',
+        });
+      } catch (err) {
+        console.warn('Erro ao salvar cliente no Supabase:', err);
+      }
+    }
+
     showToast('Cliente cadastrado com sucesso!');
     return newCustomer;
   };
 
-  const updateCustomer = (id, updatedData) => {
+  const updateCustomer = async (id, updatedData) => {
     setData((prev) => ({
       ...prev,
       customers: prev.customers.map((c) =>
         c.id === id ? { ...c, ...updatedData } : c
       ),
     }));
+
+    if (supabase) {
+      try {
+        await supabase.from('customers').update({
+          name: updatedData.name,
+          phone: updatedData.phone,
+          address: updatedData.address,
+          notes: updatedData.notes,
+        }).eq('id', id);
+      } catch (err) {
+        console.warn('Erro ao atualizar cliente no Supabase:', err);
+      }
+    }
+
     showToast('Dados do cliente atualizados!');
   };
 
-  const deleteCustomer = (id) => {
+  const deleteCustomer = async (id) => {
     setData((prev) => ({
       ...prev,
       customers: prev.customers.filter((c) => c.id !== id),
     }));
+
+    if (supabase) {
+      try {
+        await supabase.from('customers').delete().eq('id', id);
+      } catch (err) {
+        console.warn('Erro ao deletar cliente no Supabase:', err);
+      }
+    }
+
     showToast('Cliente removido!');
   };
 
   // Sales and Fiado (2x de boca)
-  const createSale = ({
+  const createSale = async ({
     customerId,
     customerName,
     customerPhone,
@@ -221,7 +447,6 @@ export const StoreProvider = ({ children }) => {
       const half = +(total / 2).toFixed(2);
       const remainingHalf = +(total - half).toFixed(2);
 
-      // Defaults for due dates (today or in 15 days, and 30 days)
       const d1 = firstDueDate || new Date(Date.now() + 15 * 86400000).toISOString().split('T')[0];
       const d2 = secondDueDate || new Date(Date.now() + 30 * 86400000).toISOString().split('T')[0];
 
@@ -267,7 +492,6 @@ export const StoreProvider = ({ children }) => {
         ];
       }
     } else {
-      // À vista or Cartão
       initialPaid = total;
       remainingBalance = 0;
       status = 'pago';
@@ -288,7 +512,7 @@ export const StoreProvider = ({ children }) => {
       installments,
     };
 
-    // Decrement stock for all items
+    // Decrement stock locally
     setData((prev) => {
       const updatedProducts = prev.products.map((p) => {
         const boughtItem = items.find((it) => it.productId === p.id);
@@ -305,12 +529,45 @@ export const StoreProvider = ({ children }) => {
       };
     });
 
+    // Sync to Supabase
+    if (supabase) {
+      try {
+        await supabase.from('sales').insert({
+          id: newSale.id,
+          date: newSale.date,
+          customer_id: newSale.customerId,
+          customer_name: newSale.customerName,
+          customer_phone: newSale.customerPhone,
+          items: newSale.items,
+          total: newSale.total,
+          payment_method: newSale.paymentMethod,
+          paid_at_sale: newSale.paidAtSale,
+          remaining_balance: newSale.remainingBalance,
+          status: newSale.status,
+          installments: newSale.installments,
+        });
+
+        // Update product stocks in Supabase
+        for (const item of items) {
+          const prod = data.products.find((p) => p.id === item.productId);
+          if (prod) {
+            const newStk = Math.max(0, prod.stock - item.quantity);
+            await supabase.from('products').update({ stock: newStk }).eq('id', prod.id);
+          }
+        }
+      } catch (err) {
+        console.warn('Erro ao sincronizar venda no Supabase:', err);
+      }
+    }
+
     showToast('Venda registrada com sucesso!');
     return newSale;
   };
 
   // Pay an installment of "2x de boca"
-  const payInstallment = (saleId, installmentNumber) => {
+  const payInstallment = async (saleId, installmentNumber) => {
+    let updatedSaleToSync = null;
+
     setData((prev) => {
       const sale = prev.sales.find((s) => s.id === saleId);
       if (!sale) return prev;
@@ -340,45 +597,99 @@ export const StoreProvider = ({ children }) => {
         installments: updatedInstallments,
       };
 
+      updatedSaleToSync = updatedSale;
+
       return {
         ...prev,
         sales: prev.sales.map((s) => (s.id === saleId ? updatedSale : s)),
       };
     });
 
+    if (supabase && updatedSaleToSync) {
+      try {
+        await supabase.from('sales').update({
+          remaining_balance: updatedSaleToSync.remainingBalance,
+          paid_at_sale: updatedSaleToSync.paidAtSale,
+          status: updatedSaleToSync.status,
+          installments: updatedSaleToSync.installments,
+        }).eq('id', saleId);
+      } catch (err) {
+        console.warn('Erro ao atualizar parcela no Supabase:', err);
+      }
+    }
+
     showToast(`Parcela ${installmentNumber} recebida com sucesso!`);
   };
 
   // Personal and Family Finance
-  const addFinanceRecord = (recordData) => {
+  const addFinanceRecord = async (recordData) => {
     const newRecord = {
       id: generateId('fin'),
       date: recordData.date || new Date().toISOString().split('T')[0],
       amount: Number(recordData.amount) || 0,
       ...recordData,
     };
+
     setData((prev) => ({
       ...prev,
       personalFinance: [newRecord, ...prev.personalFinance],
     }));
+
+    if (supabase) {
+      try {
+        await supabase.from('personal_finance').insert({
+          id: newRecord.id,
+          date: newRecord.date,
+          type: newRecord.type,
+          category: newRecord.category,
+          description: newRecord.description,
+          amount: newRecord.amount,
+        });
+      } catch (err) {
+        console.warn('Erro ao salvar finança no Supabase:', err);
+      }
+    }
+
     showToast('Lançamento financeiro registrado!');
     return newRecord;
   };
 
-  const deleteFinanceRecord = (id) => {
+  const deleteFinanceRecord = async (id) => {
     setData((prev) => ({
       ...prev,
       personalFinance: prev.personalFinance.filter((f) => f.id !== id),
     }));
+
+    if (supabase) {
+      try {
+        await supabase.from('personal_finance').delete().eq('id', id);
+      } catch (err) {
+        console.warn('Erro ao excluir finança no Supabase:', err);
+      }
+    }
+
     showToast('Lançamento excluído!');
   };
 
   // Settings & Backups
-  const updateSettings = (newSettings) => {
+  const updateSettings = async (newSettings) => {
+    const merged = { ...data.settings, ...newSettings };
     setData((prev) => ({
       ...prev,
-      settings: { ...prev.settings, ...newSettings },
+      settings: merged,
     }));
+
+    if (supabase) {
+      try {
+        await supabase.from('store_settings').upsert({
+          id: 'default',
+          data: merged,
+        });
+      } catch (err) {
+        console.warn('Erro ao atualizar configurações no Supabase:', err);
+      }
+    }
+
     showToast('Configurações salvas!');
   };
 
@@ -413,6 +724,7 @@ export const StoreProvider = ({ children }) => {
         isAdminAuthenticated,
         activeAdminTab,
         setActiveAdminTab,
+        isCloudConnected,
         loginAdmin,
         logoutAdmin,
         addToCart,
