@@ -63,8 +63,8 @@ export const VitrinePage = ({ onOpenAdminLogin }) => {
       <header className="vitrine-header">
         <div className="vitrine-header-container">
           <div className="store-brand">
-            <div className="brand-icon">
-              <ShoppingBag size={24} />
+            <div className="brand-logo-wrapper">
+              <img src="/logo.jpg" alt="Laurus Bazar - Brasão da Família" className="brand-logo-img" />
             </div>
             <div className="brand-text">
               <h1>{settings.storeName}</h1>
@@ -76,7 +76,7 @@ export const VitrinePage = ({ onOpenAdminLogin }) => {
             <Search size={18} className="header-search-icon" />
             <input
               type="text"
-              placeholder="Buscar vestidos, camisas, perfumes, utilidades..."
+              placeholder="Buscar perfumes, fragrâncias, roupas, utilidades..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
             />
@@ -109,31 +109,37 @@ export const VitrinePage = ({ onOpenAdminLogin }) => {
 
       {/* Hero Section */}
       <section className="vitrine-hero">
-        <div className="hero-container">
-          <div className="hero-pill">
-            <Tag size={14} />
-            <span>Expositor & Catálogo Online</span>
-          </div>
-          <h2 className="hero-title">
-            Encontre o melhor da moda, perfumaria e variedades para você e sua casa.
-          </h2>
-          <p className="hero-subtitle">
-            Produtos selecionados com carinho pela nossa família. Veja fotos reais, detalhes de tamanhos e fragrâncias, e compre pelo WhatsApp.
-          </p>
+        <div className="hero-container" style={{ display: 'flex', flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: '32px' }}>
+          <div style={{ flex: 1 }}>
+            <div className="hero-pill">
+              <Tag size={14} />
+              <span>Laurus Bazar • Família Adam</span>
+            </div>
+            <h2 className="hero-title">
+              O melhor da perfumaria importada e variedades selecionadas para você.
+            </h2>
+            <p className="hero-subtitle">
+              Perfumes árabes refinados (Lattafa, Asdaaf, Armaf, Rasasi) e importados exclusivos. Fotos reais, amostras disponíveis e pagamento facilitado no carnê da casa.
+            </p>
 
-          <div className="hero-highlights">
-            <div className="highlight-item">
-              <CreditCard size={18} />
-              <span>À vista, Cartão de Crédito ou Débito</span>
+            <div className="hero-highlights">
+              <div className="highlight-item">
+                <CreditCard size={18} />
+                <span>À vista, Cartão de Crédito ou Débito</span>
+              </div>
+              <div className="highlight-item">
+                <CalendarCheck size={18} />
+                <span>Pagamento facilitado em até 2x de boca</span>
+              </div>
+              <div className="highlight-item">
+                <ShieldCheck size={18} />
+                <span>Atendimento direto e familiar</span>
+              </div>
             </div>
-            <div className="highlight-item">
-              <CalendarCheck size={18} />
-              <span>Pagamento em até 2x no carnê / de boca</span>
-            </div>
-            <div className="highlight-item">
-              <ShieldCheck size={18} />
-              <span>Atendimento direto e familiar</span>
-            </div>
+          </div>
+
+          <div className="hero-logo-showcase">
+            <img src="/logo.jpg" alt="Brasão da Família Laurus" className="hero-logo-img" />
           </div>
         </div>
       </section>

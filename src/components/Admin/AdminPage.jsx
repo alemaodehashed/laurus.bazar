@@ -47,7 +47,18 @@ export const AdminPage = ({ onGoToVitrine }) => {
       <header className="admin-navbar">
         <div className="admin-nav-container">
           <div className="admin-brand">
-            <Store size={22} color="#f59e0b" />
+            <img
+              src="/logo.jpg"
+              alt="Laurus Bazar"
+              style={{
+                width: '38px',
+                height: '38px',
+                borderRadius: '8px',
+                border: '2px solid #d97706',
+                objectFit: 'cover',
+                boxShadow: '0 2px 8px rgba(217, 119, 6, 0.4)',
+              }}
+            />
             <h2 style={{ fontSize: '1.15rem', color: '#ffffff', fontWeight: 700 }}>
               {settings.storeName}
             </h2>
