@@ -1,6 +1,6 @@
 export const initialData = {
   settings: {
-    storeName: 'Laurus Bazar',
+    storeName: 'Laurus',
     storeSubtitle: 'Perfumaria Importada, Roupas e Variedades',
     whatsapp: '5511999998888',
     adminPassword: '1234',

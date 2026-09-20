@@ -64,7 +64,7 @@ export const VitrinePage = ({ onOpenAdminLogin }) => {
         <div className="vitrine-header-container">
           <div className="store-brand">
             <div className="brand-logo-wrapper">
-              <img src="/monogram.png" alt="Laurus Bazar - Monograma Oficial LL" className="brand-logo-img" />
+              <img src="/monogram.png" alt="Laurus - Monograma Oficial LL" className="brand-logo-img" />
             </div>
             <div className="brand-text">
               <h1>{settings.storeName}</h1>
@@ -113,7 +113,7 @@ export const VitrinePage = ({ onOpenAdminLogin }) => {
           <div style={{ flex: 1 }}>
             <div className="hero-pill">
               <Tag size={14} />
-              <span>Laurus Bazar • Família Adam</span>
+              <span>Laurus • Família Adam</span>
             </div>
             <h2 className="hero-title">
               O melhor da perfumaria importada e variedades selecionadas para você.
@@ -129,7 +129,7 @@ export const VitrinePage = ({ onOpenAdminLogin }) => {
               </div>
               <div className="highlight-item">
                 <CalendarCheck size={18} />
-                <span>Pagamento facilitado em até 2x de boca</span>
+                <span>Pagamento facilitado em até 2x no fiado</span>
               </div>
               <div className="highlight-item">
                 <ShieldCheck size={18} />

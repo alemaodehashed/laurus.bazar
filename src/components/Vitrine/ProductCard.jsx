@@ -17,8 +17,6 @@ export const ProductCard = ({ product, onOpenModal }) => {
           className="product-img"
           loading="lazy"
         />
-        <span className="product-category-tag">{product.category}</span>
-        {product.featured && <span className="product-badge-destaque">Destaque</span>}
       </div>
 
       <div className="product-info">

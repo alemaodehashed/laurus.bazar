@@ -50,7 +50,7 @@ export const AdminPage = ({ onGoToVitrine }) => {
             <div className="admin-brand-logo">
               <img
                 src="/monogram.png"
-                alt="Laurus Bazar - Monograma LL"
+                alt="Laurus - Monograma LL"
               />
             </div>
             <h2>

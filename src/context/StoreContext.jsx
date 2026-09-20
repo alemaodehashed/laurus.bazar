@@ -10,7 +10,13 @@ export const StoreProvider = ({ children }) => {
   const AUTH_STORAGE_KEY = 'bazar_admin_session';
   const ADMIN_TAB_STORAGE_KEY = 'bazar_admin_tab';
 
-  const [data, setData] = useState(() => loadStoredData(initialData));
+  const [data, setData] = useState(() => {
+    const loaded = loadStoredData(initialData);
+    if (loaded && loaded.settings && (!loaded.settings.storeName || loaded.settings.storeName === 'Laurus Bazar')) {
+      loaded.settings.storeName = 'Laurus';
+    }
+    return loaded;
+  });
   const [cart, setCart] = useState([]);
   const [isAdminAuthenticated, setIsAdminAuthenticated] = useState(() => {
     try {
