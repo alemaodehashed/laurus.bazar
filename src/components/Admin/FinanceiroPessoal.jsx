@@ -12,12 +12,14 @@ import {
   X,
   PieChart,
   Calendar,
-  CheckCircle2
+  CheckCircle2,
+  DollarSign,
+  Sparkles
 } from 'lucide-react';
 
 export const FinanceiroPessoal = () => {
   const { personalFinance, addFinanceRecord, deleteFinanceRecord, sales } = useStore();
-  const [filterType, setFilterType] = useState('todos'); // todos, despesa_casa, retirada_loja, despesa_loja
+  const [filterType, setFilterType] = useState('todos'); // todos, renda, renda_extra, despesa_casa, retirada_loja, despesa_loja
   const [isModalOpen, setIsModalOpen] = useState(false);
 
   const [formData, setFormData] = useState({
@@ -39,6 +41,24 @@ export const FinanceiroPessoal = () => {
     'Outras Despesas de Casa',
   ];
 
+  const categoriesRenda = [
+    'Salário / Emprego',
+    'Aposentadoria / Pensão',
+    'Aluguel Recebido',
+    'Pró-Labore Fixo',
+    'Outra Renda Principal',
+  ];
+
+  const categoriesRendaExtra = [
+    'Vendas Externas',
+    'Bicos & Freelance',
+    'Comissões',
+    'Serviços Prestados',
+    'Prêmios & Bonificações',
+    'Presente / Doação',
+    'Outra Renda Extra',
+  ];
+
   const categoriesLoja = [
     'Compra de Mercadorias',
     'Embalagens & Sacolas',
@@ -48,6 +68,14 @@ export const FinanceiroPessoal = () => {
 
   // Totals calculations
   const totalVendasLoja = sales.reduce((acc, s) => acc + s.paidAtSale, 0);
+
+  const totalRenda = personalFinance
+    .filter((f) => f.type === 'renda')
+    .reduce((acc, f) => acc + f.amount, 0);
+
+  const totalRendaExtra = personalFinance
+    .filter((f) => f.type === 'renda_extra')
+    .reduce((acc, f) => acc + f.amount, 0);
 
   const totalRetiradasFamilia = personalFinance
     .filter((f) => f.type === 'retirada_loja')
@@ -61,12 +89,15 @@ export const FinanceiroPessoal = () => {
     .filter((f) => f.type === 'despesa_loja')
     .reduce((acc, f) => acc + f.amount, 0);
 
-  // Remaining family cash: Retiradas - Despesas da casa
-  const saldoFamilia = totalRetiradasFamilia - totalDespesasCasa;
+  // Total household incomes = Renda principal + Renda extra + Retiradas da loja
+  const totalEntradasFamilia = totalRenda + totalRendaExtra + totalRetiradasFamilia;
 
-  // Percentage of household costs covered by store withdrawals
+  // Remaining family cash: Entradas da família - Despesas da casa
+  const saldoFamilia = totalEntradasFamilia - totalDespesasCasa;
+
+  // Percentage of household costs covered by total family income
   const coberturaContas = totalDespesasCasa > 0
-    ? Math.min(100, Math.round((totalRetiradasFamilia / totalDespesasCasa) * 100))
+    ? Math.min(100, Math.round((totalEntradasFamilia / totalDespesasCasa) * 100))
     : 100;
 
   const handleSubmit = (e) => {
@@ -94,7 +125,7 @@ export const FinanceiroPessoal = () => {
       <div className="admin-section-header">
         <div className="admin-section-title">
           <h2>Finanças Pessoais & da Família</h2>
-          <p>Mantenha as contas de casa separadas do caixa da loja e veja o quanto o bazar ajuda na renda familiar</p>
+          <p>Mantenha as contas de casa separadas do caixa da loja, acompanhe salários, rendas extras e retiradas</p>
         </div>
 
         <button className="btn btn-primary" onClick={() => setIsModalOpen(true)}>
@@ -113,11 +144,20 @@ export const FinanceiroPessoal = () => {
             {formatCurrency(saldoFamilia)}
           </div>
           <div style={{ fontSize: '0.85rem', color: '#E2DAC8', marginTop: '4px' }}>
-            {saldoFamilia >= 0 ? '✓ Finanças da casa com saldo positivo' : '⚠️ Despesas da casa superaram as retiradas'}
+            {saldoFamilia >= 0 ? '✓ Finanças da casa com saldo positivo' : '⚠️ Despesas da casa superaram as entradas totais'}
           </div>
         </div>
 
         <div className="finance-breakdown">
+          {(totalRenda > 0 || totalRendaExtra > 0) && (
+            <div className="breakdown-item">
+              <span className="breakdown-label">Renda & Extras da Família:</span>
+              <span className="breakdown-val" style={{ color: '#6ee7b7' }}>
+                +{formatCurrency(totalRenda + totalRendaExtra)}
+              </span>
+            </div>
+          )}
+
           <div className="breakdown-item">
             <span className="breakdown-label">Retiradas da Loja (Pró-labore):</span>
             <span className="breakdown-val" style={{ color: '#34d399' }}>
@@ -141,8 +181,38 @@ export const FinanceiroPessoal = () => {
         </div>
       </div>
 
-      {/* 3 Metric Cards */}
-      <div className="metrics-grid" style={{ marginBottom: '24px' }}>
+      {/* 4 Metric Cards */}
+      <div className="metrics-grid" style={{ marginBottom: '24px', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))' }}>
+        <div className="metric-card card-success">
+          <div className="metric-info">
+            <h4>Renda & Renda Extra</h4>
+            <div className="metric-value" style={{ color: 'var(--color-success)' }}>
+              +{formatCurrency(totalRenda + totalRendaExtra)}
+            </div>
+            <div className="metric-sub">
+              {totalRenda > 0 ? `Renda: ${formatCurrency(totalRenda)}` : ''} 
+              {totalRendaExtra > 0 ? ` | Extra: ${formatCurrency(totalRendaExtra)}` : ''}
+              {totalRenda === 0 && totalRendaExtra === 0 ? 'Salários, bicos e freelas' : ''}
+            </div>
+          </div>
+          <div className="metric-icon-box">
+            <Wallet size={22} />
+          </div>
+        </div>
+
+        <div className="metric-card card-primary">
+          <div className="metric-info">
+            <h4>Retiradas / Pró-Labore</h4>
+            <div className="metric-value" style={{ color: 'var(--color-primary)' }}>
+              +{formatCurrency(totalRetiradasFamilia)}
+            </div>
+            <div className="metric-sub">Lucro do bazar transferido para casa</div>
+          </div>
+          <div className="metric-icon-box">
+            <TrendingUp size={22} />
+          </div>
+        </div>
+
         <div className="metric-card card-purple">
           <div className="metric-info">
             <h4>Contas da Casa Pagas</h4>
@@ -156,20 +226,7 @@ export const FinanceiroPessoal = () => {
           </div>
         </div>
 
-        <div className="metric-card card-success">
-          <div className="metric-info">
-            <h4>Retiradas / Pró-Labore</h4>
-            <div className="metric-value" style={{ color: 'var(--color-success)' }}>
-              {formatCurrency(totalRetiradasFamilia)}
-            </div>
-            <div className="metric-sub">Lucro do bazar transferido para casa</div>
-          </div>
-          <div className="metric-icon-box">
-            <TrendingUp size={22} />
-          </div>
-        </div>
-
-        <div className="metric-card card-primary">
+        <div className="metric-card card-secondary">
           <div className="metric-info">
             <h4>Despesas da Loja</h4>
             <div className="metric-value">
@@ -191,27 +248,27 @@ export const FinanceiroPessoal = () => {
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '14px' }}>
               <TrendingUp size={20} color="var(--color-primary)" />
               <h3 style={{ fontSize: '1.1rem', color: 'var(--color-secondary)' }}>
-                Termômetro: Lucro do Bazar vs Gastos de Casa
+                Termômetro: Entradas Totais vs Gastos de Casa
               </h3>
             </div>
 
             <p style={{ fontSize: '0.84rem', color: 'var(--color-secondary-muted)', marginBottom: '16px', lineHeight: '1.4' }}>
-              Mostra de forma simples se o que a família retira do bazar é suficiente para pagar as contas do mês:
+              Mostra de forma simples se todas as rendas e retiradas são suficientes para pagar as contas do mês:
             </p>
 
             {/* Visual Bars */}
             <div style={{ display: 'flex', flexDirection: 'column', gap: '14px', marginBottom: '16px' }}>
               <div>
                 <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.85rem', marginBottom: '4px' }}>
-                  <span style={{ fontWeight: 600, color: '#065f46' }}>💰 Retiradas do Bazar para Casa</span>
-                  <strong>{formatCurrency(totalRetiradasFamilia)}</strong>
+                  <span style={{ fontWeight: 600, color: '#065f46' }}>💵 Entradas da Família (Renda + Extras + Bazar)</span>
+                  <strong>{formatCurrency(totalEntradasFamilia)}</strong>
                 </div>
                 <div style={{ height: '12px', background: '#e2e8f0', borderRadius: '6px', overflow: 'hidden' }}>
                   <div
                     style={{
                       height: '100%',
                       background: 'linear-gradient(90deg, #10b981 0%, #059669 100%)',
-                      width: `${Math.min(100, Math.max(8, totalRetiradasFamilia > 0 ? (totalRetiradasFamilia / Math.max(totalRetiradasFamilia, totalDespesasCasa, 1)) * 100 : 0))}%`,
+                      width: `${Math.min(100, Math.max(8, totalEntradasFamilia > 0 ? (totalEntradasFamilia / Math.max(totalEntradasFamilia, totalDespesasCasa, 1)) * 100 : 0))}%`,
                       transition: 'width 0.5s ease',
                     }}
                   />
@@ -228,7 +285,7 @@ export const FinanceiroPessoal = () => {
                     style={{
                       height: '100%',
                       background: 'linear-gradient(90deg, #f43f5e 0%, #e11d48 100%)',
-                      width: `${Math.min(100, Math.max(8, totalDespesasCasa > 0 ? (totalDespesasCasa / Math.max(totalRetiradasFamilia, totalDespesasCasa, 1)) * 100 : 0))}%`,
+                      width: `${Math.min(100, Math.max(8, totalDespesasCasa > 0 ? (totalDespesasCasa / Math.max(totalEntradasFamilia, totalDespesasCasa, 1)) * 100 : 0))}%`,
                       transition: 'width 0.5s ease',
                     }}
                   />
@@ -250,12 +307,12 @@ export const FinanceiroPessoal = () => {
               {saldoFamilia >= 0 ? '✓ Diagnóstico Saudável' : '⚠️ Atenção às Finanças'}
             </div>
             <p style={{ fontSize: '0.8rem', color: saldoFamilia >= 0 ? '#047857' : '#be123c', marginTop: '4px', lineHeight: '1.4' }}>
-              {totalDespesasCasa === 0 && totalRetiradasFamilia === 0 ? (
-                'Cadastre suas despesas de casa e retiradas da loja para acompanhar seu diagnóstico em tempo real!'
+              {totalDespesasCasa === 0 && totalEntradasFamilia === 0 ? (
+                'Cadastre sua renda, renda extra, despesas de casa ou retiradas da loja para acompanhar seu diagnóstico em tempo real!'
               ) : saldoFamilia >= 0 ? (
-                `O bazar está cobrindo 100% dos custos da casa e sobrando ${formatCurrency(saldoFamilia)} no bolso da família!`
+                `As entradas da família cobrem 100% dos custos da casa e estão sobrando ${formatCurrency(saldoFamilia)} no bolso da família!`
               ) : (
-                `As contas de casa superaram as retiradas da loja em ${formatCurrency(Math.abs(saldoFamilia))}. Considere ajustar os gastos ou acelerar as vendas de roupas e perfumes.`
+                `As contas de casa superaram as entradas totais em ${formatCurrency(Math.abs(saldoFamilia))}. Considere ajustar os gastos ou acelerar as vendas de roupas e perfumes.`
               )}
             </p>
           </div>
@@ -385,6 +442,18 @@ export const FinanceiroPessoal = () => {
             Todos os Lançamentos
           </button>
           <button
+            className={`btn btn-sm ${filterType === 'renda' ? 'btn-secondary' : 'btn-outline'}`}
+            onClick={() => setFilterType('renda')}
+          >
+            💵 Renda Principal
+          </button>
+          <button
+            className={`btn btn-sm ${filterType === 'renda_extra' ? 'btn-secondary' : 'btn-outline'}`}
+            onClick={() => setFilterType('renda_extra')}
+          >
+            ✨ Renda Extra
+          </button>
+          <button
             className={`btn btn-sm ${filterType === 'despesa_casa' ? 'btn-secondary' : 'btn-outline'}`}
             onClick={() => setFilterType('despesa_casa')}
           >
@@ -427,6 +496,8 @@ export const FinanceiroPessoal = () => {
                 </tr>
               ) : (
                 filteredRecords.map((item) => {
+                  const isIncome = item.type === 'retirada_loja' || item.type === 'renda' || item.type === 'renda_extra';
+
                   return (
                     <tr key={item.id}>
                       <td style={{ color: '#475569' }}>
@@ -434,14 +505,22 @@ export const FinanceiroPessoal = () => {
                       </td>
 
                       <td>
+                        {item.type === 'renda' && (
+                          <span className="badge badge-success">💵 Renda Principal</span>
+                        )}
+                        {item.type === 'renda_extra' && (
+                          <span className="badge" style={{ background: '#dcfce7', color: '#15803d', fontWeight: 700 }}>
+                            ✨ Renda Extra
+                          </span>
+                        )}
                         {item.type === 'despesa_casa' && (
-                          <span className="badge badge-danger">Despesa da Casa</span>
+                          <span className="badge badge-danger">🏠 Despesa da Casa</span>
                         )}
                         {item.type === 'retirada_loja' && (
-                          <span className="badge badge-success">Retirada da Loja</span>
+                          <span className="badge badge-success">💰 Retirada da Loja</span>
                         )}
                         {item.type === 'despesa_loja' && (
-                          <span className="badge badge-warning">Custo da Loja</span>
+                          <span className="badge badge-warning">🛍️ Custo da Loja</span>
                         )}
                       </td>
 
@@ -455,10 +534,10 @@ export const FinanceiroPessoal = () => {
                         <strong
                           style={{
                             fontSize: '0.95rem',
-                            color: item.type === 'retirada_loja' ? 'var(--color-success)' : 'var(--color-danger)',
+                            color: isIncome ? 'var(--color-success)' : 'var(--color-danger)',
                           }}
                         >
-                          {item.type === 'retirada_loja' ? '+' : '-'} {formatCurrency(item.amount)}
+                          {isIncome ? '+' : '-'} {formatCurrency(item.amount)}
                         </strong>
                       </td>
 
@@ -506,13 +585,22 @@ export const FinanceiroPessoal = () => {
                     value={formData.type}
                     onChange={(e) => {
                       const t = e.target.value;
+                      let defaultCat = 'Supermercado';
+                      if (t === 'renda') defaultCat = 'Salário / Emprego';
+                      else if (t === 'renda_extra') defaultCat = 'Vendas Externas';
+                      else if (t === 'retirada_loja') defaultCat = 'Pró-Labore / Retirada';
+                      else if (t === 'despesa_loja') defaultCat = 'Compra de Mercadorias';
+                      else defaultCat = 'Supermercado';
+
                       setFormData({
                         ...formData,
                         type: t,
-                        category: t === 'despesa_casa' ? 'Supermercado' : t === 'retirada_loja' ? 'Pró-Labore / Retirada' : 'Compra de Mercadorias',
+                        category: defaultCat,
                       });
                     }}
                   >
+                    <option value="renda">💵 Renda (Salário / Renda Principal)</option>
+                    <option value="renda_extra">✨ Renda Extra (Bicos / Vendas Externas)</option>
                     <option value="despesa_casa">🏠 Despesa Pessoal / da Casa (Saída de Casa)</option>
                     <option value="retirada_loja">💰 Retirada da Loja / Pró-labore (Entrada em Casa)</option>
                     <option value="despesa_loja">🛍️ Custo Operacional da Loja (Embalagens, Frete)</option>
@@ -528,6 +616,26 @@ export const FinanceiroPessoal = () => {
                       onChange={(e) => setFormData({ ...formData, category: e.target.value })}
                     >
                       {categoriesCasa.map((cat) => (
+                        <option key={cat} value={cat}>{cat}</option>
+                      ))}
+                    </select>
+                  ) : formData.type === 'renda' ? (
+                    <select
+                      className="form-control"
+                      value={formData.category}
+                      onChange={(e) => setFormData({ ...formData, category: e.target.value })}
+                    >
+                      {categoriesRenda.map((cat) => (
+                        <option key={cat} value={cat}>{cat}</option>
+                      ))}
+                    </select>
+                  ) : formData.type === 'renda_extra' ? (
+                    <select
+                      className="form-control"
+                      value={formData.category}
+                      onChange={(e) => setFormData({ ...formData, category: e.target.value })}
+                    >
+                      {categoriesRendaExtra.map((cat) => (
                         <option key={cat} value={cat}>{cat}</option>
                       ))}
                     </select>
