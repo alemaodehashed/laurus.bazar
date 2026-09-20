@@ -31,6 +31,7 @@ export const EstoqueManager = () => {
     category: 'Roupas',
     costPrice: '',
     price: '',
+    specialPrice: '',
     stock: 1,
     sizes: 'P, M, G',
     image: '',
@@ -64,6 +65,7 @@ export const EstoqueManager = () => {
       category: product.category,
       costPrice: product.costPrice || '',
       price: product.price || '',
+      specialPrice: product.specialPrice || '',
       stock: product.stock,
       sizes: product.sizes ? product.sizes.join(', ') : '',
       image: product.image || '',
@@ -91,6 +93,7 @@ export const EstoqueManager = () => {
       sizes: sizesArray.length > 0 ? sizesArray : ['Único'],
       costPrice: parseFloat(formData.costPrice) || 0,
       price: parseFloat(formData.price) || 0,
+      specialPrice: formData.specialPrice ? parseFloat(formData.specialPrice) : null,
       stock: parseInt(formData.stock, 10) || 0,
     };
 
@@ -282,6 +285,11 @@ export const EstoqueManager = () => {
                         <strong style={{ color: 'var(--color-secondary)', fontSize: '0.95rem' }}>
                           {formatCurrency(p.price)}
                         </strong>
+                        {p.specialPrice && (
+                          <div style={{ fontSize: '0.72rem', color: '#b45309', fontWeight: 600 }}>
+                            Diferenciado: {formatCurrency(p.specialPrice)}
+                          </div>
+                        )}
                       </td>
 
                       <td>
@@ -419,7 +427,7 @@ export const EstoqueManager = () => {
                 </div>
 
                 {/* Pricing & Profit Calculator */}
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '12px' }}>
                   <div className="form-group">
                     <label className="form-label">Preço de Custo (R$):</label>
                     <input
@@ -444,6 +452,20 @@ export const EstoqueManager = () => {
                       value={formData.price}
                       onChange={(e) => setFormData({ ...formData, price: e.target.value })}
                       required
+                    />
+                  </div>
+
+                  <div className="form-group">
+                    <label className="form-label">Preço Diferenciado (R$):</label>
+                    <input
+                      type="number"
+                      step="0.01"
+                      min="0"
+                      className="form-control"
+                      placeholder="Ex: 69.90 (Opcional)"
+                      value={formData.specialPrice}
+                      onChange={(e) => setFormData({ ...formData, specialPrice: e.target.value })}
+                      title="Preço especial ou promocional configurado para este produto"
                     />
                   </div>
                 </div>

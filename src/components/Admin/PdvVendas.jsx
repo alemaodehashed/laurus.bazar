@@ -99,6 +99,9 @@ export const PdvVendas = () => {
           productId: product.id,
           name: product.name,
           unitPrice: product.price,
+          originalPrice: product.price,
+          specialPrice: product.specialPrice || null,
+          priceTier: 'padrao',
           quantity: 1,
           size: defaultSize,
           availableSizes: product.sizes || ['Único'],
@@ -145,6 +148,9 @@ export const PdvVendas = () => {
         productId: created ? created.id : ('prod_' + Date.now()),
         name: customName.trim(),
         unitPrice: cleanPrice,
+        originalPrice: cleanPrice,
+        specialPrice: null,
+        priceTier: 'padrao',
         quantity: qty,
         size: size,
         availableSizes: [size],
@@ -156,6 +162,9 @@ export const PdvVendas = () => {
         productId: 'avulso_' + Date.now() + '_' + Math.random().toString(36).substring(2, 6),
         name: customName.trim(),
         unitPrice: cleanPrice,
+        originalPrice: cleanPrice,
+        specialPrice: null,
+        priceTier: 'padrao',
         quantity: qty,
         size: size,
         availableSizes: [size],
@@ -172,6 +181,43 @@ export const PdvVendas = () => {
     setSaveToStock(false);
     setExtraStockQty(0);
     setIsAddingCustomProduct(false);
+  };
+
+  const updateItemPriceTier = (index, tier) => {
+    setSaleItems((prev) => {
+      const updated = [...prev];
+      const item = { ...updated[index] };
+      const orig = Number(item.originalPrice || item.unitPrice);
+      item.priceTier = tier;
+
+      if (tier === 'padrao') {
+        item.unitPrice = orig;
+      } else if (tier === 'diferenciado' && item.specialPrice) {
+        item.unitPrice = Number(item.specialPrice);
+      } else if (tier === 'desc_5') {
+        item.unitPrice = +(orig * 0.95).toFixed(2);
+      } else if (tier === 'desc_10') {
+        item.unitPrice = +(orig * 0.90).toFixed(2);
+      } else if (tier === 'desc_15') {
+        item.unitPrice = +(orig * 0.85).toFixed(2);
+      } else if (tier === 'desc_20') {
+        item.unitPrice = +(orig * 0.80).toFixed(2);
+      } else if (tier === 'desc_30') {
+        item.unitPrice = +(orig * 0.70).toFixed(2);
+      }
+
+      updated[index] = item;
+      return updated;
+    });
+  };
+
+  const updateItemDirectPrice = (index, val) => {
+    const clean = Math.max(0, parseFloat(String(val).replace(',', '.')) || 0);
+    setSaleItems((prev) => {
+      const updated = [...prev];
+      updated[index] = { ...updated[index], unitPrice: clean, priceTier: 'custom' };
+      return updated;
+    });
   };
 
   const updateItemQty = (index, qty) => {
@@ -695,25 +741,78 @@ export const PdvVendas = () => {
                         </span>
                       )}
                     </div>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '4px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginTop: '5px', flexWrap: 'wrap' }}>
                       {item.isCustomItem ? (
-                        <span style={{ fontSize: '0.75rem', color: 'var(--color-taupe)', fontWeight: 600 }}>
+                        <span style={{ fontSize: '0.73rem', color: 'var(--color-taupe)', fontWeight: 600 }}>
                           Tam: {item.size}
                         </span>
                       ) : (
                         <select
                           value={item.size}
                           onChange={(e) => updateItemSize(idx, e.target.value)}
-                          style={{ fontSize: '0.75rem', padding: '2px 4px', borderRadius: '4px', border: '1px solid #cbd5e1' }}
+                          style={{ fontSize: '0.73rem', padding: '2px 4px', borderRadius: '4px', border: '1px solid #cbd5e1' }}
                         >
                           {item.availableSizes.map((s, sIdx) => (
                             <option key={sIdx} value={s}>{s}</option>
                           ))}
                         </select>
                       )}
-                      <span style={{ fontSize: '0.8rem', color: 'var(--color-secondary-muted)' }}>
-                        {formatCurrency(item.unitPrice)}
-                      </span>
+
+                      {/* Selector de Preço Diferenciado */}
+                      <select
+                        value={item.priceTier || 'padrao'}
+                        onChange={(e) => updateItemPriceTier(idx, e.target.value)}
+                        style={{
+                          fontSize: '0.73rem',
+                          padding: '2px 4px',
+                          borderRadius: '4px',
+                          border: '1px solid #cbd5e1',
+                          background: item.priceTier && item.priceTier !== 'padrao' ? 'rgba(197, 160, 99, 0.15)' : '#fff',
+                          color: item.priceTier && item.priceTier !== 'padrao' ? 'var(--color-primary)' : 'inherit',
+                          fontWeight: 600,
+                          maxWidth: '135px'
+                        }}
+                        title="Selecione um preço diferenciado ou desconto para este produto"
+                      >
+                        <option value="padrao">Normal ({formatCurrency(item.originalPrice || item.unitPrice)})</option>
+                        {item.specialPrice && (
+                          <option value="diferenciado">Especial ({formatCurrency(item.specialPrice)})</option>
+                        )}
+                        <option value="desc_5">Desc. 5% ({formatCurrency((item.originalPrice || item.unitPrice) * 0.95)})</option>
+                        <option value="desc_10">Desc. 10% ({formatCurrency((item.originalPrice || item.unitPrice) * 0.90)})</option>
+                        <option value="desc_15">Desc. 15% ({formatCurrency((item.originalPrice || item.unitPrice) * 0.85)})</option>
+                        <option value="desc_20">Desc. 20% ({formatCurrency((item.originalPrice || item.unitPrice) * 0.80)})</option>
+                        <option value="desc_30">Desc. 30% ({formatCurrency((item.originalPrice || item.unitPrice) * 0.70)})</option>
+                        <option value="custom">Preço Manual / Digitar...</option>
+                      </select>
+
+                      {item.priceTier === 'custom' ? (
+                        <div style={{ display: 'inline-flex', alignItems: 'center', gap: '2px' }}>
+                          <span style={{ fontSize: '0.7rem', fontWeight: 700, color: 'var(--color-primary)' }}>R$</span>
+                          <input
+                            type="number"
+                            step="0.01"
+                            min="0"
+                            value={item.unitPrice}
+                            onChange={(e) => updateItemDirectPrice(idx, e.target.value)}
+                            style={{ width: '62px', padding: '2px 4px', fontSize: '0.75rem', borderRadius: '4px', border: '1px solid var(--color-accent)', fontWeight: 700, color: 'var(--color-primary)', background: '#fff' }}
+                            autoFocus
+                          />
+                        </div>
+                      ) : (
+                        <span
+                          style={{
+                            fontSize: '0.82rem',
+                            fontWeight: 700,
+                            color: item.unitPrice < (item.originalPrice || item.unitPrice) ? 'var(--color-primary)' : 'var(--color-secondary)',
+                            cursor: 'pointer'
+                          }}
+                          onClick={() => updateItemPriceTier(idx, 'custom')}
+                          title="Clique para digitar o valor manualmente"
+                        >
+                          {formatCurrency(item.unitPrice)}
+                        </span>
+                      )}
                     </div>
                   </div>
 
