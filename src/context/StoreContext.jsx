@@ -621,6 +621,40 @@ export const StoreProvider = ({ children }) => {
     showToast(`Parcela ${installmentNumber} recebida com sucesso!`);
   };
 
+  const deleteSale = async (saleId) => {
+    setData((prev) => ({
+      ...prev,
+      sales: prev.sales.filter((s) => s.id !== saleId),
+    }));
+
+    if (supabase) {
+      try {
+        await supabase.from('sales').delete().eq('id', saleId);
+      } catch (err) {
+        console.warn('Erro ao excluir venda no Supabase:', err);
+      }
+    }
+
+    showToast('Registro de venda e parcelas removido com sucesso!');
+  };
+
+  const clearAllSales = async () => {
+    setData((prev) => ({
+      ...prev,
+      sales: [],
+    }));
+
+    if (supabase) {
+      try {
+        await supabase.from('sales').delete().neq('id', 'none');
+      } catch (err) {
+        console.warn('Erro ao limpar vendas no Supabase:', err);
+      }
+    }
+
+    showToast('Todas as vendas e fiados de teste foram zerados!');
+  };
+
   // Personal and Family Finance
   const addFinanceRecord = async (recordData) => {
     const newRecord = {
@@ -739,6 +773,8 @@ export const StoreProvider = ({ children }) => {
         updateCustomer,
         deleteCustomer,
         createSale,
+        deleteSale,
+        clearAllSales,
         payInstallment,
         addFinanceRecord,
         deleteFinanceRecord,

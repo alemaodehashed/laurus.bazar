@@ -11,11 +11,12 @@ import {
   Send,
   Calendar,
   X,
-  User
+  User,
+  Trash2
 } from 'lucide-react';
 
 export const FiadoManager = () => {
-  const { sales, payInstallment, customers, settings } = useStore();
+  const { sales, payInstallment, deleteSale, clearAllSales, customers, settings } = useStore();
   const [filterStatus, setFilterStatus] = useState('pendente'); // todos, pendente, vencido, pago
   const [searchCustomer, setSearchCustomer] = useState('');
   const [selectedForReminder, setSelectedForReminder] = useState(null);
@@ -101,6 +102,22 @@ export const FiadoManager = () => {
           <h2>Controle de Fiado ("2x de Boca")</h2>
           <p>Acompanhe datas de vencimento, registre recebimentos e envie lembretes amigáveis no WhatsApp</p>
         </div>
+
+        {allInstallments.length > 0 && (
+          <button
+            type="button"
+            className="btn btn-outline btn-sm"
+            style={{ borderColor: '#fca5a5', color: '#be123c' }}
+            onClick={() => {
+              if (window.confirm('Atenção: deseja realmente excluir todas as vendas e parcelas fictícias de teste para zerar tudo?')) {
+                clearAllSales();
+              }
+            }}
+          >
+            <Trash2 size={15} />
+            Zerar Todas as Vendas e Fiados de Teste
+          </button>
+        )}
       </div>
 
       {/* Summary Stat Cards */}
@@ -296,6 +313,20 @@ export const FiadoManager = () => {
                               ✓ Quitado
                             </span>
                           )}
+
+                          <button
+                            type="button"
+                            className="btn btn-outline btn-sm"
+                            style={{ padding: '6px 8px', borderColor: '#fca5a5', color: '#e11d48' }}
+                            onClick={() => {
+                              if (window.confirm(`Deseja excluir a venda de ${item.customerName} (${formatCurrency(item.amount)})?`)) {
+                                deleteSale(item.saleId);
+                              }
+                            }}
+                            title="Excluir esta venda/parcela fictícia"
+                          >
+                            <Trash2 size={13} />
+                          </button>
                         </div>
                       </td>
                     </tr>
