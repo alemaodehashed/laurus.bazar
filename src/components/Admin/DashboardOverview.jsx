@@ -15,7 +15,8 @@ import {
   DollarSign,
   TrendingDown,
   Save,
-  CheckCircle
+  CheckCircle,
+  Wallet
 } from 'lucide-react';
 import { PeriodFilterBar, isDateInPeriod, getPeriodLabel } from './PeriodFilterBar';
 
