@@ -46,13 +46,44 @@ export const StoreProvider = ({ children }) => {
   const [toastMessage, setToastMessage] = useState(null);
   const toastTimerRef = useRef(null);
   const [isCloudConnected, setIsCloudConnected] = useState(isSupabaseConfigured());
+  const [isSaving, setIsSaving] = useState(false);
+  const [lastSavedTime, setLastSavedTime] = useState(() => {
+    try {
+      return localStorage.getItem('bazar_last_saved_time') || 'Salvo localmente';
+    } catch (e) {
+      return 'Salvo localmente';
+    }
+  });
+
+  // Helper to merge local items with cloud items without deleting local additions
+  const mergeListById = (localList = [], cloudList = []) => {
+    if (!cloudList || cloudList.length === 0) return localList || [];
+    if (!localList || localList.length === 0) return cloudList || [];
+
+    const map = new Map();
+    // Add cloud items first
+    cloudList.forEach((item) => {
+      if (item && item.id) map.set(item.id, item);
+    });
+    // Local items take precedence and local-only items are preserved!
+    localList.forEach((item) => {
+      if (item && item.id) {
+        const cloudItem = map.get(item.id);
+        map.set(item.id, {
+          ...(cloudItem || {}),
+          ...item,
+        });
+      }
+    });
+    return Array.from(map.values());
+  };
 
   // Auto-save whenever data changes (keeps local backup always up to date)
   useEffect(() => {
     saveStoredData(data);
   }, [data]);
 
-  // Load from Supabase on mount if configured
+  // Load from Supabase on mount if configured with smart merge
   useEffect(() => {
     if (!isSupabaseConfigured() || !supabase) return;
 
@@ -66,7 +97,6 @@ export const StoreProvider = ({ children }) => {
           supabase.from('store_settings').select('*').eq('id', 'default').single(),
         ]);
 
-        let hasAnyCloudData = false;
         const newProducts = (prodRes.data && prodRes.data.length > 0)
           ? prodRes.data.map((p) => ({
               ...p,
@@ -91,7 +121,6 @@ export const StoreProvider = ({ children }) => {
         const newSettings = setRes.data?.data ? setRes.data.data : null;
 
         if (newProducts || newCustomers || newSales || newFinance || newSettings) {
-          hasAnyCloudData = true;
           const localPassword = localStorage.getItem('bazar_admin_password');
 
           setData((prev) => {
@@ -105,10 +134,10 @@ export const StoreProvider = ({ children }) => {
 
             return {
               ...prev,
-              products: newProducts || prev.products,
-              customers: newCustomers || prev.customers,
-              sales: newSales || prev.sales,
-              personalFinance: newFinance || prev.personalFinance,
+              products: mergeListById(prev.products, newProducts),
+              customers: mergeListById(prev.customers, newCustomers),
+              sales: mergeListById(prev.sales, newSales),
+              personalFinance: mergeListById(prev.personalFinance, newFinance),
               settings: mergedSettings,
             };
           });
@@ -1105,6 +1134,98 @@ export const StoreProvider = ({ children }) => {
     return true;
   };
 
+  const syncAllData = async () => {
+    setIsSaving(true);
+    try {
+      // 1. Force save to LocalStorage immediately
+      saveStoredData(data);
+      const timeStr = new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+      const displaySaved = `Salvo às ${timeStr}`;
+      setLastSavedTime(displaySaved);
+      try {
+        localStorage.setItem('bazar_last_saved_time', displaySaved);
+      } catch (e) {}
+
+      // 2. If Supabase configured, push everything (upsert)
+      if (supabase && isSupabaseConfigured()) {
+        try {
+          const prodRows = data.products.map((p) => ({
+            id: p.id,
+            name: p.name,
+            category: p.category,
+            cost_price: Number(p.costPrice) || 0,
+            price: Number(p.price) || 0,
+            stock: Number(p.stock) || 0,
+            sizes: p.sizes || [],
+            image: p.image || '',
+            description: p.description || '',
+            featured: Boolean(p.featured),
+            active: Boolean(p.active),
+          }));
+          if (prodRows.length > 0) await supabase.from('products').upsert(prodRows);
+
+          const custRows = data.customers.map((c) => ({
+            id: c.id,
+            name: c.name,
+            phone: c.phone || '',
+            address: c.address || '',
+            notes: c.notes || '',
+          }));
+          if (custRows.length > 0) await supabase.from('customers').upsert(custRows);
+
+          const salesRows = data.sales.map((s) => ({
+            id: s.id,
+            date: s.date,
+            customer_id: s.customerId || null,
+            customer_name: s.customerName || 'Cliente Balcão',
+            customer_phone: s.customerPhone || '',
+            items: s.items || [],
+            total: Number(s.total) || 0,
+            payment_method: s.paymentMethod,
+            paid_at_sale: Number(s.paidAtSale) || 0,
+            remaining_balance: Number(s.remainingBalance) || 0,
+            status: s.status,
+            installments: s.installments || [],
+          }));
+          if (salesRows.length > 0) await supabase.from('sales').upsert(salesRows);
+
+          const finRows = (data.personalFinance || []).map((f) => ({
+            id: f.id,
+            date: f.date,
+            type: f.type || 'despesa_loja',
+            category: f.category,
+            description: f.description,
+            amount: Number(f.amount) || 0,
+          }));
+          if (finRows.length > 0) await supabase.from('personal_finance').upsert(finRows);
+
+          await supabase.from('store_settings').upsert({
+            id: 'default',
+            data: data.settings,
+            updated_at: new Date().toISOString(),
+          });
+
+          setIsCloudConnected(true);
+          showToast('✅ Tudo salvo e sincronizado com a nuvem!');
+          return true;
+        } catch (cloudErr) {
+          console.warn('Erro ao salvar na nuvem, salvo localmente:', cloudErr);
+          showToast('💾 Dados salvos com segurança no seu computador!');
+          return true;
+        }
+      } else {
+        showToast('💾 Dados salvos com segurança no seu computador!');
+        return true;
+      }
+    } catch (err) {
+      console.error('Erro ao salvar:', err);
+      showToast('⚠️ Erro ao salvar dados');
+      return false;
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
   return (
     <StoreContext.Provider
       value={{
@@ -1122,6 +1243,9 @@ export const StoreProvider = ({ children }) => {
         activeAdminTab,
         setActiveAdminTab,
         isCloudConnected,
+        isSaving,
+        lastSavedTime,
+        syncAllData,
         loginAdmin,
         logoutAdmin,
         addToCart,

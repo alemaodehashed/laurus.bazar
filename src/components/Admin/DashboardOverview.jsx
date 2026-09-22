@@ -13,12 +13,14 @@ import {
   MessageCircle,
   ArrowUpRight,
   DollarSign,
-  TrendingDown
+  TrendingDown,
+  Save,
+  CheckCircle
 } from 'lucide-react';
 import { PeriodFilterBar, isDateInPeriod, getPeriodLabel } from './PeriodFilterBar';
 
 export const DashboardOverview = () => {
-  const { products, sales, customers, setActiveAdminTab, settings, personalFinance } = useStore();
+  const { products, sales, customers, setActiveAdminTab, settings, personalFinance, syncAllData, isSaving, lastSavedTime } = useStore();
 
   const now = new Date();
   const currentMonth = now.getMonth();
@@ -286,6 +288,26 @@ export const DashboardOverview = () => {
         >
           <TrendingDown size={18} />
           Gastos da Loja ({totalDespesasLoja > 0 ? formatCurrency(totalDespesasLoja) : 'Araras, Mkt...'})
+        </button>
+
+        <button
+          className="btn"
+          onClick={syncAllData}
+          disabled={isSaving}
+          style={{
+            background: '#10b981',
+            color: '#ffffff',
+            border: 'none',
+            fontWeight: 600,
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: '8px',
+            boxShadow: '0 2px 6px rgba(16, 185, 129, 0.3)'
+          }}
+          title="Salva e sincroniza tudo no banco de dados e localmente"
+        >
+          <Save size={18} />
+          {isSaving ? 'Salvando...' : 'Salvar / Sincronizar Tudo'}
         </button>
       </div>
 
