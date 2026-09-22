@@ -85,7 +85,19 @@ export const DashboardOverview = () => {
   // Calculations based on period
   const totalSalesAmount = periodSales.reduce((acc, s) => acc + s.total, 0);
   const totalReceivedCash = periodSales.reduce((acc, s) => acc + s.paidAtSale, 0);
-  const totalToReceiveFiado = periodSales.reduce((acc, s) => acc + (s.remainingBalance || 0), 0);
+  
+  // Installments due in selected period
+  const periodDueInstallments = [];
+  sales.forEach((sale) => {
+    if (sale.paymentMethod === 'boca_2x' && sale.installments) {
+      sale.installments.forEach((inst) => {
+        if (!inst.paid && isDateInPeriod(inst.dueDate, periodState)) {
+          periodDueInstallments.push(inst);
+        }
+      });
+    }
+  });
+  const totalToReceiveFiado = periodDueInstallments.reduce((acc, i) => acc + (Number(i.amount) || 0), 0);
 
   // Store purchases & expenses in the period (stock restocking, packaging, freight)
   const totalDespesasLoja = periodFinance
@@ -191,11 +203,13 @@ export const DashboardOverview = () => {
 
         <div className="metric-card card-danger">
           <div className="metric-info">
-            <h4>A Receber (Fiado)</h4>
+            <h4>A Receber ({getPeriodLabel(periodState)})</h4>
             <div className="metric-value" style={{ color: 'var(--color-danger)' }}>
               {formatCurrency(totalToReceiveFiado)}
             </div>
-            <div className="metric-sub">{pendingInstallments.length} parcelas pendentes</div>
+            <div className="metric-sub">
+              {periodDueInstallments.length} a vencer no período • {pendingInstallments.length} no total
+            </div>
           </div>
           <div className="metric-icon-box">
             <Clock size={24} />
