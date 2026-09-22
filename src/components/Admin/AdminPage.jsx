@@ -5,7 +5,6 @@ import { EstoqueManager } from './EstoqueManager';
 import { PdvVendas } from './PdvVendas';
 import { FiadoManager } from './FiadoManager';
 import { ClientesManager } from './ClientesManager';
-import { FinanceiroPessoal } from './FinanceiroPessoal';
 import { BackupSettings } from './BackupSettings';
 import {
   LayoutDashboard,
@@ -13,7 +12,6 @@ import {
   ShoppingCart,
   Receipt,
   Users,
-  Wallet,
   Settings,
   LogOut,
   ExternalLink,
@@ -37,7 +35,6 @@ export const AdminPage = ({ onGoToVitrine }) => {
     { id: 'vendas', label: 'Caixa & Vendas (PDV)', icon: ShoppingCart },
     { id: 'fiado', label: 'Vendas no Geral', icon: Receipt, badge: pendingFiadoCount },
     { id: 'clientes', label: 'Clientes', icon: Users },
-    { id: 'financeiro', label: 'Finanças Pessoais & Casa', icon: Wallet },
     { id: 'config', label: 'Configurações', icon: Settings },
   ];
 
@@ -116,7 +113,6 @@ export const AdminPage = ({ onGoToVitrine }) => {
         {activeAdminTab === 'vendas' && <PdvVendas />}
         {activeAdminTab === 'fiado' && <FiadoManager />}
         {activeAdminTab === 'clientes' && <ClientesManager />}
-        {activeAdminTab === 'financeiro' && <FinanceiroPessoal />}
         {activeAdminTab === 'config' && <BackupSettings />}
       </main>
     </div>

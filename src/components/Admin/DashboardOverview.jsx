@@ -4,7 +4,6 @@ import { formatCurrency, formatDate, generateWhatsAppLink } from '../../utils/fo
 import {
   TrendingUp,
   Clock,
-  Wallet,
   AlertTriangle,
   PlusCircle,
   ShoppingBag,
@@ -263,14 +262,6 @@ export const DashboardOverview = () => {
         >
           <Clock size={18} />
           Cobranças Fiado ({pendingInstallments.length})
-        </button>
-
-        <button
-          className="btn btn-outline"
-          onClick={() => setActiveAdminTab('financeiro')}
-        >
-          <Wallet size={18} />
-          Finanças Pessoais & Casa
         </button>
       </div>
 

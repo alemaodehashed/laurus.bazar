@@ -28,7 +28,8 @@ export const StoreProvider = ({ children }) => {
 
   const [activeAdminTab, setActiveAdminTabState] = useState(() => {
     try {
-      return localStorage.getItem(ADMIN_TAB_STORAGE_KEY) || 'dashboard';
+      const saved = localStorage.getItem(ADMIN_TAB_STORAGE_KEY);
+      return (saved && saved !== 'financeiro') ? saved : 'dashboard';
     } catch (e) {
       return 'dashboard';
     }

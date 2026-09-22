@@ -38,7 +38,7 @@ export const LoginModal = ({ isOpen, onClose }) => {
         <form onSubmit={handleSubmit}>
           <div className="modal-body">
             <p style={{ fontSize: '0.9rem', color: 'var(--color-secondary-muted)', marginBottom: '16px' }}>
-              Digite a senha de administrador para gerenciar estoque, vendas, fiado ("de boca"), clientes e finanças.
+              Digite a senha de administrador para gerenciar estoque, vendas, fiado ("de boca") e clientes.
             </p>
 
             <div className="form-group">
