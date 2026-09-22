@@ -12,7 +12,8 @@ import {
   Calendar,
   MessageCircle,
   ArrowUpRight,
-  DollarSign
+  DollarSign,
+  TrendingDown
 } from 'lucide-react';
 import { PeriodFilterBar, isDateInPeriod, getPeriodLabel } from './PeriodFilterBar';
 
@@ -225,7 +226,7 @@ export const DashboardOverview = () => {
             <div className="metric-sub">
               {totalDespesasLoja > 0 ? (
                 <span>
-                  Entradas: <strong>{formatCurrency(totalReceivedCash)}</strong> • Saídas/Estoque: <strong style={{ color: 'var(--color-danger)' }}>-{formatCurrency(totalDespesasLoja)}</strong>
+                  Entradas: <strong>{formatCurrency(totalReceivedCash)}</strong> • Saídas/Gastos: <strong style={{ color: 'var(--color-danger)' }}>-{formatCurrency(totalDespesasLoja)}</strong>
                 </span>
               ) : (
                 'Entradas já pagas pelos clientes'
@@ -276,6 +277,15 @@ export const DashboardOverview = () => {
         >
           <Clock size={18} />
           Cobranças Fiado ({pendingInstallments.length})
+        </button>
+
+        <button
+          className="btn btn-outline"
+          onClick={() => setActiveAdminTab('despesas')}
+          style={{ borderColor: '#b91c1c', color: '#b91c1c', background: '#fff1f2' }}
+        >
+          <TrendingDown size={18} />
+          Gastos da Loja ({totalDespesasLoja > 0 ? formatCurrency(totalDespesasLoja) : 'Araras, Mkt...'})
         </button>
       </div>
 
@@ -457,7 +467,7 @@ export const DashboardOverview = () => {
 
               {totalDespesasLoja > 0 && (
                 <div style={{ display: 'flex', justifyContent: 'space-between', color: '#dc2626' }}>
-                  <span>(-) Compras / Reposições de Estoque pagas no Caixa:</span>
+                  <span>(-) Gastos da Loja (Araras, Marketing, Embalagens, Estoque):</span>
                   <strong>- {formatCurrency(totalDespesasLoja)}</strong>
                 </div>
               )}
