@@ -1000,20 +1000,46 @@ export const StoreProvider = ({ children }) => {
   };
 
   const deleteSale = async (saleId) => {
-    setData((prev) => ({
-      ...prev,
-      sales: prev.sales.filter((s) => s.id !== saleId),
-    }));
+    const saleToDelete = (data.sales || []).find((s) => s.id === saleId);
 
-    if (supabase) {
+    setData((prev) => {
+      // Return sold quantities back to stock if products exist
+      let updatedProducts = prev.products;
+      if (saleToDelete && Array.isArray(saleToDelete.items)) {
+        updatedProducts = prev.products.map((p) => {
+          const item = saleToDelete.items.find((it) => it.productId === p.id && !it.isCustomItem);
+          if (item) {
+            return { ...p, stock: p.stock + (Number(item.quantity) || 1) };
+          }
+          return p;
+        });
+      }
+
+      return {
+        ...prev,
+        products: updatedProducts,
+        sales: prev.sales.filter((s) => s.id !== saleId),
+      };
+    });
+
+    if (supabase && isSupabaseConfigured()) {
       try {
         await supabase.from('sales').delete().eq('id', saleId);
+        if (saleToDelete && Array.isArray(saleToDelete.items)) {
+          for (const item of saleToDelete.items) {
+            const prod = (data.products || []).find((p) => p.id === item.productId);
+            if (prod) {
+              const restoredStock = prod.stock + (Number(item.quantity) || 1);
+              await supabase.from('products').update({ stock: restoredStock }).eq('id', prod.id);
+            }
+          }
+        }
       } catch (err) {
         console.warn('Erro ao excluir venda no Supabase:', err);
       }
     }
 
-    showToast('Registro de venda e parcelas removido com sucesso!');
+    showToast('Venda excluída e itens devolvidos ao estoque!');
   };
 
   const clearAllSales = async () => {

@@ -866,6 +866,20 @@ export const FiadoManager = () => {
                                 </button>
                               </>
                             )}
+
+                            <button
+                              type="button"
+                              className="btn btn-outline btn-sm"
+                              style={{ padding: '5px 8px', fontSize: '0.78rem', borderColor: '#fca5a5', color: '#e11d48' }}
+                              onClick={() => {
+                                if (window.confirm(`Deseja excluir a venda de ${inst.customerName} (${formatCurrency(inst.totalSale)})? O estoque dos produtos será devolvido e todas as parcelas canceladas.`)) {
+                                  deleteSale(inst.saleId);
+                                }
+                              }}
+                              title="Excluir permanentemente esta venda e devolver itens ao estoque"
+                            >
+                              <Trash2 size={13} />
+                            </button>
                           </div>
                         </td>
                       </tr>
