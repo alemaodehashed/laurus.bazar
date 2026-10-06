@@ -15,6 +15,7 @@ import {
   Camera,
   Image as ImageIcon
 } from 'lucide-react';
+import heic2any from 'heic2any';
 
 export const EstoqueManager = () => {
   const { products, addProduct, updateProduct, deleteProduct, adjustProductStock, addBatchPurchase } = useStore();
@@ -185,14 +186,30 @@ export const EstoqueManager = () => {
   };
 
   // Upload and compress image from device camera / file picker
-  const handleImageFileChange = (e) => {
-    const file = e.target.files?.[0];
+  const handleImageFileChange = async (e) => {
+    let file = e.target.files?.[0];
     if (!file) return;
 
     // Removida a validação estrita de extensão para permitir formatos do iPhone (.heic, .img)
     // O img.onerror logo abaixo já serve como validação segura.
 
     setIsUploadingImage(true);
+
+    try {
+      if (file.name.toLowerCase().match(/\.(heic|heif)$/) || file.type === 'image/heic' || file.type === 'image/heif') {
+        const convertedBlob = await heic2any({
+          blob: file,
+          toType: 'image/jpeg',
+          quality: 0.8
+        });
+        file = Array.isArray(convertedBlob) ? convertedBlob[0] : convertedBlob;
+      }
+    } catch (error) {
+      console.error('HEIC conversion error:', error);
+      setIsUploadingImage(false);
+      alert('Erro ao processar imagem HEIC. Tente outro formato ou foto.');
+      return;
+    }
 
     const reader = new FileReader();
     reader.onload = (event) => {
