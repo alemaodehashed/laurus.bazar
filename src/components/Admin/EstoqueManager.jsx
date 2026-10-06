@@ -23,6 +23,7 @@ export const EstoqueManager = () => {
   const [filterCategory, setFilterCategory] = useState('Todas');
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isBatchModalOpen, setIsBatchModalOpen] = useState(false);
+  const [sortConfig, setSortConfig] = useState({ key: 'name', direction: 'asc' });
   const [editingProduct, setEditingProduct] = useState(null);
   const [isUploadingImage, setIsUploadingImage] = useState(false);
   const fileInputRef = useRef(null);
@@ -103,13 +104,38 @@ export const EstoqueManager = () => {
 
   const categories = ['Todas', 'Roupas', 'Perfumes', 'Bazar'];
 
-  const filteredProducts = products.filter((p) => {
-    const matchesCat = filterCategory === 'Todas' || p.category === filterCategory;
-    const matchesSearch =
-      p.name.toLowerCase().includes(search.toLowerCase()) ||
-      p.description?.toLowerCase().includes(search.toLowerCase());
-    return matchesCat && matchesSearch;
-  });
+  const requestSort = (key) => {
+    let direction = 'asc';
+    if (sortConfig.key === key && sortConfig.direction === 'asc') {
+      direction = 'desc';
+    }
+    setSortConfig({ key, direction });
+  };
+
+  const filteredProducts = products
+    .filter((p) => {
+      const matchesCat = filterCategory === 'Todas' || p.category === filterCategory;
+      const matchesSearch =
+        p.name.toLowerCase().includes(search.toLowerCase()) ||
+        p.description?.toLowerCase().includes(search.toLowerCase());
+      return matchesCat && matchesSearch;
+    })
+    .sort((a, b) => {
+      let aValue = a[sortConfig.key];
+      let bValue = b[sortConfig.key];
+
+      if (sortConfig.key === 'profit') {
+        aValue = (a.price || 0) - (a.costPrice || 0);
+        bValue = (b.price || 0) - (b.costPrice || 0);
+      } else if (sortConfig.key === 'name') {
+        aValue = a.name.toLowerCase();
+        bValue = b.name.toLowerCase();
+      }
+
+      if (aValue < bValue) return sortConfig.direction === 'asc' ? -1 : 1;
+      if (aValue > bValue) return sortConfig.direction === 'asc' ? 1 : -1;
+      return 0;
+    });
 
   const openNewModal = () => {
     setEditingProduct(null);
@@ -342,12 +368,24 @@ export const EstoqueManager = () => {
           <table className="data-table">
             <thead>
               <tr>
-                <th>Produto</th>
-                <th>Categoria</th>
-                <th>Custo</th>
-                <th>Venda</th>
-                <th>Lucro Unit.</th>
-                <th>Estoque</th>
+                <th style={{ cursor: 'pointer' }} onClick={() => requestSort('name')}>
+                  Produto {sortConfig.key === 'name' ? (sortConfig.direction === 'asc' ? '▲' : '▼') : ''}
+                </th>
+                <th style={{ cursor: 'pointer' }} onClick={() => requestSort('category')}>
+                  Categoria {sortConfig.key === 'category' ? (sortConfig.direction === 'asc' ? '▲' : '▼') : ''}
+                </th>
+                <th style={{ cursor: 'pointer' }} onClick={() => requestSort('costPrice')}>
+                  Custo {sortConfig.key === 'costPrice' ? (sortConfig.direction === 'asc' ? '▲' : '▼') : ''}
+                </th>
+                <th style={{ cursor: 'pointer' }} onClick={() => requestSort('price')}>
+                  Venda {sortConfig.key === 'price' ? (sortConfig.direction === 'asc' ? '▲' : '▼') : ''}
+                </th>
+                <th style={{ cursor: 'pointer' }} onClick={() => requestSort('profit')}>
+                  Lucro Unit. {sortConfig.key === 'profit' ? (sortConfig.direction === 'asc' ? '▲' : '▼') : ''}
+                </th>
+                <th style={{ cursor: 'pointer' }} onClick={() => requestSort('stock')}>
+                  Estoque {sortConfig.key === 'stock' ? (sortConfig.direction === 'asc' ? '▲' : '▼') : ''}
+                </th>
                 <th>Variações</th>
                 <th>Ações</th>
               </tr>
