@@ -83,22 +83,74 @@ export const StoreProvider = ({ children }) => {
     saveStoredData(data);
   }, [data]);
 
-  // Load from Supabase on mount if configured with smart merge
+  // Map an app product to a Supabase row
+  const toProductRow = (p) => ({
+    id: p.id,
+    name: p.name || 'Sem nome',
+    category: p.category || 'Bazar',
+    cost_price: Number(p.costPrice) || 0,
+    price: Number(p.price) || 0,
+    stock: Number(p.stock) || 0,
+    sizes: p.sizes || [],
+    image: p.image || '',
+    description: p.description || '',
+    featured: Boolean(p.featured),
+    active: p.active !== false,
+  });
+
+  const toFinanceRow = (f) => ({
+    id: f.id,
+    date: f.date,
+    type: f.type || 'despesa_loja',
+    category: f.category || 'Outros',
+    description: f.description || '',
+    amount: Number(f.amount) || 0,
+  });
+
+  // Helper: run a Supabase write and surface errors (supabase-js does NOT throw, it returns { error })
+  const cloudWrite = async (label, promise) => {
+    try {
+      const res = await promise;
+      if (res && res.error) throw res.error;
+      return true;
+    } catch (err) {
+      console.error(`Erro na nuvem (${label}):`, err);
+      showToast(`⚠️ Falha ao salvar na nuvem (${label}): ${err?.message || err}`, 'error');
+      setIsCloudConnected(false);
+      return false;
+    }
+  };
+
+  // Load from Supabase. The cloud is the single source of truth for the catalog,
+  // so every browser/device shows exactly the same products.
   const syncWithCloud = async () => {
-    if (!isSupabaseConfigured() || !supabase) return;
+    if (!isSupabaseConfigured() || !supabase) return false;
     try {
       const [prodRes, custRes, salesRes, finRes, setRes] = await Promise.all([
           supabase.from('products').select('*'),
           supabase.from('customers').select('*'),
           supabase.from('sales').select('*'),
           supabase.from('personal_finance').select('*'),
-          supabase.from('store_settings').select('*').eq('id', 'default').single(),
+          supabase.from('store_settings').select('*').eq('id', 'default').maybeSingle(),
         ]);
+
+        const firstError = [prodRes, custRes, salesRes, finRes, setRes].find((r) => r && r.error);
+        if (firstError) throw firstError.error;
+
+        // One-time safety backup of this browser's local data before the cloud overwrites it
+        try {
+          if (!localStorage.getItem('bazar_backup_before_cloud')) {
+            const localRaw = localStorage.getItem('bazar_familia_data_v2');
+            if (localRaw) localStorage.setItem('bazar_backup_before_cloud', localRaw);
+          }
+        } catch (e) {}
 
         const newProducts = (prodRes.data && prodRes.data.length > 0)
           ? prodRes.data.map((p) => ({
               ...p,
-              costPrice: p.cost_price,
+              costPrice: Number(p.cost_price) || 0,
+              price: Number(p.price) || 0,
+              stock: Number(p.stock) || 0,
             }))
           : null;
 
@@ -130,9 +182,11 @@ export const StoreProvider = ({ children }) => {
                 }
               : prev.settings;
 
-            const finalProducts = mergeListById(prev.products, newProducts).map(p => ({
+            // Cloud catalog REPLACES the local one (same vitrine in every browser/device)
+            const baseProducts = newProducts || prev.products;
+            const finalProducts = baseProducts.map(p => ({
               ...p,
-              specialPrice: mergedSettings.specialPrices?.[p.id] || p.specialPrice
+              specialPrice: mergedSettings.specialPrices?.[p.id] ?? p.specialPrice ?? null
             }));
 
             return {
@@ -144,18 +198,20 @@ export const StoreProvider = ({ children }) => {
               settings: mergedSettings,
             };
           });
-        } else {
-          // If Supabase tables are freshly created and empty, seed them with initial data!
-          seedSupabaseInitialData();
         }
+        // NOTE: no automatic seeding anymore. Uploading local data to the cloud is done
+        // explicitly via "Salvar Tudo" so a stale browser never overwrites the real catalog.
 
         setIsCloudConnected(true);
+        return true;
       } catch (err) {
-        console.warn('Aviso ao carregar dados do Supabase:', err);
+        console.error('Erro ao carregar dados do Supabase:', err);
+        setIsCloudConnected(false);
+        return false;
       }
     };
 
-  // Load from Supabase on mount if configured with smart merge
+  // Load from Supabase on mount
   useEffect(() => {
     syncWithCloud();
     
@@ -168,15 +224,21 @@ export const StoreProvider = ({ children }) => {
         lastSync = now;
       }
     };
+    const handleVisibility = () => {
+      if (document.visibilityState === 'visible') handleFocus();
+    };
 
     window.addEventListener('focus', handleFocus);
-    window.addEventListener('visibilitychange', () => {
+    document.addEventListener('visibilitychange', handleVisibility);
+    // Periodic refresh so an open vitrine picks up admin changes
+    const interval = setInterval(() => {
       if (document.visibilityState === 'visible') handleFocus();
-    });
+    }, 60000);
 
     return () => {
       window.removeEventListener('focus', handleFocus);
-      window.removeEventListener('visibilitychange', handleFocus);
+      document.removeEventListener('visibilitychange', handleVisibility);
+      clearInterval(interval);
     };
   }, []);
 
@@ -282,7 +344,7 @@ export const StoreProvider = ({ children }) => {
     }
     toastTimerRef.current = setTimeout(() => {
       setToastMessage((prev) => (prev?.id === id ? null : prev));
-    }, 3000);
+    }, type === 'error' ? 9000 : 3000);
   };
 
   // Auth
@@ -406,48 +468,27 @@ export const StoreProvider = ({ children }) => {
       personalFinance: finRecord ? [finRecord, ...(prev.personalFinance || [])] : (prev.personalFinance || []),
     }));
 
+    let cloudOk = true;
     if (supabase) {
-      try {
-        await supabase.from('products').insert({
-          id: newProduct.id,
-          name: newProduct.name,
-          category: newProduct.category,
-          cost_price: newProduct.costPrice,
-          price: newProduct.price,
-          stock: newProduct.stock,
-          sizes: newProduct.sizes || [],
-          image: newProduct.image || '',
-          description: newProduct.description || '',
-          featured: newProduct.featured,
-          active: newProduct.active,
-        });
-
-        if (finRecord) {
-          await supabase.from('personal_finance').insert({
-            id: finRecord.id,
-            date: finRecord.date,
-            type: finRecord.type,
-            category: finRecord.category,
-            description: finRecord.description,
-            amount: finRecord.amount,
-          });
-        }
-      } catch (err) {
-        console.warn('Erro ao salvar produto ou finança no Supabase:', err);
+      cloudOk = await cloudWrite('produto', supabase.from('products').upsert(toProductRow(newProduct)));
+      if (finRecord) {
+        await cloudWrite('financeiro', supabase.from('personal_finance').insert(toFinanceRow(finRecord)));
       }
     }
 
-    if (finRecord) {
-      showToast(`Produto cadastrado! (Descontado ${formatCurrency(finRecord.amount)} do caixa)`);
-    } else {
-      showToast('Produto cadastrado com sucesso!');
+    if (cloudOk) {
+      if (finRecord) {
+        showToast(`Produto cadastrado! (Descontado ${formatCurrency(finRecord.amount)} do caixa)`);
+      } else {
+        showToast('Produto cadastrado com sucesso!');
+      }
     }
 
-    if (newProductData?.specialPrice) {
-      const newSettings = { ...data.settings, specialPrices: { ...(data.settings?.specialPrices || {}), [newProduct.id]: newProductData.specialPrice } };
+    if (productData?.specialPrice) {
+      const newSettings = { ...data.settings, specialPrices: { ...(data.settings?.specialPrices || {}), [newProduct.id]: productData.specialPrice } };
       setData((prev) => ({ ...prev, settings: newSettings }));
       if (supabase) {
-        supabase.from('store_settings').update({ data: newSettings }).eq('id', 'default').then();
+        await cloudWrite('preço especial', supabase.from('store_settings').upsert({ id: 'default', data: newSettings, updated_at: new Date().toISOString() }));
       }
     }
 
@@ -493,47 +534,37 @@ export const StoreProvider = ({ children }) => {
       };
     });
 
+    let cloudOk = true;
     if (supabase) {
-      try {
-        await supabase.from('products').update({
-          name: updatedData.name,
-          category: updatedData.category,
-          cost_price: updatedData.costPrice,
-          price: updatedData.price,
-          stock: updatedData.stock,
-          sizes: updatedData.sizes,
-          image: updatedData.image,
-          description: updatedData.description,
-          featured: updatedData.featured,
-          active: updatedData.active,
-        }).eq('id', id);
-
-        if (finRecord) {
-          await supabase.from('personal_finance').insert({
-            id: finRecord.id,
-            date: finRecord.date,
-            type: finRecord.type,
-            category: finRecord.category,
-            description: finRecord.description,
-            amount: finRecord.amount,
-          });
-        }
-      } catch (err) {
-        console.warn('Erro ao atualizar produto ou finança no Supabase:', err);
+      // Upsert the COMPLETE product so it works even if the row doesn't exist in the cloud yet
+      const existing = (data.products || []).find((p) => p.id === id) || {};
+      const merged = {
+        ...existing,
+        ...updatedData,
+        id,
+        costPrice: Number(updatedData.costPrice ?? existing.costPrice ?? 0),
+        price: Number(updatedData.price ?? existing.price ?? 0),
+        stock: Number(updatedData.stock ?? existing.stock ?? 0),
+      };
+      cloudOk = await cloudWrite('produto', supabase.from('products').upsert(toProductRow(merged)));
+      if (finRecord) {
+        await cloudWrite('financeiro', supabase.from('personal_finance').insert(toFinanceRow(finRecord)));
       }
     }
 
-    if (finRecord) {
-      showToast(`Produto atualizado! (Descontado ${formatCurrency(finRecord.amount)} do caixa)`);
-    } else {
-      showToast('Produto atualizado!');
+    if (cloudOk) {
+      if (finRecord) {
+        showToast(`Produto atualizado! (Descontado ${formatCurrency(finRecord.amount)} do caixa)`);
+      } else {
+        showToast(supabase ? 'Produto atualizado para todos os clientes!' : 'Produto atualizado!');
+      }
     }
 
     if (updatedData.specialPrice !== undefined) {
       const newSettings = { ...data.settings, specialPrices: { ...(data.settings?.specialPrices || {}), [id]: updatedData.specialPrice } };
       setData((prev) => ({ ...prev, settings: newSettings }));
       if (supabase) {
-        supabase.from('store_settings').update({ data: newSettings }).eq('id', 'default').then();
+        await cloudWrite('preço especial', supabase.from('store_settings').upsert({ id: 'default', data: newSettings, updated_at: new Date().toISOString() }));
       }
     }
   };
@@ -545,11 +576,7 @@ export const StoreProvider = ({ children }) => {
     }));
 
     if (supabase) {
-      try {
-        await supabase.from('products').delete().eq('id', id);
-      } catch (err) {
-        console.warn('Erro ao excluir produto no Supabase:', err);
-      }
+      await cloudWrite('excluir produto', supabase.from('products').delete().eq('id', id));
     }
 
     showToast('Produto removido!');
@@ -1221,34 +1248,30 @@ export const StoreProvider = ({ children }) => {
         localStorage.setItem('bazar_last_saved_time', displaySaved);
       } catch (e) {}
 
-      // 2. If Supabase configured, push everything (upsert)
+      // 2. If Supabase configured, push everything (upsert) and CHECK every response
       if (supabase && isSupabaseConfigured()) {
         try {
-          const prodRows = data.products.map((p) => ({
-            id: p.id,
-            name: p.name,
-            category: p.category,
-            cost_price: Number(p.costPrice) || 0,
-            price: Number(p.price) || 0,
-            stock: Number(p.stock) || 0,
-            sizes: p.sizes || [],
-            image: p.image || '',
-            description: p.description || '',
-            featured: Boolean(p.featured),
-            active: Boolean(p.active),
-          }));
-          if (prodRows.length > 0) await supabase.from('products').upsert(prodRows);
+          const must = async (promise) => {
+            const res = await promise;
+            if (res && res.error) throw res.error;
+          };
 
-          const custRows = data.customers.map((c) => ({
+          // Products go in small batches (photos are heavy)
+          const prodRows = (data.products || []).map(toProductRow);
+          for (let i = 0; i < prodRows.length; i += 5) {
+            await must(supabase.from('products').upsert(prodRows.slice(i, i + 5)));
+          }
+
+          const custRows = (data.customers || []).map((c) => ({
             id: c.id,
             name: c.name,
             phone: c.phone || '',
             address: c.address || '',
             notes: c.notes || '',
           }));
-          if (custRows.length > 0) await supabase.from('customers').upsert(custRows);
+          if (custRows.length > 0) await must(supabase.from('customers').upsert(custRows));
 
-          const salesRows = data.sales.map((s) => ({
+          const salesRows = (data.sales || []).map((s) => ({
             id: s.id,
             date: s.date,
             customer_id: s.customerId || null,
@@ -1256,41 +1279,35 @@ export const StoreProvider = ({ children }) => {
             customer_phone: s.customerPhone || '',
             items: s.items || [],
             total: Number(s.total) || 0,
-            payment_method: s.paymentMethod,
+            payment_method: s.paymentMethod || 'dinheiro',
             paid_at_sale: Number(s.paidAtSale) || 0,
             remaining_balance: Number(s.remainingBalance) || 0,
             status: s.status,
             installments: s.installments || [],
           }));
-          if (salesRows.length > 0) await supabase.from('sales').upsert(salesRows);
+          if (salesRows.length > 0) await must(supabase.from('sales').upsert(salesRows));
 
-          const finRows = (data.personalFinance || []).map((f) => ({
-            id: f.id,
-            date: f.date,
-            type: f.type || 'despesa_loja',
-            category: f.category,
-            description: f.description,
-            amount: Number(f.amount) || 0,
-          }));
-          if (finRows.length > 0) await supabase.from('personal_finance').upsert(finRows);
+          const finRows = (data.personalFinance || []).map(toFinanceRow);
+          if (finRows.length > 0) await must(supabase.from('personal_finance').upsert(finRows));
 
-          await supabase.from('store_settings').upsert({
+          await must(supabase.from('store_settings').upsert({
             id: 'default',
             data: data.settings,
             updated_at: new Date().toISOString(),
-          });
+          }));
 
           setIsCloudConnected(true);
-          showToast('✅ Tudo salvo e sincronizado com a nuvem!');
+          showToast(`✅ Tudo enviado para a nuvem! (${prodRows.length} produtos) Já aparece em todos os aparelhos.`);
           return true;
         } catch (cloudErr) {
-          console.warn('Erro ao salvar na nuvem, salvo localmente:', cloudErr);
-          showToast('💾 Dados salvos com segurança no seu computador!');
-          return true;
+          console.error('Erro ao salvar na nuvem:', cloudErr);
+          setIsCloudConnected(false);
+          showToast(`⚠️ NÃO foi para a nuvem: ${cloudErr?.message || cloudErr}`, 'error');
+          return false;
         }
       } else {
-        showToast('💾 Dados salvos com segurança no seu computador!');
-        return true;
+        showToast('⚠️ Nuvem não configurada: salvo SOMENTE neste navegador.', 'error');
+        return false;
       }
     } catch (err) {
       console.error('Erro ao salvar:', err);

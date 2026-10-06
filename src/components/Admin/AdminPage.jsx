@@ -1,5 +1,6 @@
 import React from 'react';
 import { useStore } from '../../context/StoreContext';
+import { isSupabaseConfigured } from '../../utils/supabaseClient';
 import { DashboardOverview } from './DashboardOverview';
 import { VendasHub } from './VendasHub';
 import { EstoqueHub } from './EstoqueHub';
@@ -26,9 +27,12 @@ export const AdminPage = ({ onGoToVitrine }) => {
     setActiveAdminTab,
     sales,
     syncAllData,
+    syncWithCloud,
     isSaving,
-    lastSavedTime
+    lastSavedTime,
+    isCloudConnected
   } = useStore();
+  const cloudConfigured = isSupabaseConfigured();
 
   // Count pending installments for badge
   const pendingFiadoCount = sales.reduce((acc, sale) => {
@@ -115,8 +119,10 @@ export const AdminPage = ({ onGoToVitrine }) => {
                   transition: 'all 0.2s'
                 }}
                 onClick={async () => {
-                   await syncWithCloud();
-                   alert("Nuvem atualizada! Dados de outros dispositivos foram baixados.");
+                   const ok = await syncWithCloud();
+                   alert(ok
+                     ? "Nuvem atualizada! Dados de outros dispositivos foram baixados."
+                     : "⚠️ Não foi possível conectar à nuvem. As alterações estão ficando só neste navegador.");
                 }}
                 title="Puxar últimas alterações de outros dispositivos"
               >
@@ -167,6 +173,24 @@ export const AdminPage = ({ onGoToVitrine }) => {
           </div>
         </div>
       </header>
+
+      {(!cloudConfigured || !isCloudConnected) && (
+        <div
+          role="alert"
+          style={{
+            background: '#7f1d1d',
+            color: '#fff',
+            padding: '10px 16px',
+            fontSize: '0.88rem',
+            fontWeight: 600,
+            textAlign: 'center',
+          }}
+        >
+          {!cloudConfigured
+            ? '⚠️ Nuvem NÃO configurada: tudo que você alterar fica SOMENTE neste navegador e não aparece para os clientes.'
+            : '⚠️ Sem conexão com a nuvem agora. Clique em "Atualizar" ou "Salvar Tudo" para tentar novamente.'}
+        </div>
+      )}
 
       {/* Navigation Tabs Bar */}
       <nav className="admin-tabs-bar">
