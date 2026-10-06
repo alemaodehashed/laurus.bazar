@@ -84,12 +84,10 @@ export const StoreProvider = ({ children }) => {
   }, [data]);
 
   // Load from Supabase on mount if configured with smart merge
-  useEffect(() => {
+  const syncWithCloud = async () => {
     if (!isSupabaseConfigured() || !supabase) return;
-
-    const loadCloudData = async () => {
-      try {
-        const [prodRes, custRes, salesRes, finRes, setRes] = await Promise.all([
+    try {
+      const [prodRes, custRes, salesRes, finRes, setRes] = await Promise.all([
           supabase.from('products').select('*'),
           supabase.from('customers').select('*'),
           supabase.from('sales').select('*'),
@@ -132,9 +130,14 @@ export const StoreProvider = ({ children }) => {
                 }
               : prev.settings;
 
+            const finalProducts = mergeListById(prev.products, newProducts).map(p => ({
+              ...p,
+              specialPrice: mergedSettings.specialPrices?.[p.id] || p.specialPrice
+            }));
+
             return {
               ...prev,
-              products: mergeListById(prev.products, newProducts),
+              products: finalProducts,
               customers: mergeListById(prev.customers, newCustomers),
               sales: mergeListById(prev.sales, newSales),
               personalFinance: mergeListById(prev.personalFinance, newFinance),
@@ -152,8 +155,17 @@ export const StoreProvider = ({ children }) => {
       }
     };
 
-    loadCloudData();
+  // Load from Supabase on mount if configured with smart merge
+  useEffect(() => {
+    syncWithCloud();
   }, []);
+
+  // Sync when admin logs in to ensure fresh data
+  useEffect(() => {
+    if (isAdminAuthenticated) {
+      syncWithCloud();
+    }
+  }, [isAdminAuthenticated]);
 
   const seedSupabaseInitialData = async () => {
     if (!supabase) return;
@@ -410,6 +422,15 @@ export const StoreProvider = ({ children }) => {
     } else {
       showToast('Produto cadastrado com sucesso!');
     }
+
+    if (newProductData?.specialPrice) {
+      const newSettings = { ...data.settings, specialPrices: { ...(data.settings?.specialPrices || {}), [newProduct.id]: newProductData.specialPrice } };
+      setData((prev) => ({ ...prev, settings: newSettings }));
+      if (supabase) {
+        supabase.from('store_settings').update({ data: newSettings }).eq('id', 'default').then();
+      }
+    }
+
     return newProduct;
   };
 
@@ -486,6 +507,14 @@ export const StoreProvider = ({ children }) => {
       showToast(`Produto atualizado! (Descontado ${formatCurrency(finRecord.amount)} do caixa)`);
     } else {
       showToast('Produto atualizado!');
+    }
+
+    if (updatedData.specialPrice !== undefined) {
+      const newSettings = { ...data.settings, specialPrices: { ...(data.settings?.specialPrices || {}), [id]: updatedData.specialPrice } };
+      setData((prev) => ({ ...prev, settings: newSettings }));
+      if (supabase) {
+        supabase.from('store_settings').update({ data: newSettings }).eq('id', 'default').then();
+      }
     }
   };
 
@@ -1272,6 +1301,7 @@ export const StoreProvider = ({ children }) => {
         isSaving,
         lastSavedTime,
         syncAllData,
+        syncWithCloud,
         loginAdmin,
         logoutAdmin,
         addToCart,

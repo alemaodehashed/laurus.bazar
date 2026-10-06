@@ -14,7 +14,8 @@ import {
   LogOut,
   ExternalLink,
   Save,
-  CheckCircle
+  CheckCircle,
+  RefreshCw
 } from 'lucide-react';
 
 export const AdminPage = ({ onGoToVitrine }) => {
@@ -95,6 +96,32 @@ export const AdminPage = ({ onGoToVitrine }) => {
               >
                 <Save size={15} />
                 <span>{isSaving ? 'Salvando...' : 'Salvar Tudo'}</span>
+              </button>
+
+              <button
+                type="button"
+                className="btn btn-sm"
+                style={{
+                  background: 'transparent',
+                  color: '#10b981',
+                  border: '1px solid #10b981',
+                  fontWeight: 600,
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  padding: '6px 14px',
+                  borderRadius: '6px',
+                  cursor: 'pointer',
+                  transition: 'all 0.2s'
+                }}
+                onClick={async () => {
+                   await syncWithCloud();
+                   alert("Nuvem atualizada! Dados de outros dispositivos foram baixados.");
+                }}
+                title="Puxar últimas alterações de outros dispositivos"
+              >
+                <RefreshCw size={15} />
+                <span className="desktop-nav-text">Atualizar</span>
               </button>
 
               <span
