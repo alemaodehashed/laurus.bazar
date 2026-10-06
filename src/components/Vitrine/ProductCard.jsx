@@ -7,6 +7,7 @@ export const ProductCard = ({ product, onOpenModal }) => {
   const { addToCart, settings } = useStore();
   const halfPrice = +(product.price / 2).toFixed(2);
   const isOutOfStock = product.stock <= 0;
+  const coverImage = product.image ? product.image.split('|||')[0] : 'https://images.unsplash.com/photo-1441986300917-64674bd600d8?w=700&auto=format&fit=crop&q=80';
 
   const handleEncomendarClick = (e) => {
     e.stopPropagation();
@@ -19,7 +20,7 @@ export const ProductCard = ({ product, onOpenModal }) => {
     <div className="product-card">
       <div className="product-image-container" onClick={() => onOpenModal(product)}>
         <img
-          src={product.image || 'https://images.unsplash.com/photo-1441986300917-64674bd600d8?w=700&auto=format&fit=crop&q=80'}
+          src={coverImage}
           alt={product.name}
           className="product-img"
           loading="lazy"

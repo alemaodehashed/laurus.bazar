@@ -36,7 +36,7 @@ export const EstoqueManager = () => {
     specialPrice: '',
     stock: 1,
     sizes: 'P, M, G',
-    image: '',
+    images: [],
     description: '',
     featured: false,
     active: true,
@@ -127,7 +127,7 @@ export const EstoqueManager = () => {
       specialPrice: product.specialPrice || '',
       stock: product.stock,
       sizes: product.sizes ? product.sizes.join(', ') : '',
-      image: product.image || '',
+      images: product.image ? product.image.split('|||').filter(Boolean) : [],
       description: product.description || '',
       featured: product.featured || false,
       active: product.active !== false,
@@ -149,12 +149,14 @@ export const EstoqueManager = () => {
 
     const productPayload = {
       ...formData,
+      image: formData.images ? formData.images.filter(Boolean).join('|||') : '',
       sizes: sizesArray.length > 0 ? sizesArray : ['Único'],
       costPrice: parseFloat(formData.costPrice) || 0,
       price: parseFloat(formData.price) || 0,
       specialPrice: formData.specialPrice ? parseFloat(formData.specialPrice) : null,
       stock: parseInt(formData.stock, 10) || 0,
     };
+    delete productPayload.images;
 
     if (editingProduct) {
       updateProduct(editingProduct.id, productPayload);
@@ -170,17 +172,17 @@ export const EstoqueManager = () => {
     if (category === 'Roupas') {
       setFormData((prev) => ({
         ...prev,
-        image: 'https://images.unsplash.com/photo-1572804013309-59a88b7e92f1?w=700&auto=format&fit=crop&q=80',
+        images: ['https://images.unsplash.com/photo-1572804013309-59a88b7e92f1?w=700&auto=format&fit=crop&q=80'],
       }));
     } else if (category === 'Perfumes') {
       setFormData((prev) => ({
         ...prev,
-        image: 'https://images.unsplash.com/photo-1592945403244-b3fbafd7f539?w=700&auto=format&fit=crop&q=80',
+        images: ['https://images.unsplash.com/photo-1592945403244-b3fbafd7f539?w=700&auto=format&fit=crop&q=80'],
       }));
     } else {
       setFormData((prev) => ({
         ...prev,
-        image: 'https://images.unsplash.com/photo-1548036328-c9fa89d128fa?w=700&auto=format&fit=crop&q=80',
+        images: ['https://images.unsplash.com/photo-1548036328-c9fa89d128fa?w=700&auto=format&fit=crop&q=80'],
       }));
     }
   };
@@ -239,7 +241,7 @@ export const EstoqueManager = () => {
         ctx.drawImage(img, 0, 0, width, height);
 
         const compressedDataUrl = canvas.toDataURL('image/jpeg', 0.84);
-        setFormData((prev) => ({ ...prev, image: compressedDataUrl }));
+        setFormData((prev) => ({ ...prev, images: [...prev.images, compressedDataUrl].slice(0, 3) }));
         setIsUploadingImage(false);
       };
       img.onerror = () => {
@@ -367,7 +369,7 @@ export const EstoqueManager = () => {
                       <td>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
                           <img
-                            src={p.image || 'https://images.unsplash.com/photo-1441986300917-64674bd600d8?w=700&auto=format&fit=crop&q=80'}
+                            src={p.image ? p.image.split('|||')[0] : 'https://images.unsplash.com/photo-1441986300917-64674bd600d8?w=700&auto=format&fit=crop&q=80'}
                             alt={p.name}
                             style={{ width: '42px', height: '42px', borderRadius: '8px', objectFit: 'cover' }}
                           />
@@ -628,71 +630,96 @@ export const EstoqueManager = () => {
 
                   {/* Image Preview & Upload Controls */}
                   <div style={{ display: 'flex', gap: '16px', alignItems: 'center', flexWrap: 'wrap' }}>
-                    {formData.image ? (
-                      <div style={{ position: 'relative', width: '90px', height: '90px', borderRadius: '10px', overflow: 'hidden', border: '2px solid var(--color-accent)', boxShadow: 'var(--shadow-sm)', flexShrink: 0 }}>
-                        <img
-                          src={formData.image}
-                          alt="Prévia do produto"
-                          style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-                        />
-                        <button
-                          type="button"
-                          onClick={() => setFormData({ ...formData, image: '' })}
-                          title="Remover foto"
-                          style={{
-                            position: 'absolute',
-                            top: '4px',
-                            right: '4px',
-                            background: 'rgba(0,0,0,0.7)',
-                            color: '#ffffff',
-                            borderRadius: '50%',
-                            width: '22px',
-                            height: '22px',
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center'
-                          }}
-                        >
-                          <X size={13} />
-                        </button>
-                      </div>
-                    ) : (
-                      <div style={{ width: '90px', height: '90px', borderRadius: '10px', border: '2px dashed var(--border-color)', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', color: 'var(--color-taupe)', background: '#ffffff', flexShrink: 0 }}>
-                        <Camera size={24} />
-                        <span style={{ fontSize: '0.68rem', marginTop: '4px' }}>Sem foto</span>
-                      </div>
-                    )}
+                    <div style={{ display: 'flex', gap: '8px' }}>
+                      {formData.images.map((imgUrl, idx) => (
+                        <div key={idx} style={{ position: 'relative', width: '90px', height: '90px', borderRadius: '10px', overflow: 'hidden', border: '2px solid var(--color-accent)', boxShadow: 'var(--shadow-sm)', flexShrink: 0 }}>
+                          <img
+                            src={imgUrl}
+                            alt={`Prévia ${idx + 1}`}
+                            style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                          />
+                          <button
+                            type="button"
+                            onClick={() => setFormData((prev) => ({ ...prev, images: prev.images.filter((_, i) => i !== idx) }))}
+                            title="Remover foto"
+                            style={{
+                              position: 'absolute',
+                              top: '4px',
+                              right: '4px',
+                              background: 'rgba(0,0,0,0.7)',
+                              color: '#ffffff',
+                              borderRadius: '50%',
+                              width: '22px',
+                              height: '22px',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center'
+                            }}
+                          >
+                            <X size={13} />
+                          </button>
+                        </div>
+                      ))}
+                      
+                      {formData.images.length < 3 && (
+                        <div style={{ width: '90px', height: '90px', borderRadius: '10px', border: '2px dashed var(--border-color)', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', color: 'var(--color-taupe)', background: '#ffffff', flexShrink: 0 }}>
+                          <Camera size={24} />
+                          <span style={{ fontSize: '0.68rem', marginTop: '4px', textAlign: 'center' }}>
+                            {formData.images.length === 0 ? 'Sem foto' : `Foto ${formData.images.length + 1}`}
+                          </span>
+                        </div>
+                      )}
+                    </div>
 
                     <div style={{ flex: 1, minWidth: '200px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                      <button
-                        type="button"
-                        className="btn btn-primary btn-sm"
-                        onClick={() => fileInputRef.current?.click()}
-                        disabled={isUploadingImage}
-                        style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', width: 'fit-content' }}
-                      >
-                        <Upload size={15} />
-                        <span>{isUploadingImage ? 'Carregando foto...' : formData.image ? '📷 Trocar Foto (Celular / PC)' : '📷 Escolher Foto do Celular / PC'}</span>
-                      </button>
+                      {formData.images.length < 3 ? (
+                        <button
+                          type="button"
+                          className="btn btn-primary btn-sm"
+                          onClick={() => fileInputRef.current?.click()}
+                          disabled={isUploadingImage}
+                          style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', width: 'fit-content' }}
+                        >
+                          <Upload size={15} />
+                          <span>{isUploadingImage ? 'Carregando foto...' : '📷 Adicionar Foto (Até 3)'}</span>
+                        </button>
+                      ) : (
+                        <span style={{ fontSize: '0.8rem', color: '#b45309', fontWeight: 600 }}>Limite de 3 fotos atingido.</span>
+                      )}
 
                       <span style={{ fontSize: '0.74rem', color: 'var(--color-text-muted)' }}>
                         Selecione da galeria ou tire uma foto na hora com a câmera.
                       </span>
 
-                      {/* Or paste link */}
-                      <details style={{ marginTop: '4px' }}>
-                        <summary style={{ fontSize: '0.75rem', color: 'var(--color-taupe)', cursor: 'pointer', fontWeight: 600 }}>
-                          Ou colar link de imagem da internet (URL)
-                        </summary>
-                        <input
-                          type="url"
-                          className="form-control"
-                          placeholder="https://exemplo.com/imagem.jpg"
-                          value={formData.image && formData.image.startsWith('data:') ? '' : formData.image}
-                          onChange={(e) => setFormData({ ...formData, image: e.target.value })}
-                          style={{ marginTop: '6px', fontSize: '0.84rem', padding: '6px 10px' }}
-                        />
-                      </details>
+                      {formData.images.length < 3 && (
+                        <details style={{ marginTop: '4px' }}>
+                          <summary style={{ fontSize: '0.75rem', color: 'var(--color-taupe)', cursor: 'pointer', fontWeight: 600 }}>
+                            Ou colar link de imagem da internet (URL)
+                          </summary>
+                          <div style={{ display: 'flex', gap: '4px', marginTop: '6px' }}>
+                            <input
+                              type="url"
+                              id="url-input"
+                              className="form-control"
+                              placeholder="https://exemplo.com/imagem.jpg"
+                              style={{ fontSize: '0.84rem', padding: '6px 10px', flex: 1 }}
+                            />
+                            <button
+                              type="button"
+                              className="btn btn-secondary btn-sm"
+                              onClick={() => {
+                                const el = document.getElementById('url-input');
+                                if (el.value) {
+                                  setFormData(prev => ({ ...prev, images: [...prev.images, el.value].slice(0, 3) }));
+                                  el.value = '';
+                                }
+                              }}
+                            >
+                              Add
+                            </button>
+                          </div>
+                        </details>
+                      )}
                     </div>
                   </div>
                 </div>

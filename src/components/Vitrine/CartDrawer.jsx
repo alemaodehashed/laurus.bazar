@@ -67,7 +67,7 @@ export const CartDrawer = () => {
               {cart.map((item, idx) => (
                 <div key={`${item.product.id}_${item.selectedSize}_${idx}`} className="cart-item">
                   <img
-                    src={item.product.image || 'https://images.unsplash.com/photo-1441986300917-64674bd600d8?w=700&auto=format&fit=crop&q=80'}
+                    src={item.product.image ? item.product.image.split('|||')[0] : 'https://images.unsplash.com/photo-1441986300917-64674bd600d8?w=700&auto=format&fit=crop&q=80'}
                     alt={item.product.name}
                     className="cart-item-img"
                   />

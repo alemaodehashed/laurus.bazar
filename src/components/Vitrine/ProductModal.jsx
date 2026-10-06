@@ -9,6 +9,9 @@ export const ProductModal = ({ product, onClose }) => {
     product.sizes && product.sizes.length > 0 ? product.sizes[0] : 'Único'
   );
 
+  const images = product?.image ? product.image.split('|||').filter(Boolean) : ['https://images.unsplash.com/photo-1441986300917-64674bd600d8?w=700&auto=format&fit=crop&q=80'];
+  const [activeImage, setActiveImage] = useState(images[0]);
+
   if (!product) return null;
 
   const halfPrice = +(product.price / 2).toFixed(2);
@@ -46,11 +49,34 @@ export const ProductModal = ({ product, onClose }) => {
         <div className="modal-body" style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
           <div style={{ width: '100%', height: '300px', borderRadius: '12px', overflow: 'hidden', backgroundColor: '#f1f5f9' }}>
             <img
-              src={product.image || 'https://images.unsplash.com/photo-1441986300917-64674bd600d8?w=700&auto=format&fit=crop&q=80'}
+              src={activeImage}
               alt={product.name}
               style={{ width: '100%', height: '100%', objectFit: 'cover' }}
             />
           </div>
+
+          {images.length > 1 && (
+            <div style={{ display: 'flex', gap: '8px', marginTop: '-12px' }}>
+              {images.map((imgUrl, idx) => (
+                <div
+                  key={idx}
+                  onClick={() => setActiveImage(imgUrl)}
+                  style={{
+                    width: '60px',
+                    height: '60px',
+                    borderRadius: '8px',
+                    overflow: 'hidden',
+                    border: activeImage === imgUrl ? '2px solid var(--color-primary)' : '2px solid transparent',
+                    cursor: 'pointer',
+                    opacity: activeImage === imgUrl ? 1 : 0.6,
+                    transition: 'all 0.2s'
+                  }}
+                >
+                  <img src={imgUrl} alt={`Thumb ${idx}`} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                </div>
+              ))}
+            </div>
+          )}
 
           <div>
             <h2 style={{ fontSize: '1.4rem', color: 'var(--color-secondary)', marginBottom: '8px' }}>
