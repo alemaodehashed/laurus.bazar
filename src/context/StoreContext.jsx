@@ -158,6 +158,26 @@ export const StoreProvider = ({ children }) => {
   // Load from Supabase on mount if configured with smart merge
   useEffect(() => {
     syncWithCloud();
+    
+    // Auto-sync when the user switches back to the app tab (e.g. unlocks phone or switches tabs)
+    let lastSync = Date.now();
+    const handleFocus = () => {
+      const now = Date.now();
+      if (now - lastSync > 5000) { // 5 seconds throttle
+        syncWithCloud();
+        lastSync = now;
+      }
+    };
+
+    window.addEventListener('focus', handleFocus);
+    window.addEventListener('visibilitychange', () => {
+      if (document.visibilityState === 'visible') handleFocus();
+    });
+
+    return () => {
+      window.removeEventListener('focus', handleFocus);
+      window.removeEventListener('visibilitychange', handleFocus);
+    };
   }, []);
 
   // Sync when admin logs in to ensure fresh data
