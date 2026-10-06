@@ -13,9 +13,42 @@ export const ProductModal = ({ product, onClose }) => {
   const images = product?.image ? product.image.split('|||').filter(Boolean) : ['https://images.unsplash.com/photo-1441986300917-64674bd600d8?w=700&auto=format&fit=crop&q=80'];
   const [activeImage, setActiveImage] = useState(images[0]);
 
-  const perfumeProfile = product?.category === 'Perfumes' ? getPerfumeProfile(product.name) : null;
-
   if (!product) return null;
+
+  let displayDesc = product.description || '';
+  let customFrag = null;
+
+  if (displayDesc.includes('||FRAG||')) {
+    const parts = displayDesc.split('||FRAG||');
+    displayDesc = parts[0].trim();
+    try {
+      const parsed = JSON.parse(parts[1]);
+      const accordsArr = parsed.accords.split(',').map(s => s.trim()).filter(Boolean);
+      
+      const getAccordColor = (name) => {
+        const map = {
+          'amadeirado': '#78350f', 'fresco especiado': '#84cc16', 'doce': '#f472b6',
+          'especiado quente': '#c2410c', 'frutado': '#ef4444', 'floral': '#f472b6',
+          'citrinos': '#facc15', 'almiscarado': '#9ca3af', 'aromático': '#14b8a6',
+          'baunilha': '#fef08a', 'âmbar': '#d97706', 'couro': '#451a03',
+          'rosa': '#f43f5e', 'patchouli': '#166534', 'esfumaçado': '#4b5563',
+          'atalcado': '#d6d3d1'
+        };
+        return map[name.toLowerCase()] || '#3b82f6';
+      };
+
+      customFrag = {
+        accords: accordsArr.map((a, idx) => ({
+           name: a,
+           color: getAccordColor(a),
+           width: `${Math.max(40, 100 - (idx * 15))}%`
+        })),
+        seasons: parsed.seasons
+      };
+    } catch(e) {}
+  }
+
+  const perfumeProfile = customFrag || (product?.category === 'Perfumes' ? getPerfumeProfile(product.name) : null);
 
   const halfPrice = +(product.price / 2).toFixed(2);
   const isOutOfStock = product.stock <= 0;
@@ -85,8 +118,8 @@ export const ProductModal = ({ product, onClose }) => {
             <h2 style={{ fontSize: '1.4rem', color: 'var(--color-secondary)', marginBottom: '8px' }}>
               {product.name}
             </h2>
-            <p style={{ color: 'var(--color-secondary-muted)', fontSize: '0.95rem', lineHeight: '1.6' }}>
-              {product.description}
+            <p style={{ color: 'var(--color-secondary-muted)', fontSize: '0.95rem', lineHeight: '1.6', whiteSpace: 'pre-wrap' }}>
+              {displayDesc}
             </p>
           </div>
 

@@ -39,6 +39,8 @@ export const EstoqueManager = () => {
     sizes: 'P, M, G',
     images: [],
     description: '',
+    customAccords: '',
+    customSeasons: { inverno: 20, primavera: 20, verao: 20, outono: 20, dia: 20, noite: 20 },
     featured: false,
     active: true,
   };
@@ -145,6 +147,21 @@ export const EstoqueManager = () => {
 
   const openEditModal = (product) => {
     setEditingProduct(product);
+    
+    let baseDesc = product.description || '';
+    let customAccords = '';
+    let customSeasons = { inverno: 20, primavera: 20, verao: 20, outono: 20, dia: 20, noite: 20 };
+
+    if (baseDesc.includes('||FRAG||')) {
+      const parts = baseDesc.split('||FRAG||');
+      baseDesc = parts[0].trim();
+      try {
+        const fragData = JSON.parse(parts[1]);
+        customAccords = fragData.accords || '';
+        customSeasons = fragData.seasons || customSeasons;
+      } catch (e) {}
+    }
+
     setFormData({
       name: product.name,
       category: product.category,
@@ -154,7 +171,9 @@ export const EstoqueManager = () => {
       stock: product.stock,
       sizes: product.sizes ? product.sizes.join(', ') : '',
       images: product.image ? product.image.split('|||').filter(Boolean) : [],
-      description: product.description || '',
+      description: baseDesc,
+      customAccords,
+      customSeasons,
       featured: product.featured || false,
       active: product.active !== false,
     });
@@ -173,6 +192,14 @@ export const EstoqueManager = () => {
       .map((s) => s.trim())
       .filter(Boolean);
 
+    let finalDesc = formData.description;
+    if (formData.category === 'Perfumes' && formData.customAccords && formData.customAccords.trim() !== '') {
+       finalDesc += '\n||FRAG||' + JSON.stringify({
+         accords: formData.customAccords,
+         seasons: formData.customSeasons
+       });
+    }
+
     const productPayload = {
       ...formData,
       image: formData.images ? formData.images.filter(Boolean).join('|||') : '',
@@ -181,8 +208,11 @@ export const EstoqueManager = () => {
       price: parseFloat(formData.price) || 0,
       specialPrice: formData.specialPrice ? parseFloat(formData.specialPrice) : null,
       stock: parseInt(formData.stock, 10) || 0,
+      description: finalDesc,
     };
     delete productPayload.images;
+    delete productPayload.customAccords;
+    delete productPayload.customSeasons;
 
     if (editingProduct) {
       updateProduct(editingProduct.id, productPayload);
@@ -773,7 +803,48 @@ export const EstoqueManager = () => {
                   />
                 </div>
 
-                <div style={{ display: 'flex', gap: '20px', marginTop: '10px' }}>
+                {formData.category === 'Perfumes' && (
+                  <div style={{ background: '#f8fafc', padding: '16px', borderRadius: '12px', marginTop: '16px', border: '1px solid #e2e8f0' }}>
+                    <h4 style={{ fontSize: '0.9rem', marginBottom: '8px', color: '#0f172a' }}>✨ Personalizar Perfil Olfativo</h4>
+                    <p style={{ fontSize: '0.75rem', color: '#64748b', marginBottom: '12px' }}>
+                      Se você preencher, essa configuração forçará o perfil da vitrine. Se deixar vazio, o sistema vai tentar achar sozinho pelo nome do perfume.
+                    </p>
+                    
+                    <div className="form-group">
+                      <label className="form-label">Acordes Principais (separados por vírgula):</label>
+                      <input
+                        type="text"
+                        className="form-control"
+                        placeholder="Ex: amadeirado, doce, citrinos, couro"
+                        value={formData.customAccords || ''}
+                        onChange={(e) => setFormData({ ...formData, customAccords: e.target.value })}
+                        style={{ fontSize: '0.85rem' }}
+                      />
+                    </div>
+                    
+                    <div className="form-group" style={{ marginBottom: 0 }}>
+                      <label className="form-label">Melhores Estações / Uso Sugerido:</label>
+                      <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
+                        {['inverno', 'primavera', 'verao', 'outono', 'dia', 'noite'].map((season) => (
+                          <label key={season} style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '0.8rem', cursor: 'pointer' }}>
+                            <input
+                              type="checkbox"
+                              checked={formData.customSeasons?.[season] === 100}
+                              onChange={(e) => {
+                                const newSeasons = { ...(formData.customSeasons || {}) };
+                                newSeasons[season] = e.target.checked ? 100 : 20;
+                                setFormData({ ...formData, customSeasons: newSeasons });
+                              }}
+                            />
+                            <span style={{ textTransform: 'capitalize' }}>{season === 'verao' ? 'Verão' : season}</span>
+                          </label>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                <div style={{ display: 'flex', gap: '20px', marginTop: '16px' }}>
                   <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', fontSize: '0.9rem' }}>
                     <input
                       type="checkbox"
