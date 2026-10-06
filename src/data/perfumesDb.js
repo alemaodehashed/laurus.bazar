@@ -1,5 +1,21 @@
 export const perfumesDb = [
   {
+    id: 'ck_one',
+    matchNames: ['ck one', 'calvin klein one'],
+    accords: [
+      { name: 'cítrico', color: '#facc15', width: '100%' },
+      { name: 'verde', color: '#22c55e', width: '80%' },
+      { name: 'atalcado', color: '#d6d3d1', width: '70%' },
+      { name: 'amadeirado', color: '#78350f', width: '65%' },
+      { name: 'floral branco', color: '#f1f5f9', width: '60%' },
+      { name: 'fresco', color: '#38bdf8', width: '55%' },
+      { name: 'aromático', color: '#14b8a6', width: '50%' }
+    ],
+    seasons: {
+      inverno: 10, primavera: 90, verao: 100, outono: 40, dia: 100, noite: 20
+    }
+  },
+  {
     id: 'salvo',
     matchNames: ['salvo maison alhambra', 'salvo', 'sauvage'],
     accords: [
