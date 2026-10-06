@@ -61,16 +61,16 @@ export const StoreProvider = ({ children }) => {
     if (!localList || localList.length === 0) return cloudList || [];
 
     const map = new Map();
-    // Add cloud items first
-    cloudList.forEach((item) => {
+    // 1. Add all local items first
+    localList.forEach((item) => {
       if (item && item.id) map.set(item.id, item);
     });
-    // Local items take precedence and local-only items are preserved!
-    localList.forEach((item) => {
+    // 2. Cloud items take precedence! Overwrite any local copies with the cloud version.
+    cloudList.forEach((item) => {
       if (item && item.id) {
-        const cloudItem = map.get(item.id);
+        const localItem = map.get(item.id);
         map.set(item.id, {
-          ...(cloudItem || {}),
+          ...(localItem || {}),
           ...item,
         });
       }
