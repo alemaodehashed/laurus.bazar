@@ -189,10 +189,8 @@ export const EstoqueManager = () => {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    if (!file.type.startsWith('image/')) {
-      alert('Por favor, selecione um arquivo de imagem válido (JPG, PNG, WebP).');
-      return;
-    }
+    // Removida a validação estrita de extensão para permitir formatos do iPhone (.heic, .img)
+    // O img.onerror logo abaixo já serve como validação segura.
 
     setIsUploadingImage(true);
 
