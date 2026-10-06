@@ -1,7 +1,7 @@
 export const perfumesDb = [
   {
     id: 'salvo',
-    matchNames: ['salvo', 'sauvage'],
+    matchNames: ['salvo maison alhambra', 'salvo', 'sauvage'],
     accords: [
       { name: 'fresco especiado', color: '#84cc16', width: '100%' },
       { name: 'âmbar', color: '#d97706', width: '85%' },
@@ -16,7 +16,7 @@ export const perfumesDb = [
   },
   {
     id: 'wazeer',
-    matchNames: ['wazeer', 'al noble'],
+    matchNames: ['al noble wazeer', 'wazeer', 'al noble'],
     accords: [
       { name: 'doce', color: '#f472b6', width: '100%' },
       { name: 'especiado quente', color: '#c2410c', width: '85%' },
@@ -71,8 +71,36 @@ export const perfumesDb = [
     }
   },
   {
+    id: 'asad_bourbon',
+    matchNames: ['asad bourbon'],
+    accords: [
+      { name: 'baunilha', color: '#fef08a', width: '100%' },
+      { name: 'especiado quente', color: '#c2410c', width: '85%' },
+      { name: 'tabaco', color: '#78350f', width: '70%' },
+      { name: 'doce', color: '#f472b6', width: '60%' },
+      { name: 'amadeirado', color: '#451a03', width: '50%' }
+    ],
+    seasons: {
+      inverno: 100, primavera: 20, verao: 10, outono: 90, dia: 20, noite: 100
+    }
+  },
+  {
+    id: 'asad_elixir',
+    matchNames: ['asad elixir'],
+    accords: [
+      { name: 'especiado quente', color: '#c2410c', width: '100%' },
+      { name: 'lavanda', color: '#a78bfa', width: '85%' },
+      { name: 'amadeirado', color: '#78350f', width: '75%' },
+      { name: 'patchouli', color: '#166534', width: '60%' },
+      { name: 'alcaçuz', color: '#1e293b', width: '50%' }
+    ],
+    seasons: {
+      inverno: 100, primavera: 40, verao: 10, outono: 95, dia: 25, noite: 100
+    }
+  },
+  {
     id: 'asad',
-    matchNames: ['asad tradicional', 'asad elixir', 'asad'],
+    matchNames: ['asad tradicional', 'asad'],
     accords: [
       { name: 'especiado quente', color: '#c2410c', width: '100%' },
       { name: 'baunilha', color: '#fef08a', width: '85%' },
@@ -103,14 +131,19 @@ export const perfumesDb = [
 export const getPerfumeProfile = (productName) => {
   const name = productName.toLowerCase();
   
-  // Exclude non-perfume things quickly if possible, 
-  // but we assume this is only called for category === 'Perfumes'
-  
+  let bestMatch = null;
+  let maxMatchLength = 0;
+
   for (const profile of perfumesDb) {
-    if (profile.matchNames.some(match => name.includes(match))) {
-      return profile;
+    for (const match of profile.matchNames) {
+      if (name.includes(match)) {
+        if (match.length > maxMatchLength) {
+          maxMatchLength = match.length;
+          bestMatch = profile;
+        }
+      }
     }
   }
   
-  return perfumesDb.find(p => p.id === 'generic_perfume');
+  return bestMatch || perfumesDb.find(p => p.id === 'generic_perfume');
 };
