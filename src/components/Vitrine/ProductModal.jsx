@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useStore } from '../../context/StoreContext';
 import { formatCurrency, generateWhatsAppLink } from '../../utils/formatters';
 import { X, ShoppingBag, MessageCircle, Check, Clock } from 'lucide-react';
+import { getPerfumeProfile } from '../../data/perfumesDb';
 
 export const ProductModal = ({ product, onClose }) => {
   const { addToCart, settings } = useStore();
@@ -11,6 +12,8 @@ export const ProductModal = ({ product, onClose }) => {
 
   const images = product?.image ? product.image.split('|||').filter(Boolean) : ['https://images.unsplash.com/photo-1441986300917-64674bd600d8?w=700&auto=format&fit=crop&q=80'];
   const [activeImage, setActiveImage] = useState(images[0]);
+
+  const perfumeProfile = product?.category === 'Perfumes' ? getPerfumeProfile(product.name) : null;
 
   if (!product) return null;
 
@@ -86,6 +89,64 @@ export const ProductModal = ({ product, onClose }) => {
               {product.description}
             </p>
           </div>
+
+          {perfumeProfile && (
+            <div style={{ marginTop: '0px', background: '#1e1e1e', padding: '16px', borderRadius: '12px', color: '#fff' }}>
+              <div style={{ marginBottom: '20px' }}>
+                <h4 style={{ fontSize: '0.85rem', fontWeight: 700, marginBottom: '12px', color: '#a1a1aa', textTransform: 'uppercase' }}>Principais Acordes</h4>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                  {perfumeProfile.accords.map((accord, i) => (
+                    <div key={i} style={{ width: '100%', display: 'flex', justifyContent: 'flex-start' }}>
+                      <div style={{
+                        background: accord.color,
+                        width: accord.width,
+                        padding: '4px 8px',
+                        borderRadius: '4px',
+                        color: ['#fef08a', '#facc15'].includes(accord.color) ? '#000' : '#fff',
+                        fontSize: '0.8rem',
+                        fontWeight: 600,
+                        textShadow: ['#fef08a', '#facc15'].includes(accord.color) ? 'none' : '0px 1px 2px rgba(0,0,0,0.4)',
+                        textAlign: 'center'
+                      }}>
+                        {accord.name}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <div>
+                <h4 style={{ fontSize: '0.85rem', fontWeight: 700, marginBottom: '12px', color: '#a1a1aa', textTransform: 'uppercase', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <span style={{ color: '#facc15' }}>🕒</span> Quando Usar
+                </h4>
+                <div style={{ display: 'flex', gap: '10px', justifyContent: 'space-between', textAlign: 'center', flexWrap: 'wrap' }}>
+                  {Object.entries(perfumeProfile.seasons).map(([season, value]) => {
+                    const colors = {
+                      inverno: '#38bdf8', primavera: '#a3e635', verao: '#fca5a5',
+                      outono: '#fb923c', dia: '#facc15', noite: '#60a5fa'
+                    };
+                    const labels = {
+                      inverno: 'Inverno', primavera: 'Primavera', verao: 'Verão',
+                      outono: 'Outono', dia: 'Dia', noite: 'Noite'
+                    };
+                    const icons = {
+                      inverno: '❄️', primavera: '🍃', verao: '🏖️',
+                      outono: '🍂', dia: '☀️', noite: '🌙'
+                    };
+                    return (
+                      <div key={season} style={{ flex: 1, minWidth: '40px', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                        <div style={{ fontSize: '1.2rem', marginBottom: '4px', opacity: value < 30 ? 0.3 : 1, filter: value < 30 ? 'grayscale(100%)' : 'none' }}>{icons[season]}</div>
+                        <div style={{ fontSize: '0.65rem', color: '#a1a1aa', marginBottom: '4px' }}>{labels[season]}</div>
+                        <div style={{ width: '100%', height: '4px', background: '#3f3f46', borderRadius: '2px', overflow: 'hidden' }}>
+                          <div style={{ width: `${value}%`, height: '100%', background: colors[season] }}></div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            </div>
+          )}
 
           {/* Size / Variation selector */}
           {product.sizes && product.sizes.length > 0 && (
