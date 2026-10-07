@@ -17,13 +17,15 @@ export const ProductModal = ({ product, onClose }) => {
 
   let displayDesc = product.description || '';
   let customFrag = null;
+  let customPerformance = null;
 
   if (displayDesc.includes('||FRAG||')) {
     const parts = displayDesc.split('||FRAG||');
     displayDesc = parts[0].trim();
     try {
       const parsed = JSON.parse(parts[1]);
-      const accordsArr = parsed.accords.split(',').map(s => s.trim()).filter(Boolean);
+      customPerformance = parsed.performance || null;
+      const accordsArr = (parsed.accords || '').split(',').map(s => s.trim()).filter(Boolean);
       
       const getAccordColor = (name) => {
         const map = {
@@ -37,7 +39,7 @@ export const ProductModal = ({ product, onClose }) => {
         return map[name.toLowerCase()] || '#3b82f6';
       };
 
-      customFrag = {
+      customFrag = accordsArr.length === 0 ? null : {
         accords: accordsArr.map((a, idx) => ({
            name: a,
            color: getAccordColor(a),
@@ -49,6 +51,34 @@ export const ProductModal = ({ product, onClose }) => {
   }
 
   const perfumeProfile = customFrag || (product?.category === 'Perfumes' ? getPerfumeProfile(product.name) : null);
+
+  // Módulo de Desempenho (Longevidade / Rastro)
+  const parseVotes = (v) => {
+    if (v === null || v === undefined) return 0;
+    const s = String(v).trim().toLowerCase().replace(',', '.');
+    if (!s) return 0;
+    const n = parseFloat(s);
+    if (isNaN(n)) return 0;
+    return s.endsWith('k') ? Math.round(n * 1000) : Math.round(n);
+  };
+  const formatVotes = (n) => (n >= 1000 ? `${(n / 1000).toFixed(1).replace('.0', '')}k` : `${n}`);
+  const performanceGroups = customPerformance ? [
+    {
+      key: 'longevidade', title: 'Longevidade', icon: '⏳',
+      rows: [
+        ['muitoFraco', 'Muito Fraco'], ['fraco', 'Fraco'], ['moderada', 'Moderada'],
+        ['longaDuracao', 'Longa Duração'], ['eterno', 'Eterno']
+      ]
+    },
+    {
+      key: 'rastro', title: 'Rastro', icon: '💨',
+      rows: [['intimo', 'Íntimo'], ['moderada', 'Moderada'], ['forte', 'Forte'], ['enorme', 'Enorme']]
+    }
+  ].map(g => {
+    const rows = g.rows.map(([k, label]) => ({ label, votes: parseVotes(customPerformance[g.key]?.[k]) }));
+    const max = Math.max(0, ...rows.map(r => r.votes));
+    return { ...g, rows, max };
+  }).filter(g => g.max > 0) : [];
 
   const halfPrice = +(product.price / 2).toFixed(2);
   const isOutOfStock = product.stock <= 0;
@@ -63,7 +93,7 @@ export const ProductModal = ({ product, onClose }) => {
 
   return (
     <div className="modal-overlay" onClick={onClose}>
-      <div className="modal-content" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '640px' }}>
+      <div className="modal-content modal-product-detail" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '640px' }}>
         <div className="modal-header">
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
             <span className="badge badge-warning">{product.category}</span>
@@ -83,7 +113,7 @@ export const ProductModal = ({ product, onClose }) => {
         </div>
 
         <div className="modal-body" style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-          <div style={{ width: '100%', height: '300px', borderRadius: '12px', overflow: 'hidden', backgroundColor: '#f1f5f9' }}>
+          <div className="modal-product-img-wrapper">
             <img
               src={activeImage}
               alt={product.name}
@@ -181,6 +211,34 @@ export const ProductModal = ({ product, onClose }) => {
             </div>
           )}
 
+          {performanceGroups.length > 0 && (
+            <div style={{ background: '#1e1e1e', padding: '16px', borderRadius: '12px', color: '#fff' }}>
+              <h4 style={{ fontSize: '0.85rem', fontWeight: 700, marginBottom: '12px', color: '#a1a1aa', textTransform: 'uppercase', textAlign: 'center', letterSpacing: '2px' }}>Desempenho</h4>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '12px' }}>
+                {performanceGroups.map(g => (
+                  <div key={g.key} style={{ background: '#27272a', borderRadius: '10px', padding: '12px 14px' }}>
+                    <div style={{ textAlign: 'center', marginBottom: '10px' }}>
+                      <div style={{ fontSize: '1.3rem' }}>{g.icon}</div>
+                      <div style={{ fontSize: '0.75rem', fontWeight: 700, textTransform: 'uppercase' }}>{g.title}</div>
+                    </div>
+                    {g.rows.map(r => {
+                      const isTop = r.votes === g.max;
+                      return (
+                        <div key={r.label} style={{ display: 'grid', gridTemplateColumns: '1fr 40px 1fr', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
+                          <span style={{ fontSize: '0.78rem', color: isTop ? '#fff' : '#d4d4d8', fontWeight: isTop ? 700 : 400 }}>{r.label}</span>
+                          <span style={{ fontSize: '0.7rem', color: '#a1a1aa', textAlign: 'right' }}>{formatVotes(r.votes)}</span>
+                          <div style={{ height: '6px', background: '#3f3f46', borderRadius: '3px', overflow: 'hidden' }}>
+                            <div style={{ width: `${g.max ? (r.votes / g.max) * 100 : 0}%`, height: '100%', background: '#14b8a6', borderRadius: '3px', transition: 'width 0.6s ease' }}></div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
           {/* Size / Variation selector */}
           {product.sizes && product.sizes.length > 0 && (
             <div>
@@ -231,13 +289,13 @@ export const ProductModal = ({ product, onClose }) => {
                 Ou 2x de {formatCurrency(halfPrice)}
               </div>
               <div style={{ fontSize: '0.75rem', color: 'var(--color-secondary-muted)' }}>
-                (À vista, Cartão ou no Carnê da Família)
+                (À vista, Cartão de Crédito ou Débito)
               </div>
             </div>
           </div>
         </div>
 
-        <div className="modal-footer" style={{ justifyContent: 'space-between' }}>
+        <div className="modal-footer modal-product-footer" style={{ justifyContent: 'space-between' }}>
           <a
             href={whatsappUrl}
             target="_blank"

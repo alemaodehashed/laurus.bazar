@@ -744,7 +744,7 @@ export const StoreProvider = ({ children }) => {
           active: true,
           featured: false,
           name: newProductData?.name?.trim() || desc,
-          category: newProductData?.category || 'Roupas',
+          category: newProductData?.category || 'Roupas Femininas',
           costPrice: avgCost,
           price: Number(newProductData?.price) || +(avgCost * 2).toFixed(2),
           specialPrice: newProductData?.specialPrice ? Number(newProductData.specialPrice) : null,

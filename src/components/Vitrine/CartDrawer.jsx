@@ -23,7 +23,7 @@ export const CartDrawer = () => {
 
     msg += `----------------------------\n`;
     msg += `💰 *Total: ${formatCurrency(total)}*\n`;
-    msg += `💳 *Opção de Pagamento desejada:* ( ) À vista / PIX  ( ) Cartão  ( ) Em 2x no carnê\n\n`;
+    msg += `💳 *Opção de Pagamento desejada:* ( ) À vista / PIX  ( ) Cartão de Crédito / Débito  ( ) A combinar\n\n`;
     msg += `Como podemos combinar a entrega/retirada?`;
 
     return msg;
@@ -131,7 +131,7 @@ export const CartDrawer = () => {
               </div>
 
               <div className="cart-installment-notice">
-                Ou pague em até <strong>2x de {formatCurrency(halfTotal)}</strong> no carnê da casa!
+                Pagamento facilitado em até <strong>2x no cartão</strong> ou à vista com total agilidade!
               </div>
 
               <button

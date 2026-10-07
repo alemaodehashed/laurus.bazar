@@ -14,7 +14,8 @@ import {
   CalendarCheck,
   ShieldCheck,
   CheckCircle,
-  Tag
+  Tag,
+  Repeat
 } from 'lucide-react';
 
 export const VitrinePage = ({ onOpenAdminLogin }) => {
@@ -23,13 +24,23 @@ export const VitrinePage = ({ onOpenAdminLogin }) => {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedProduct, setSelectedProduct] = useState(null);
 
-  const categories = ['Todas', 'Roupas', 'Perfumes', 'Bazar'];
+  const categories = ['Todas', 'Destaques', 'Roupas Femininas', 'Roupas Masculinas', 'Perfumes', 'Bazar'];
 
   const filteredProducts = useMemo(() => {
     return products.filter((p) => {
       if (!p.active) return false;
-      const matchesCategory =
-        selectedCategory === 'Todas' || p.category.toLowerCase() === selectedCategory.toLowerCase();
+      let matchesCategory = false;
+      if (selectedCategory === 'Todas') {
+        matchesCategory = true;
+      } else if (selectedCategory === 'Destaques') {
+        matchesCategory = Boolean(p.featured);
+      } else if (selectedCategory === 'Roupas Femininas') {
+        const catLower = p.category?.toLowerCase() || '';
+        matchesCategory = catLower === 'roupas femininas' || catLower === 'roupas';
+      } else {
+        matchesCategory = p.category?.toLowerCase() === selectedCategory.toLowerCase();
+      }
+
       const matchesSearch =
         p.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
         p.description?.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -45,8 +56,8 @@ export const VitrinePage = ({ onOpenAdminLogin }) => {
       {/* Top Announcement Bar */}
       <div className="top-announcement">
         <div className="top-announcement-content">
-          <Sparkles size={16} color="var(--color-accent)" />
-          <span>Promoção de Setembro</span>
+          <Sparkles size={15} color="var(--color-accent)" />
+          <span>Promoção do Mês</span>
         </div>
         <a
           href={generateWhatsAppLink(settings.whatsapp, 'Olá! Gostaria de tirar uma dúvida sobre o bazar.')}
@@ -54,8 +65,8 @@ export const VitrinePage = ({ onOpenAdminLogin }) => {
           rel="noopener noreferrer"
           className="top-announcement-link"
         >
-          <Phone size={14} />
-          <span>Fale Conosco: WhatsApp</span>
+          <Phone size={13} />
+          <span>WhatsApp da Loja</span>
         </a>
       </div>
 
@@ -76,7 +87,7 @@ export const VitrinePage = ({ onOpenAdminLogin }) => {
             <Search size={18} className="header-search-icon" />
             <input
               type="text"
-              placeholder="Buscar perfumes, fragrâncias, roupas, utilidades..."
+              placeholder="Buscar perfumes, roupas, utilidades..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
             />
@@ -89,19 +100,18 @@ export const VitrinePage = ({ onOpenAdminLogin }) => {
               title="Abrir sacola de compras"
             >
               <ShoppingBag size={18} color="var(--color-primary)" />
-              <span>Sacola</span>
+              <span className="cart-button-label">Sacola</span>
               {totalCartCount > 0 && <span className="cart-badge">{totalCartCount}</span>}
             </button>
 
             <button
               type="button"
-              className="btn btn-outline btn-sm"
+              className="btn btn-outline btn-sm header-admin-btn"
               onClick={onOpenAdminLogin}
               title="Acessar painel interno da família"
-              style={{ display: 'flex', alignItems: 'center', gap: '6px' }}
             >
               <Lock size={15} />
-              <span>Área da Família</span>
+              <span className="header-admin-label">Área da Família</span>
             </button>
           </div>
         </div>
@@ -116,10 +126,10 @@ export const VitrinePage = ({ onOpenAdminLogin }) => {
               <span>Laurus • Família Adam</span>
             </div>
             <h2 className="hero-title">
-              O melhor da perfumaria importada e variedades selecionadas para você.
+              O que você precisa, nós temos.
             </h2>
             <p className="hero-subtitle">
-              Perfumes árabes refinados (Lattafa, Asdaaf, Armaf, Rasasi) e importados exclusivos. Fotos reais, amostras disponíveis e pagamento facilitado no carnê da casa.
+              Nossa loja é pioneira em logística reversa, trazendo o melhor da perfumaria importada e árabe, moda feminina e masculina e variedades selecionadas com total confiança e agilidade.
             </p>
 
             <div className="hero-highlights">
@@ -128,8 +138,8 @@ export const VitrinePage = ({ onOpenAdminLogin }) => {
                 <span>À vista, Cartão de Crédito ou Débito</span>
               </div>
               <div className="highlight-item">
-                <CalendarCheck size={18} />
-                <span>Pagamento facilitado em até 2x no fiado</span>
+                <Repeat size={18} />
+                <span>Pioneira em Logística Reversa</span>
               </div>
               <div className="highlight-item">
                 <ShieldCheck size={18} />
@@ -151,13 +161,15 @@ export const VitrinePage = ({ onOpenAdminLogin }) => {
           {categories.map((cat) => (
             <button
               key={cat}
-              className={`category-btn ${selectedCategory === cat ? 'active' : ''}`}
+              className={`category-btn ${selectedCategory === cat ? 'active' : ''} ${cat === 'Destaques' ? 'category-btn-destaque' : ''}`}
               onClick={() => setSelectedCategory(cat)}
             >
-              {cat === 'Roupas' && '👗 Roupas'}
+              {cat === 'Todas' && '✨ Todos os Produtos'}
+              {cat === 'Destaques' && '⭐ Em Destaque'}
+              {cat === 'Roupas Femininas' && '👗 Roupas Femininas'}
+              {cat === 'Roupas Masculinas' && '👕 Roupas Masculinas'}
               {cat === 'Perfumes' && '✨ Perfumes'}
               {cat === 'Bazar' && '🎁 Bazar & Variedades'}
-              {cat === 'Todas' && '✨ Todos os Produtos'}
             </button>
           ))}
         </div>
@@ -230,7 +242,7 @@ export const VitrinePage = ({ onOpenAdminLogin }) => {
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                   <CheckCircle size={15} color="#10b981" />
-                  <span>Em até 2x no carnê da casa (de boca)</span>
+                  <span>Logística Reversa & Trocas Ágeis</span>
                 </div>
               </div>
             </div>

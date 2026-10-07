@@ -91,13 +91,18 @@ export const perfumesDb = [
     matchNames: ['asad bourbon'],
     accords: [
       { name: 'baunilha', color: '#fef08a', width: '100%' },
-      { name: 'especiado quente', color: '#c2410c', width: '85%' },
-      { name: 'tabaco', color: '#78350f', width: '70%' },
-      { name: 'doce', color: '#f472b6', width: '60%' },
-      { name: 'amadeirado', color: '#451a03', width: '50%' }
+      { name: 'cacau', color: '#92400e', width: '90%' },
+      { name: 'doce', color: '#ef4444', width: '85%' },
+      { name: 'lavanda', color: '#8b5cf6', width: '85%' },
+      { name: 'fresco especiado', color: '#84cc16', width: '75%' },
+      { name: 'especiado quente', color: '#c2410c', width: '70%' },
+      { name: 'âmbar', color: '#d97706', width: '70%' },
+      { name: 'aromático', color: '#0f766e', width: '65%' },
+      { name: 'atalcado', color: '#d6d3d1', width: '60%' },
+      { name: 'picante suave', color: '#b45309', width: '55%' }
     ],
     seasons: {
-      inverno: 100, primavera: 20, verao: 10, outono: 90, dia: 20, noite: 100
+      inverno: 100, primavera: 33, verao: 10, outono: 86, dia: 41, noite: 88
     }
   },
   {

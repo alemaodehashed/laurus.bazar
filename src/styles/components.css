@@ -345,6 +345,11 @@
 
 /* Responsive Components */
 @media (max-width: 640px) {
+  /* Prevent iOS Safari auto-zoom on input focus */
+  input, select, textarea, .form-control {
+    font-size: 16px !important;
+  }
+
   .toast-container {
     top: 14px;
     bottom: auto;
@@ -363,8 +368,13 @@
     animation: slideInDown 0.25s ease-out;
   }
 
+  .modal-overlay {
+    padding: 10px;
+  }
+
   .modal-content {
-    max-width: 95%;
+    max-width: 96vw;
+    width: 100%;
     max-height: 92vh;
     border-radius: var(--border-radius-lg);
   }
@@ -379,7 +389,18 @@
 
   .modal-footer {
     padding: 12px 16px;
-    flex-wrap: wrap;
+    flex-direction: column-reverse;
+    gap: 8px;
+  }
+
+  .modal-footer .btn,
+  .modal-footer a.btn {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .table-container {
+    -webkit-overflow-scrolling: touch;
   }
 
   .data-table th, .data-table td {

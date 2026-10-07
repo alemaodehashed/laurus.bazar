@@ -46,7 +46,7 @@ export const PdvVendas = () => {
   const [customSize, setCustomSize] = useState('Único');
   const [customQty, setCustomQty] = useState(1);
   const [saveToStock, setSaveToStock] = useState(false);
-  const [customCategory, setCustomCategory] = useState('Bazar');
+  const [customCategory, setCustomCategory] = useState('Roupas Femininas');
   const [extraStockQty, setExtraStockQty] = useState(0);
 
   // Fiado parcelado parameters (Configurable installments)
@@ -63,14 +63,23 @@ export const PdvVendas = () => {
   // Last finished sale for receipt/WhatsApp
   const [lastSale, setLastSale] = useState(null);
 
-  const categories = ['Todas', 'Roupas', 'Perfumes', 'Bazar'];
+  const categories = ['Todas', 'Destaques', 'Roupas Femininas', 'Roupas Masculinas', 'Perfumes', 'Bazar'];
 
   const filteredProducts = products.filter((p) => {
     if (!p.active) return false;
-    const matchesCat = selectedCategory === 'Todas' || p.category === selectedCategory;
+    let matchesCat = false;
+    if (selectedCategory === 'Todas') {
+      matchesCat = true;
+    } else if (selectedCategory === 'Destaques') {
+      matchesCat = Boolean(p.featured);
+    } else if (selectedCategory === 'Roupas Femininas') {
+      matchesCat = p.category === 'Roupas Femininas' || p.category === 'Roupas';
+    } else {
+      matchesCat = p.category === selectedCategory;
+    }
     const matchesSearch =
       p.name.toLowerCase().includes(search.toLowerCase()) ||
-      p.category.toLowerCase().includes(search.toLowerCase());
+      p.category?.toLowerCase().includes(search.toLowerCase());
     return matchesCat && matchesSearch;
   });
 
@@ -657,9 +666,10 @@ export const PdvVendas = () => {
                           value={customCategory}
                           onChange={(e) => setCustomCategory(e.target.value)}
                         >
-                          <option value="Bazar">Bazar</option>
-                          <option value="Roupas">Roupas</option>
-                          <option value="Perfumes">Perfumes</option>
+                          <option value="Roupas Femininas">👗 Roupas Femininas</option>
+                          <option value="Roupas Masculinas">👕 Roupas Masculinas</option>
+                          <option value="Perfumes">✨ Perfumes</option>
+                          <option value="Bazar">🎁 Bazar & Variedades</option>
                         </select>
                       </div>
 

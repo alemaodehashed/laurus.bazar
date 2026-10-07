@@ -25,6 +25,11 @@ export const ProductCard = ({ product, onOpenModal }) => {
           className="product-img"
           loading="lazy"
         />
+        {product.featured && (
+          <span className="product-badge-destaque">
+            ⭐ Destaque
+          </span>
+        )}
       </div>
 
       <div className="product-info">

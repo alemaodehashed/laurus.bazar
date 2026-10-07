@@ -573,4 +573,28 @@
     gap: 8px;
     max-height: 380px;
   }
+
+  /* Admin modal forms on mobile */
+  .modal-content form div[style*="gridTemplateColumns"] {
+    grid-template-columns: 1fr !important;
+    gap: 10px !important;
+  }
+
+  .admin-navbar {
+    padding: 8px 12px;
+  }
+
+  .admin-tabs-bar {
+    padding: 0 8px;
+  }
+
+  .admin-tab-btn {
+    padding: 10px 8px;
+    font-size: 0.8rem;
+    gap: 5px;
+  }
+
+  .admin-content {
+    padding: 14px 10px;
+  }
 }

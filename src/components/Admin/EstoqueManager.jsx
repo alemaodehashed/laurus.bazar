@@ -17,6 +17,30 @@ import {
 } from 'lucide-react';
 import heic2any from 'heic2any';
 
+// Módulo de Desempenho (Longevidade / Rastro) - votos opcionais por perfume
+const LONGEVIDADE_FIELDS = [
+  { key: 'muitoFraco', label: 'Muito Fraco' },
+  { key: 'fraco', label: 'Fraco' },
+  { key: 'moderada', label: 'Moderada' },
+  { key: 'longaDuracao', label: 'Longa Duração' },
+  { key: 'eterno', label: 'Eterno' },
+];
+const RASTRO_FIELDS = [
+  { key: 'intimo', label: 'Íntimo' },
+  { key: 'moderada', label: 'Moderada' },
+  { key: 'forte', label: 'Forte' },
+  { key: 'enorme', label: 'Enorme' },
+];
+const emptyPerformance = () => ({
+  longevidade: { muitoFraco: '', fraco: '', moderada: '', longaDuracao: '', eterno: '' },
+  rastro: { intimo: '', moderada: '', forte: '', enorme: '' },
+});
+const hasPerformanceData = (perf) =>
+  !!perf &&
+  [...Object.values(perf.longevidade || {}), ...Object.values(perf.rastro || {})].some(
+    (v) => String(v ?? '').trim() !== '' && String(v).trim() !== '0'
+  );
+
 export const EstoqueManager = () => {
   const { products, addProduct, updateProduct, deleteProduct, adjustProductStock, addBatchPurchase } = useStore();
   const [search, setSearch] = useState('');
@@ -31,7 +55,7 @@ export const EstoqueManager = () => {
   // Form State
   const initialFormState = {
     name: '',
-    category: 'Roupas',
+    category: 'Roupas Femininas',
     costPrice: '',
     price: '',
     specialPrice: '',
@@ -41,6 +65,7 @@ export const EstoqueManager = () => {
     description: '',
     customAccords: '',
     customSeasons: { inverno: 20, primavera: 20, verao: 20, outono: 20, dia: 20, noite: 20 },
+    customPerformance: emptyPerformance(),
     featured: false,
     active: true,
   };
@@ -57,7 +82,7 @@ export const EstoqueManager = () => {
     productId: '',
     newProductName: '',
     newProductPrice: '',
-    newProductCategory: 'Roupas',
+    newProductCategory: 'Roupas Femininas',
   };
 
   const [batchData, setBatchData] = useState(initialBatchState);
@@ -97,14 +122,14 @@ export const EstoqueManager = () => {
       newProductData: {
         name: batchData.newProductName?.trim() || desc,
         price: parseFloat(batchData.newProductPrice) || +(avgCost * 2).toFixed(2),
-        category: batchData.newProductCategory || 'Roupas',
+        category: batchData.newProductCategory || 'Roupas Femininas',
       },
     });
 
     setIsBatchModalOpen(false);
   };
 
-  const categories = ['Todas', 'Roupas', 'Perfumes', 'Bazar'];
+  const categories = ['Todas', 'Destaques', 'Roupas Femininas', 'Roupas Masculinas', 'Perfumes', 'Bazar'];
 
   const requestSort = (key) => {
     let direction = 'asc';
@@ -116,7 +141,16 @@ export const EstoqueManager = () => {
 
   const filteredProducts = products
     .filter((p) => {
-      const matchesCat = filterCategory === 'Todas' || p.category === filterCategory;
+      let matchesCat = false;
+      if (filterCategory === 'Todas') {
+        matchesCat = true;
+      } else if (filterCategory === 'Destaques') {
+        matchesCat = Boolean(p.featured);
+      } else if (filterCategory === 'Roupas Femininas') {
+        matchesCat = p.category === 'Roupas Femininas' || p.category === 'Roupas';
+      } else {
+        matchesCat = p.category === filterCategory;
+      }
       const matchesSearch =
         p.name.toLowerCase().includes(search.toLowerCase()) ||
         p.description?.toLowerCase().includes(search.toLowerCase());
@@ -151,6 +185,7 @@ export const EstoqueManager = () => {
     let baseDesc = product.description || '';
     let customAccords = '';
     let customSeasons = { inverno: 20, primavera: 20, verao: 20, outono: 20, dia: 20, noite: 20 };
+    let customPerformance = emptyPerformance();
 
     if (baseDesc.includes('||FRAG||')) {
       const parts = baseDesc.split('||FRAG||');
@@ -159,6 +194,12 @@ export const EstoqueManager = () => {
         const fragData = JSON.parse(parts[1]);
         customAccords = fragData.accords || '';
         customSeasons = fragData.seasons || customSeasons;
+        if (fragData.performance) {
+          customPerformance = {
+            longevidade: { ...customPerformance.longevidade, ...(fragData.performance.longevidade || {}) },
+            rastro: { ...customPerformance.rastro, ...(fragData.performance.rastro || {}) },
+          };
+        }
       } catch (e) {}
     }
 
@@ -174,6 +215,7 @@ export const EstoqueManager = () => {
       description: baseDesc,
       customAccords,
       customSeasons,
+      customPerformance,
       featured: product.featured || false,
       active: product.active !== false,
     });
@@ -193,11 +235,15 @@ export const EstoqueManager = () => {
       .filter(Boolean);
 
     let finalDesc = formData.description;
-    if (formData.category === 'Perfumes' && formData.customAccords && formData.customAccords.trim() !== '') {
-       finalDesc += '\n||FRAG||' + JSON.stringify({
-         accords: formData.customAccords,
+    const hasAccords = formData.customAccords && formData.customAccords.trim() !== '';
+    const hasPerf = hasPerformanceData(formData.customPerformance);
+    if (formData.category === 'Perfumes' && (hasAccords || hasPerf)) {
+       const fragPayload = {
+         accords: formData.customAccords || '',
          seasons: formData.customSeasons
-       });
+       };
+       if (hasPerf) fragPayload.performance = formData.customPerformance;
+       finalDesc += '\n||FRAG||' + JSON.stringify(fragPayload);
     }
 
     const productPayload = {
@@ -213,6 +259,7 @@ export const EstoqueManager = () => {
     delete productPayload.images;
     delete productPayload.customAccords;
     delete productPayload.customSeasons;
+    delete productPayload.customPerformance;
 
     if (editingProduct) {
       updateProduct(editingProduct.id, productPayload);
@@ -225,7 +272,12 @@ export const EstoqueManager = () => {
 
   // Image helpers for quick suggestions
   const setQuickImage = (category) => {
-    if (category === 'Roupas') {
+    if (category === 'Roupas Masculinas') {
+      setFormData((prev) => ({
+        ...prev,
+        images: ['https://images.unsplash.com/photo-1617137984095-74e4e5e3613f?w=700&auto=format&fit=crop&q=80'],
+      }));
+    } else if (category === 'Roupas Femininas' || category === 'Roupas') {
       setFormData((prev) => ({
         ...prev,
         images: ['https://images.unsplash.com/photo-1572804013309-59a88b7e92f1?w=700&auto=format&fit=crop&q=80'],
@@ -579,12 +631,16 @@ export const EstoqueManager = () => {
                       onChange={(e) => {
                         const newCat = e.target.value;
                         setFormData({ ...formData, category: newCat });
-                        if (!formData.image) setQuickImage(newCat);
+                        if (!formData.images || formData.images.length === 0) setQuickImage(newCat);
                       }}
                     >
-                      <option value="Roupas">👗 Roupas</option>
+                      <option value="Roupas Femininas">👗 Roupas Femininas</option>
+                      <option value="Roupas Masculinas">👕 Roupas Masculinas</option>
                       <option value="Perfumes">✨ Perfumes</option>
                       <option value="Bazar">🎁 Bazar & Variedades</option>
+                      {formData.category === 'Roupas' && (
+                        <option value="Roupas">👗 Roupas (Legado)</option>
+                      )}
                     </select>
                   </div>
 
@@ -841,6 +897,47 @@ export const EstoqueManager = () => {
                         ))}
                       </div>
                     </div>
+
+                    {/* Módulo de Desempenho: Longevidade & Rastro */}
+                    <div className="form-group" style={{ marginTop: '16px', marginBottom: 0, paddingTop: '14px', borderTop: '1px dashed #cbd5e1' }}>
+                      <label className="form-label">⏳ Desempenho (votos) — opcional:</label>
+                      <p style={{ fontSize: '0.72rem', color: '#64748b', marginBottom: '10px' }}>
+                        Digite a quantidade de votos de cada opção (ex: 5100 ou 5.1k). Deixe em branco se ainda não tiver os dados.
+                      </p>
+                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '14px' }}>
+                        {[
+                          { group: 'longevidade', title: 'Longevidade', fields: LONGEVIDADE_FIELDS },
+                          { group: 'rastro', title: 'Rastro', fields: RASTRO_FIELDS },
+                        ].map(({ group, title, fields }) => (
+                          <div key={group} style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '10px 12px' }}>
+                            <div style={{ fontSize: '0.78rem', fontWeight: 700, textTransform: 'uppercase', color: '#0f172a', marginBottom: '8px' }}>{title}</div>
+                            {fields.map(({ key, label }) => (
+                              <div key={key} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px', marginBottom: '6px' }}>
+                                <span style={{ fontSize: '0.8rem', color: '#334155' }}>{label}</span>
+                                <input
+                                  type="text"
+                                  inputMode="decimal"
+                                  className="form-control"
+                                  placeholder="0"
+                                  value={formData.customPerformance?.[group]?.[key] ?? ''}
+                                  onChange={(e) => {
+                                    const perf = formData.customPerformance || emptyPerformance();
+                                    setFormData({
+                                      ...formData,
+                                      customPerformance: {
+                                        ...perf,
+                                        [group]: { ...perf[group], [key]: e.target.value },
+                                      },
+                                    });
+                                  }}
+                                  style={{ width: '80px', fontSize: '0.8rem', padding: '4px 8px', textAlign: 'right' }}
+                                />
+                              </div>
+                            ))}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
                   </div>
                 )}
 
@@ -1067,7 +1164,7 @@ export const EstoqueManager = () => {
                 {/* Sub-fields depending on targetMode */}
                 {batchData.targetMode === 'new_product' && (
                   <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', padding: '14px', borderRadius: '10px', marginBottom: '8px' }}>
-                    <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '12px' }}>
+                    <div style={{ display: 'grid', gridTemplateColumns: '1.5fr 1fr 1fr', gap: '12px' }}>
                       <div className="form-group" style={{ marginBottom: 0 }}>
                         <label className="form-label">Nome do Produto / Lote:</label>
                         <input
@@ -1079,7 +1176,20 @@ export const EstoqueManager = () => {
                         />
                       </div>
                       <div className="form-group" style={{ marginBottom: 0 }}>
-                        <label className="form-label">Preço Sugerido de Venda (R$):</label>
+                        <label className="form-label">Categoria:</label>
+                        <select
+                          className="form-control"
+                          value={batchData.newProductCategory}
+                          onChange={(e) => setBatchData({ ...batchData, newProductCategory: e.target.value })}
+                        >
+                          <option value="Roupas Femininas">👗 Roupas Fem.</option>
+                          <option value="Roupas Masculinas">👕 Roupas Masc.</option>
+                          <option value="Perfumes">✨ Perfumes</option>
+                          <option value="Bazar">🎁 Bazar</option>
+                        </select>
+                      </div>
+                      <div className="form-group" style={{ marginBottom: 0 }}>
+                        <label className="form-label">Preço Sugerido (R$):</label>
                         <input
                           type="number"
                           step="0.01"

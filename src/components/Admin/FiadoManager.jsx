@@ -265,7 +265,7 @@ export const FiadoManager = () => {
   // Build Friendly WhatsApp reminder / cobrança for installment
   const buildReminderMessage = (item) => {
     const itemsList = (item.items && item.items.length > 0)
-      ? item.items.map((it) => `• ${it.quantity}x ${it.name}${it.size ? ` (${it.size})` : ''} - ${formatCurrency(it.unitPrice)}`).join('\n')
+      ? item.items.map((it) => `• ${it.quantity}x ${it.name}`).join('\n')
       : '• Compra na loja';
 
     const statusText = item.isOverdue
