@@ -102,33 +102,33 @@ export const AdminPage = ({ onGoToVitrine }) => {
                 <span>{isSaving ? 'Salvando...' : 'Salvar Tudo'}</span>
               </button>
 
-              <button
-                type="button"
-                className="btn btn-sm"
+              <div
                 style={{
-                  background: 'transparent',
-                  color: '#10b981',
-                  border: '1px solid #10b981',
-                  fontWeight: 600,
                   display: 'inline-flex',
                   alignItems: 'center',
                   gap: '6px',
-                  padding: '6px 14px',
-                  borderRadius: '6px',
-                  cursor: 'pointer',
-                  transition: 'all 0.2s'
+                  background: isCloudConnected ? 'rgba(16, 185, 129, 0.15)' : 'rgba(239, 68, 68, 0.15)',
+                  border: `1px solid ${isCloudConnected ? '#10b981' : '#ef4444'}`,
+                  color: isCloudConnected ? '#10b981' : '#f87171',
+                  padding: '5px 12px',
+                  borderRadius: '20px',
+                  fontSize: '0.75rem',
+                  fontWeight: 600,
                 }}
-                onClick={async () => {
-                   const ok = await syncWithCloud();
-                   alert(ok
-                     ? "Nuvem atualizada! Dados de outros dispositivos foram baixados."
-                     : "⚠️ Não foi possível conectar à nuvem. As alterações estão ficando só neste navegador.");
-                }}
-                title="Puxar últimas alterações de outros dispositivos"
+                title="Sincronização em tempo real ativa: qualquer alteração feita no celular ou no computador atualiza automaticamente em todos os aparelhos."
               >
-                <RefreshCw size={15} />
-                <span className="desktop-nav-text">Atualizar</span>
-              </button>
+                <span
+                  style={{
+                    width: '8px',
+                    height: '8px',
+                    borderRadius: '50%',
+                    background: isCloudConnected ? '#10b981' : '#ef4444',
+                    display: 'inline-block',
+                    boxShadow: isCloudConnected ? '0 0 8px #10b981' : '0 0 8px #ef4444'
+                  }}
+                />
+                <span className="desktop-nav-text">{isCloudConnected ? 'Tempo Real Ativo' : 'Reconectando...'}</span>
+              </div>
 
               <span
                 className="desktop-nav-text"

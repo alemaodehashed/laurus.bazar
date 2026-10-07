@@ -121,131 +121,197 @@ export const StoreProvider = ({ children }) => {
     }
   };
 
+  const dataRef = useRef(data);
+  useEffect(() => {
+    dataRef.current = data;
+  }, [data]);
+
   // Load from Supabase. The cloud is the single source of truth for the catalog,
-  // so every browser/device shows exactly the same products.
-  const syncWithCloud = async () => {
+  // so every browser/device shows exactly the same products in real-time.
+  const syncWithCloud = async (options = {}) => {
     if (!isSupabaseConfigured() || !supabase) return false;
     try {
       const [prodRes, custRes, salesRes, finRes, setRes] = await Promise.all([
-          supabase.from('products').select('*'),
-          supabase.from('customers').select('*'),
-          supabase.from('sales').select('*'),
-          supabase.from('personal_finance').select('*'),
-          supabase.from('store_settings').select('*').eq('id', 'default').maybeSingle(),
-        ]);
+        supabase.from('products').select('*'),
+        supabase.from('customers').select('*'),
+        supabase.from('sales').select('*'),
+        supabase.from('personal_finance').select('*'),
+        supabase.from('store_settings').select('*').eq('id', 'default').maybeSingle(),
+      ]);
 
-        const firstError = [prodRes, custRes, salesRes, finRes, setRes].find((r) => r && r.error);
-        if (firstError) throw firstError.error;
+      const firstError = [prodRes, custRes, salesRes, finRes, setRes].find((r) => r && r.error);
+      if (firstError) throw firstError.error;
 
-        // One-time safety backup of this browser's local data before the cloud overwrites it
-        try {
-          if (!localStorage.getItem('bazar_backup_before_cloud')) {
-            const localRaw = localStorage.getItem('bazar_familia_data_v2');
-            if (localRaw) localStorage.setItem('bazar_backup_before_cloud', localRaw);
-          }
-        } catch (e) {}
-
-        const newProducts = (prodRes.data && prodRes.data.length > 0)
-          ? prodRes.data.map((p) => ({
-              ...p,
-              costPrice: Number(p.cost_price) || 0,
-              price: Number(p.price) || 0,
-              stock: Number(p.stock) || 0,
-            }))
-          : null;
-
-        const newCustomers = custRes.data && custRes.data.length > 0 ? custRes.data : null;
-        const newSales = (salesRes.data && salesRes.data.length > 0)
-          ? salesRes.data.map((s) => ({
-              ...s,
-              customerId: s.customer_id,
-              customerName: s.customer_name,
-              customerPhone: s.customer_phone,
-              paymentMethod: s.payment_method,
-              paidAtSale: s.paid_at_sale,
-              remainingBalance: s.remaining_balance,
-            }))
-          : null;
-
-        const newFinance = finRes.data && finRes.data.length > 0 ? finRes.data : null;
-        const newSettings = setRes.data?.data ? setRes.data.data : null;
-
-        if (newProducts || newCustomers || newSales || newFinance || newSettings) {
-          const localPassword = localStorage.getItem('bazar_admin_password');
-
-          setData((prev) => {
-            const mergedSettings = newSettings
-              ? {
-                  ...prev.settings,
-                  ...newSettings,
-                  adminPassword: localPassword || newSettings.adminPassword || prev.settings.adminPassword,
-                }
-              : prev.settings;
-
-            // Cloud catalog REPLACES the local one (same vitrine in every browser/device)
-            const baseProducts = newProducts || prev.products;
-            const finalProducts = baseProducts.map(p => ({
-              ...p,
-              specialPrice: mergedSettings.specialPrices?.[p.id] ?? p.specialPrice ?? null
-            }));
-
-            return {
-              ...prev,
-              products: finalProducts,
-              customers: mergeListById(prev.customers, newCustomers),
-              sales: mergeListById(prev.sales, newSales),
-              personalFinance: mergeListById(prev.personalFinance, newFinance),
-              settings: mergedSettings,
-            };
-          });
+      // Safety local backup
+      try {
+        if (!localStorage.getItem('bazar_backup_before_cloud')) {
+          const localRaw = localStorage.getItem('bazar_familia_data_v2');
+          if (localRaw) localStorage.setItem('bazar_backup_before_cloud', localRaw);
         }
-        // NOTE: no automatic seeding anymore. Uploading local data to the cloud is done
-        // explicitly via "Salvar Tudo" so a stale browser never overwrites the real catalog.
+      } catch (e) {}
 
+      const cloudSettings = setRes.data?.data || null;
+      const isCatalogInitialized = Boolean(cloudSettings?.catalogInitialized);
+      const currentLocalProds = dataRef.current?.products || [];
+
+      // AUTO-SEED: If Supabase has 0 products and has never been initialized,
+      // but this browser has products in localStorage, automatically upload them to Supabase!
+      if ((!prodRes.data || prodRes.data.length === 0) && !isCatalogInitialized && currentLocalProds.length > 0) {
+        console.log(`[Auto-Sync] Nuvem vazia detectada. Enviando ${currentLocalProds.length} produtos locais para a nuvem...`);
+        const prodRows = currentLocalProds.map(toProductRow);
+        for (let i = 0; i < prodRows.length; i += 5) {
+          await supabase.from('products').upsert(prodRows.slice(i, i + 5));
+        }
+        const updatedSettings = {
+          ...(cloudSettings || dataRef.current?.settings || {}),
+          catalogInitialized: true,
+        };
+        await supabase.from('store_settings').upsert({
+          id: 'default',
+          data: updatedSettings,
+          updated_at: new Date().toISOString(),
+        });
         setIsCloudConnected(true);
-        return true;
-      } catch (err) {
-        console.error('Erro ao carregar dados do Supabase:', err);
-        setIsCloudConnected(false);
-        return false;
+        if (!options.silent) {
+          showToast(`☁️ Seus ${currentLocalProds.length} produtos foram sincronizados automaticamente com a nuvem!`, 'success');
+        }
+        return syncWithCloud({ silent: true });
       }
-    };
 
-  // Load from Supabase on mount
+      const newProducts = (prodRes.data && prodRes.data.length > 0)
+        ? prodRes.data.map((p) => ({
+            ...p,
+            costPrice: Number(p.cost_price) || 0,
+            price: Number(p.price) || 0,
+            stock: Number(p.stock) || 0,
+          }))
+        : (isCatalogInitialized ? [] : null);
+
+      const newCustomers = custRes.data || [];
+      const newSales = (salesRes.data || []).map((s) => ({
+        ...s,
+        customerId: s.customer_id,
+        customerName: s.customer_name,
+        customerPhone: s.customer_phone,
+        paymentMethod: s.payment_method,
+        paidAtSale: Number(s.paid_at_sale) || 0,
+        remainingBalance: Number(s.remaining_balance) || 0,
+      }));
+      const newFinance = (finRes.data || []).map((f) => ({
+        ...f,
+        amount: Number(f.amount) || 0,
+      }));
+      const newSettings = cloudSettings;
+
+      if (newProducts !== null || newCustomers.length > 0 || newSales.length > 0 || newFinance.length > 0 || newSettings) {
+        const localPassword = localStorage.getItem('bazar_admin_password');
+
+        setData((prev) => {
+          const mergedSettings = newSettings
+            ? {
+                ...prev.settings,
+                ...newSettings,
+                adminPassword: localPassword || newSettings.adminPassword || prev.settings.adminPassword,
+              }
+            : prev.settings;
+
+          const baseProducts = newProducts !== null ? newProducts : prev.products;
+          const finalProducts = baseProducts.map((p) => ({
+            ...p,
+            specialPrice: mergedSettings.specialPrices?.[p.id] ?? p.specialPrice ?? null,
+          }));
+
+          const updated = {
+            ...prev,
+            products: finalProducts,
+            customers: (custRes.data && custRes.data.length > 0) || isCatalogInitialized ? newCustomers : prev.customers,
+            sales: (salesRes.data && salesRes.data.length > 0) || isCatalogInitialized ? newSales : prev.sales,
+            personalFinance: (finRes.data && finRes.data.length > 0) || isCatalogInitialized ? newFinance : prev.personalFinance,
+            settings: mergedSettings,
+          };
+          saveStoredData(updated);
+          return updated;
+        });
+      }
+
+      setIsCloudConnected(true);
+      return true;
+    } catch (err) {
+      console.error('Erro ao sincronizar com Supabase:', err);
+      setIsCloudConnected(false);
+      if (!options.silent) {
+        showToast(`⚠️ Falha ao sincronizar com a nuvem: ${err?.message || err}`, 'error');
+      }
+      return false;
+    }
+  };
+
+  // Real-time synchronization listeners and background polling
   useEffect(() => {
-    syncWithCloud();
-    
-    // Auto-sync when the user switches back to the app tab (e.g. unlocks phone or switches tabs)
-    let lastSync = Date.now();
-    const handleFocus = () => {
-      const now = Date.now();
-      if (now - lastSync > 5000) { // 5 seconds throttle
-        syncWithCloud();
-        lastSync = now;
+    // 1. Initial immediate sync on mount
+    syncWithCloud({ silent: true });
+
+    if (!isSupabaseConfigured() || !supabase) return;
+
+    // 2. Periodic polling every 5 seconds for guaranteed cross-device sync
+    const pollInterval = setInterval(() => {
+      syncWithCloud({ silent: true });
+    }, 5000);
+
+    // 3. Supabase Realtime WebSocket subscription for instant (< 1 second) updates
+    let channel = null;
+    try {
+      channel = supabase
+        .channel('store_realtime_channel')
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'products' }, () => {
+          syncWithCloud({ silent: true });
+        })
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'store_settings' }, () => {
+          syncWithCloud({ silent: true });
+        })
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'sales' }, () => {
+          syncWithCloud({ silent: true });
+        })
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'customers' }, () => {
+          syncWithCloud({ silent: true });
+        })
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'personal_finance' }, () => {
+          syncWithCloud({ silent: true });
+        })
+        .subscribe();
+    } catch (realtimeErr) {
+      console.warn('Realtime subscription error:', realtimeErr);
+    }
+
+    // 4. Instant sync whenever user switches to the tab or unlocks device
+    const handleFocusSync = () => {
+      syncWithCloud({ silent: true });
+    };
+    const handleVisibilitySync = () => {
+      if (document.visibilityState === 'visible') {
+        syncWithCloud({ silent: true });
       }
     };
-    const handleVisibility = () => {
-      if (document.visibilityState === 'visible') handleFocus();
-    };
 
-    window.addEventListener('focus', handleFocus);
-    document.addEventListener('visibilitychange', handleVisibility);
-    // Periodic refresh so an open vitrine picks up admin changes
-    const interval = setInterval(() => {
-      if (document.visibilityState === 'visible') handleFocus();
-    }, 60000);
+    window.addEventListener('focus', handleFocusSync);
+    document.addEventListener('visibilitychange', handleVisibilitySync);
 
     return () => {
-      window.removeEventListener('focus', handleFocus);
-      document.removeEventListener('visibilitychange', handleVisibility);
-      clearInterval(interval);
+      clearInterval(pollInterval);
+      window.removeEventListener('focus', handleFocusSync);
+      document.removeEventListener('visibilitychange', handleVisibilitySync);
+      if (channel) {
+        try {
+          supabase.removeChannel(channel);
+        } catch (e) {}
+      }
     };
   }, []);
 
-  // Sync when admin logs in to ensure fresh data
+  // Sync when admin logs in
   useEffect(() => {
     if (isAdminAuthenticated) {
-      syncWithCloud();
+      syncWithCloud({ silent: true });
     }
   }, [isAdminAuthenticated]);
 
