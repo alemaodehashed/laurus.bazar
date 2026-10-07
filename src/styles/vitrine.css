@@ -352,6 +352,161 @@
   box-shadow: 0 4px 14px rgba(197, 160, 99, 0.4) !important;
 }
 
+/* Category Label Responsiveness */
+.cat-label-mobile {
+  display: none;
+}
+.cat-label-full {
+  display: inline;
+}
+
+/* Perfume Gender Sub-filter Bar */
+.perfume-subfilter-wrapper {
+  background: #ffffff;
+  border: 1px solid var(--border-color);
+  border-radius: 16px;
+  padding: 10px 16px;
+  margin-top: -16px;
+  margin-bottom: 24px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.04);
+  animation: fadeInSubfilter 0.25s ease-out;
+}
+
+@keyframes fadeInSubfilter {
+  from {
+    opacity: 0;
+    transform: translateY(-6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.perfume-subfilter-header {
+  font-size: 0.84rem;
+  font-weight: 700;
+  color: #64748b;
+  white-space: nowrap;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.perfume-subfilter-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  width: 100%;
+}
+
+.perfume-sub-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 15px;
+  border-radius: 999px;
+  font-size: 0.84rem;
+  font-weight: 600;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  color: #334155;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  user-select: none;
+}
+
+.perfume-sub-pill:hover {
+  background: #f1f5f9;
+  border-color: #cbd5e1;
+}
+
+.perfume-sub-pill.active {
+  background: var(--color-primary);
+  border-color: var(--color-accent);
+  color: #ffffff;
+  box-shadow: 0 2px 8px rgba(95, 45, 63, 0.25);
+}
+
+.perfume-sub-pill.pill-masc.active {
+  background: #1e3a8a;
+  border-color: #3b82f6;
+  color: #ffffff;
+}
+
+.perfume-sub-pill.pill-fem.active {
+  background: #831843;
+  border-color: #f472b6;
+  color: #ffffff;
+}
+
+.perfume-sub-pill.pill-unissex.active {
+  background: #78350f;
+  border-color: #f59e0b;
+  color: #ffffff;
+}
+
+.perfume-sub-badge {
+  font-size: 0.72rem;
+  padding: 1px 7px;
+  border-radius: 999px;
+  background: rgba(0, 0, 0, 0.08);
+  font-weight: 700;
+}
+
+.perfume-sub-pill.active .perfume-sub-badge {
+  background: rgba(255, 255, 255, 0.25);
+  color: #ffffff;
+}
+
+/* Product Gender Badges */
+.product-badges-corner {
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  align-items: flex-start;
+  z-index: 2;
+  pointer-events: none;
+}
+
+.product-badge-gender {
+  font-size: 0.72rem;
+  font-weight: 700;
+  padding: 3px 8px;
+  border-radius: 6px;
+  letter-spacing: 0.2px;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.18);
+  backdrop-filter: blur(4px);
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.product-badge-gender.badge-masc {
+  background: rgba(30, 58, 138, 0.92);
+  color: #eff6ff;
+  border: 1px solid rgba(147, 197, 253, 0.35);
+}
+
+.product-badge-gender.badge-fem {
+  background: rgba(131, 24, 67, 0.92);
+  color: #fdf2f8;
+  border: 1px solid rgba(244, 114, 182, 0.35);
+}
+
+.product-badge-gender.badge-unissex {
+  background: rgba(120, 53, 15, 0.92);
+  color: #fffbeb;
+  border: 1px solid rgba(245, 158, 11, 0.35);
+}
+
 /* Product Grid */
 .product-grid {
   display: grid;
@@ -867,9 +1022,52 @@
   }
 
   .category-btn {
-    padding: 7px 14px;
+    padding: 7px 12px;
     font-size: 0.82rem;
     flex-shrink: 0;
+  }
+
+  .cat-label-full {
+    display: none;
+  }
+
+  .cat-label-mobile {
+    display: inline;
+  }
+
+  .perfume-subfilter-wrapper {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 8px;
+    padding: 10px 12px;
+    margin-top: -10px;
+    margin-bottom: 18px;
+    border-radius: 12px;
+  }
+
+  .perfume-subfilter-header {
+    font-size: 0.76rem;
+    color: #475569;
+  }
+
+  .perfume-subfilter-bar {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 6px;
+    width: 100%;
+  }
+
+  .perfume-sub-pill {
+    padding: 7px 8px;
+    font-size: 0.78rem;
+    justify-content: center;
+    width: 100%;
+  }
+
+  .product-badge-gender {
+    font-size: 0.64rem;
+    padding: 2px 5px;
+    border-radius: 4px;
   }
 
   /* 2-Column Product Grid */

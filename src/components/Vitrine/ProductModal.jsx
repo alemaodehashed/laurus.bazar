@@ -69,6 +69,26 @@ export const ProductModal = ({ product, onClose }) => {
 
   const perfumeProfile = customFrag || (product?.category === 'Perfumes' ? getPerfumeProfile(product.name) : null);
 
+  const isPerfume = product?.category === 'Perfumes' || product?.category?.toLowerCase().includes('perfume');
+  let perfumeGender = null;
+  if (isPerfume) {
+    const dLower = (product.description || '').toLowerCase();
+    const sLower = (product.sizes || []).join(' ').toLowerCase();
+    if (dLower.includes('gênero: masculino') || dLower.includes('genero: masculino') || sLower.includes('masc')) {
+      perfumeGender = 'masculino';
+    } else if (dLower.includes('gênero: feminino') || dLower.includes('genero: feminino') || sLower.includes('fem')) {
+      perfumeGender = 'feminino';
+    } else if (dLower.includes('unisex') || dLower.includes('unissex') || sLower.includes('unisex') || sLower.includes('unissex')) {
+      perfumeGender = 'unissex';
+    } else if (dLower.includes('masculino')) {
+      perfumeGender = 'masculino';
+    } else if (dLower.includes('feminino')) {
+      perfumeGender = 'feminino';
+    } else {
+      perfumeGender = 'unissex';
+    }
+  }
+
   // Módulo de Desempenho (Longevidade / Rastro)
   const parseVotes = (v) => {
     if (v === null || v === undefined) return 0;
@@ -163,6 +183,15 @@ export const ProductModal = ({ product, onClose }) => {
           )}
 
           <div>
+            {perfumeGender && (
+              <div style={{ marginBottom: '8px' }}>
+                <span className={`product-badge-gender badge-${perfumeGender}`} style={{ fontSize: '0.78rem', padding: '4px 10px', borderRadius: '8px' }}>
+                  {perfumeGender === 'masculino' && '👔 Linha Masculina'}
+                  {perfumeGender === 'feminino' && '🌸 Linha Feminina'}
+                  {perfumeGender === 'unissex' && '✨ Linha Unissex'}
+                </span>
+              </div>
+            )}
             <h2 style={{ fontSize: '1.4rem', color: 'var(--color-secondary)', marginBottom: '8px' }}>
               {product.name}
             </h2>

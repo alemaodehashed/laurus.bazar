@@ -62,6 +62,7 @@ export const EstoqueManager = () => {
     stock: 1,
     sizes: 'P, M, G',
     colors: '',
+    perfumeGender: 'Masculino',
     images: [],
     description: '',
     customAccords: '',
@@ -216,6 +217,17 @@ export const EstoqueManager = () => {
       } catch (e) {}
     }
 
+    let detectedGender = 'Masculino';
+    const descLower = (product.description || '').toLowerCase();
+    const sizesLower = (product.sizes || []).join(' ').toLowerCase();
+    if (descLower.includes('gênero: feminino') || descLower.includes('genero: feminino') || sizesLower.includes('fem')) {
+      detectedGender = 'Feminino';
+    } else if (descLower.includes('gênero: unissex') || descLower.includes('gênero: unisex') || descLower.includes('unisex') || descLower.includes('unissex') || sizesLower.includes('unisex') || sizesLower.includes('unissex')) {
+      detectedGender = 'Unissex';
+    } else if (descLower.includes('gênero: masculino') || descLower.includes('genero: masculino') || sizesLower.includes('masc')) {
+      detectedGender = 'Masculino';
+    }
+
     setFormData({
       name: product.name,
       category: product.category,
@@ -225,6 +237,7 @@ export const EstoqueManager = () => {
       stock: product.stock,
       sizes: product.sizes ? product.sizes.join(', ') : '',
       colors: colorsStr,
+      perfumeGender: detectedGender,
       images: product.image ? product.image.split('|||').filter(Boolean) : [],
       description: baseDesc,
       customAccords,
@@ -254,6 +267,16 @@ export const EstoqueManager = () => {
       .filter(Boolean);
 
     let finalDesc = formData.description || '';
+
+    // Se for perfume, assegura que a tag de gênero fica explícita na descrição
+    if (formData.category === 'Perfumes' && formData.perfumeGender) {
+      if (/g[êe]nero:\s*[a-zA-Z]+/i.test(finalDesc)) {
+        finalDesc = finalDesc.replace(/g[êe]nero:\s*[a-zA-Z]+/i, `Gênero: ${formData.perfumeGender}`);
+      } else {
+        finalDesc = `Gênero: ${formData.perfumeGender} • ${finalDesc}`;
+      }
+    }
+
     if (colorsArray.length > 0) {
       finalDesc += '\n||COLORS||' + JSON.stringify(colorsArray);
     }
@@ -281,6 +304,7 @@ export const EstoqueManager = () => {
       description: finalDesc,
     };
     delete productPayload.images;
+    delete productPayload.perfumeGender;
     delete productPayload.customAccords;
     delete productPayload.customSeasons;
     delete productPayload.customPerformance;
@@ -903,6 +927,38 @@ export const EstoqueManager = () => {
 
                 {formData.category === 'Perfumes' && (
                   <div style={{ background: '#f8fafc', padding: '16px', borderRadius: '12px', marginTop: '16px', border: '1px solid #e2e8f0' }}>
+                    <div className="form-group" style={{ marginBottom: '16px' }}>
+                      <label className="form-label" style={{ fontWeight: 700, display: 'flex', alignItems: 'center', gap: '6px' }}>
+                        <span>Linha / Gênero do Perfume:</span>
+                      </label>
+                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '8px' }}>
+                        <button
+                          type="button"
+                          className={`btn btn-sm ${formData.perfumeGender === 'Masculino' ? 'btn-primary' : 'btn-outline'}`}
+                          style={{ justifyContent: 'center', fontWeight: 600 }}
+                          onClick={() => setFormData({ ...formData, perfumeGender: 'Masculino' })}
+                        >
+                          👔 Masculino
+                        </button>
+                        <button
+                          type="button"
+                          className={`btn btn-sm ${formData.perfumeGender === 'Feminino' ? 'btn-primary' : 'btn-outline'}`}
+                          style={{ justifyContent: 'center', fontWeight: 600 }}
+                          onClick={() => setFormData({ ...formData, perfumeGender: 'Feminino' })}
+                        >
+                          🌸 Feminino
+                        </button>
+                        <button
+                          type="button"
+                          className={`btn btn-sm ${formData.perfumeGender === 'Unissex' ? 'btn-primary' : 'btn-outline'}`}
+                          style={{ justifyContent: 'center', fontWeight: 600 }}
+                          onClick={() => setFormData({ ...formData, perfumeGender: 'Unissex' })}
+                        >
+                          🌟 Unissex
+                        </button>
+                      </div>
+                    </div>
+
                     <h4 style={{ fontSize: '0.9rem', marginBottom: '8px', color: '#0f172a' }}>✨ Personalizar Perfil Olfativo</h4>
                     <p style={{ fontSize: '0.75rem', color: '#64748b', marginBottom: '12px' }}>
                       Se você preencher, essa configuração forçará o perfil da vitrine. Se deixar vazio, o sistema vai tentar achar sozinho pelo nome do perfume.

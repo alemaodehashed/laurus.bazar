@@ -34,6 +34,26 @@ export const ProductCard = ({ product, onOpenModal }) => {
     displayDesc = displayDesc.split('||FRAG||')[0].trim();
   }
 
+  const isPerfume = product.category === 'Perfumes' || product.category?.toLowerCase().includes('perfume');
+  let perfumeGender = null;
+  if (isPerfume) {
+    const dLower = (product.description || '').toLowerCase();
+    const sLower = (product.sizes || []).join(' ').toLowerCase();
+    if (dLower.includes('gênero: masculino') || dLower.includes('genero: masculino') || sLower.includes('masc')) {
+      perfumeGender = 'masculino';
+    } else if (dLower.includes('gênero: feminino') || dLower.includes('genero: feminino') || sLower.includes('fem')) {
+      perfumeGender = 'feminino';
+    } else if (dLower.includes('unisex') || dLower.includes('unissex') || sLower.includes('unisex') || sLower.includes('unissex')) {
+      perfumeGender = 'unissex';
+    } else if (dLower.includes('masculino')) {
+      perfumeGender = 'masculino';
+    } else if (dLower.includes('feminino')) {
+      perfumeGender = 'feminino';
+    } else {
+      perfumeGender = 'unissex';
+    }
+  }
+
   return (
     <div className="product-card">
       <div className="product-image-container" onClick={() => onOpenModal(product)}>
@@ -43,11 +63,20 @@ export const ProductCard = ({ product, onOpenModal }) => {
           className="product-img"
           loading="lazy"
         />
-        {product.featured && (
-          <span className="product-badge-destaque">
-            ⭐ Destaque
-          </span>
-        )}
+        <div className="product-badges-corner">
+          {product.featured && (
+            <span className="product-badge-destaque">
+              ⭐ Destaque
+            </span>
+          )}
+          {perfumeGender && (
+            <span className={`product-badge-gender badge-${perfumeGender}`}>
+              {perfumeGender === 'masculino' && '👔 Masc'}
+              {perfumeGender === 'feminino' && '🌸 Fem'}
+              {perfumeGender === 'unissex' && '✨ Unisex'}
+            </span>
+          )}
+        </div>
       </div>
 
       <div className="product-info">
