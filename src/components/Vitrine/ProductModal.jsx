@@ -18,11 +18,21 @@ export const ProductModal = ({ product, onClose }) => {
   let displayDesc = product.description || '';
   let availableColors = [];
 
+  let colorStock = product?.colorStock || null;
+  if (displayDesc.includes('||COLOR_STOCK||')) {
+    const csParts = displayDesc.split('||COLOR_STOCK||');
+    displayDesc = csParts[0].trim();
+    try {
+      const csData = JSON.parse(csParts[1].split('||FRAG||')[0].split('||COLORS||')[0].split('||PROMO||')[0]);
+      if (!colorStock && typeof csData === 'object' && csData !== null) colorStock = csData;
+    } catch (e) {}
+  }
+
   if (displayDesc.includes('||COLORS||')) {
     const cParts = displayDesc.split('||COLORS||');
     displayDesc = cParts[0].trim();
     try {
-      const parsedColors = JSON.parse(cParts[1].split('||FRAG||')[0].split('||PROMO||')[0]);
+      const parsedColors = JSON.parse(cParts[1].split('||FRAG||')[0].split('||PROMO||')[0].split('||COLOR_STOCK||')[0]);
       availableColors = Array.isArray(parsedColors) ? parsedColors : [];
     } catch (e) {}
   } else if (product.colors && Array.isArray(product.colors)) {
@@ -34,7 +44,7 @@ export const ProductModal = ({ product, onClose }) => {
     const pParts = displayDesc.split('||PROMO||');
     displayDesc = pParts[0].trim();
     try {
-      const pData = JSON.parse(pParts[1].split('||FRAG||')[0].split('||COLORS||')[0]);
+      const pData = JSON.parse(pParts[1].split('||FRAG||')[0].split('||COLORS||')[0].split('||COLOR_STOCK||')[0]);
       if (!originalPrice) originalPrice = Number(pData.originalPrice) || null;
     } catch (e) {}
   }
@@ -318,6 +328,8 @@ export const ProductModal = ({ product, onClose }) => {
               <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
                 {availableColors.map((colorName, idx) => {
                   const isSelected = selectedColor === colorName;
+                  const cQty = colorStock && typeof colorStock[colorName] === 'number' ? colorStock[colorName] : null;
+                  const isColorOut = cQty !== null && cQty <= 0;
                   return (
                     <button
                       key={idx}
@@ -330,12 +342,12 @@ export const ProductModal = ({ product, onClose }) => {
                         }
                       }}
                       style={{
-                        padding: '8px 16px',
+                        padding: '8px 14px',
                         borderRadius: '8px',
-                        border: `2px solid ${isSelected ? 'var(--color-primary)' : 'var(--border-color)'}`,
-                        background: isSelected ? 'var(--color-primary-light)' : '#ffffff',
+                        border: `2px solid ${isSelected ? 'var(--color-primary)' : isColorOut ? '#fca5a5' : 'var(--border-color)'}`,
+                        background: isSelected ? 'var(--color-primary-light)' : isColorOut ? '#fef2f2' : '#ffffff',
                         fontWeight: 700,
-                        color: isSelected ? 'var(--color-primary-hover)' : 'var(--color-secondary)',
+                        color: isSelected ? 'var(--color-primary-hover)' : isColorOut ? '#991b1b' : 'var(--color-secondary)',
                         fontSize: '0.88rem',
                         display: 'flex',
                         alignItems: 'center',
@@ -345,11 +357,36 @@ export const ProductModal = ({ product, onClose }) => {
                       }}
                     >
                       {isSelected && <Check size={14} />}
-                      {colorName}
+                      <span>{colorName}</span>
+                      {cQty !== null && (
+                        <span style={{
+                          fontSize: '0.7rem',
+                          padding: '1px 5px',
+                          borderRadius: '4px',
+                          background: isColorOut ? '#fee2e2' : isSelected ? 'rgba(0,0,0,0.06)' : '#f1f5f9',
+                          color: isColorOut ? '#dc2626' : '#475569',
+                          fontWeight: 700,
+                        }}>
+                          {isColorOut ? 'Esgotado' : `${cQty} un`}
+                        </span>
+                      )}
                     </button>
                   );
                 })}
               </div>
+              {selectedColor && colorStock && typeof colorStock[selectedColor] === 'number' && (
+                <div style={{ marginTop: '8px', fontSize: '0.82rem', fontWeight: 600 }}>
+                  {colorStock[selectedColor] > 1 && (
+                    <span style={{ color: '#166534' }}>✓ <strong>{colorStock[selectedColor]} unidades</strong> disponíveis na cor {selectedColor}</span>
+                  )}
+                  {colorStock[selectedColor] === 1 && (
+                    <span style={{ color: '#b45309' }}>⚡ <strong>Resta apenas 1 unidade</strong> na cor {selectedColor}!</span>
+                  )}
+                  {colorStock[selectedColor] <= 0 && (
+                    <span style={{ color: '#dc2626' }}>⚠️ A cor <strong>{selectedColor}</strong> está esgotada a pronta entrega (pedido sob encomenda).</span>
+                  )}
+                </div>
+              )}
             </div>
           )}
 
@@ -442,39 +479,50 @@ export const ProductModal = ({ product, onClose }) => {
             Dúvida no WhatsApp
           </a>
 
-          {isOutOfStock ? (
-            <a
-              href={generateWhatsAppLink(
-                settings.whatsapp,
-                `Olá! Gostaria de encomendar o produto: *${product.name}* (Tamanho: ${selectedSize}${colorNotice}) no valor de ${formatCurrency(product.price)}. Como funciona para fazer o pedido sob encomenda?`
-              )}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="btn btn-warning"
-              style={{
-                background: '#d97706',
-                borderColor: '#b45309',
-                color: '#fff',
-                fontWeight: 700,
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: '8px',
-                textDecoration: 'none'
-              }}
-            >
-              <Clock size={18} />
-              Encomendar no WhatsApp
-            </a>
-          ) : (
-            <button
-              type="button"
-              className="btn btn-primary"
-              onClick={handleAddToCart}
-            >
-              <ShoppingBag size={18} />
-              Adicionar ao Carrinho
-            </button>
-          )}
+          {(() => {
+            const selectedColorStock = (selectedColor && colorStock && typeof colorStock[selectedColor] === 'number')
+              ? colorStock[selectedColor]
+              : null;
+            const isThisVariationOutOfStock = isOutOfStock || (selectedColorStock !== null && selectedColorStock <= 0);
+
+            if (isThisVariationOutOfStock) {
+              return (
+                <a
+                  href={generateWhatsAppLink(
+                    settings.whatsapp,
+                    `Olá! Gostaria de encomendar o produto: *${product.name}* (Tamanho: ${selectedSize}${colorNotice}) no valor de ${formatCurrency(product.price)}. Como funciona para fazer o pedido sob encomenda?`
+                  )}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="btn btn-warning"
+                  style={{
+                    background: '#d97706',
+                    borderColor: '#b45309',
+                    color: '#fff',
+                    fontWeight: 700,
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '8px',
+                    textDecoration: 'none'
+                  }}
+                >
+                  <Clock size={18} />
+                  {selectedColorStock !== null && selectedColorStock <= 0 ? `Encomendar Cor ${selectedColor}` : 'Encomendar no WhatsApp'}
+                </a>
+              );
+            }
+
+            return (
+              <button
+                type="button"
+                className="btn btn-primary"
+                onClick={handleAddToCart}
+              >
+                <ShoppingBag size={18} />
+                Adicionar ao Carrinho
+              </button>
+            );
+          })()}
         </div>
       </div>
     </div>

@@ -63,6 +63,7 @@ export const EstoqueManager = () => {
     stock: 1,
     sizes: 'P, M, G',
     colors: '',
+    colorStock: {},
     perfumeGender: 'Masculino',
     images: [],
     description: '',
@@ -190,16 +191,38 @@ export const EstoqueManager = () => {
     let customSeasons = { inverno: 20, primavera: 20, verao: 20, outono: 20, dia: 20, noite: 20 };
     let customPerformance = emptyPerformance();
 
+    let colorStock = product.colorStock || {};
+    if (baseDesc.includes('||COLOR_STOCK||')) {
+      const csParts = baseDesc.split('||COLOR_STOCK||');
+      baseDesc = csParts[0].trim();
+      try {
+        const csData = JSON.parse(csParts[1].split('||FRAG||')[0].split('||COLORS||')[0].split('||PROMO||')[0]);
+        if (typeof csData === 'object' && csData !== null) colorStock = csData;
+      } catch (e) {}
+    }
+
     let colorsStr = '';
     if (baseDesc.includes('||COLORS||')) {
       const cParts = baseDesc.split('||COLORS||');
       baseDesc = cParts[0].trim();
       try {
-        const cData = JSON.parse(cParts[1].split('||FRAG||')[0]);
+        const cData = JSON.parse(cParts[1].split('||FRAG||')[0].split('||COLOR_STOCK||')[0].split('||PROMO||')[0]);
         colorsStr = Array.isArray(cData) ? cData.join(', ') : '';
       } catch (e) {}
     } else if (product.colors && Array.isArray(product.colors)) {
       colorsStr = product.colors.join(', ');
+    }
+
+    const currentColorsArr = colorsStr ? colorsStr.split(',').map((c) => c.trim()).filter(Boolean) : [];
+    if (currentColorsArr.length > 0 && Object.keys(colorStock).length === 0) {
+      if (currentColorsArr.length === 1) {
+        colorStock = { [currentColorsArr[0]]: Number(product.stock) || 1 };
+      } else {
+        const defQty = Math.max(1, Math.floor((Number(product.stock) || currentColorsArr.length) / currentColorsArr.length));
+        currentColorsArr.forEach((c) => {
+          colorStock[c] = defQty;
+        });
+      }
     }
 
     if (baseDesc.includes('||FRAG||')) {
@@ -233,7 +256,7 @@ export const EstoqueManager = () => {
     if (!origPrice && baseDesc.includes('||PROMO||')) {
       try {
         const pParts = baseDesc.split('||PROMO||');
-        const promoObj = JSON.parse(pParts[1].split('||FRAG||')[0].split('||COLORS||')[0]);
+        const promoObj = JSON.parse(pParts[1].split('||FRAG||')[0].split('||COLORS||')[0].split('||COLOR_STOCK||')[0]);
         origPrice = promoObj.originalPrice || '';
       } catch (e) {}
     }
@@ -251,6 +274,7 @@ export const EstoqueManager = () => {
       stock: product.stock,
       sizes: product.sizes ? product.sizes.join(', ') : '',
       colors: colorsStr,
+      colorStock: colorStock,
       perfumeGender: detectedGender,
       images: product.image ? product.image.split('|||').filter(Boolean) : [],
       description: baseDesc,
@@ -261,6 +285,46 @@ export const EstoqueManager = () => {
       active: product.active !== false,
     });
     setIsModalOpen(true);
+  };
+
+  const handleColorQtyChange = (colorName, newQty) => {
+    const safeQty = Math.max(0, parseInt(newQty, 10) || 0);
+    const updated = {
+      ...(formData.colorStock || {}),
+      [colorName]: safeQty,
+    };
+    const colorsArray = (formData.colors || '')
+      .split(',')
+      .map((c) => c.trim())
+      .filter(Boolean);
+
+    let total = 0;
+    colorsArray.forEach((c) => {
+      total += (updated[c] !== undefined ? updated[c] : 1);
+    });
+
+    setFormData((prev) => ({
+      ...prev,
+      colorStock: updated,
+      stock: total,
+    }));
+  };
+
+  const handleColorsInputChange = (val) => {
+    const newColorsArray = val.split(',').map((c) => c.trim()).filter(Boolean);
+    const existingStock = { ...(formData.colorStock || {}) };
+    let hasNew = false;
+    newColorsArray.forEach((c) => {
+      if (existingStock[c] === undefined) {
+        existingStock[c] = 1;
+        hasNew = true;
+      }
+    });
+    setFormData((prev) => ({
+      ...prev,
+      colors: val,
+      colorStock: hasNew ? existingStock : prev.colorStock,
+    }));
   };
 
   const handleSubmit = (e) => {
@@ -296,8 +360,16 @@ export const EstoqueManager = () => {
       finalDesc += '\n||PROMO||' + JSON.stringify({ originalPrice: origPriceNum });
     }
 
+    let finalColorStock = null;
     if (colorsArray.length > 0) {
       finalDesc += '\n||COLORS||' + JSON.stringify(colorsArray);
+      if (formData.colorStock && Object.keys(formData.colorStock).length > 0) {
+        finalColorStock = {};
+        colorsArray.forEach((c) => {
+          finalColorStock[c] = formData.colorStock[c] !== undefined ? Number(formData.colorStock[c]) : 1;
+        });
+        finalDesc += '\n||COLOR_STOCK||' + JSON.stringify(finalColorStock);
+      }
     }
 
     const hasAccords = formData.customAccords && formData.customAccords.trim() !== '';
@@ -316,6 +388,7 @@ export const EstoqueManager = () => {
       image: formData.images ? formData.images.filter(Boolean).join('|||') : '',
       sizes: sizesArray.length > 0 ? sizesArray : ['Único'],
       colors: colorsArray,
+      colorStock: finalColorStock,
       costPrice: parseFloat(formData.costPrice) || 0,
       price: parseFloat(formData.price) || 0,
       originalPrice: (origPriceNum && origPriceNum > parseFloat(formData.price)) ? origPriceNum : null,
@@ -651,8 +724,30 @@ export const EstoqueManager = () => {
                             </span>
                           ))}
                           {p.colors && p.colors.length > 0 && (
-                            <div style={{ width: '100%', marginTop: '3px', fontSize: '0.68rem', color: '#64748b' }}>
-                              🎨 {p.colors.join(', ')}
+                            <div style={{ width: '100%', marginTop: '5px', display: 'flex', flexDirection: 'column', gap: '3px' }}>
+                              <span style={{ fontSize: '0.68rem', color: '#64748b', fontWeight: 600 }}>🎨 Cores & Estoque:</span>
+                              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '3px' }}>
+                                {p.colors.map((col, cIdx) => {
+                                  const q = p.colorStock && typeof p.colorStock[col] === 'number' ? p.colorStock[col] : null;
+                                  const isOut = q === 0;
+                                  return (
+                                    <span
+                                      key={cIdx}
+                                      style={{
+                                        fontSize: '0.68rem',
+                                        background: isOut ? '#fee2e2' : '#f1f5f9',
+                                        color: isOut ? '#991b1b' : '#334155',
+                                        border: `1px solid ${isOut ? '#fca5a5' : '#cbd5e1'}`,
+                                        padding: '1px 5px',
+                                        borderRadius: '4px',
+                                        fontWeight: 600,
+                                      }}
+                                    >
+                                      {col}{q !== null ? `: ${q} un` : ''}
+                                    </span>
+                                  );
+                                })}
+                              </div>
                             </div>
                           )}
                         </div>
@@ -857,10 +952,167 @@ export const EstoqueManager = () => {
                       className="form-control"
                       placeholder="Ex: Branco, Preto, Bege, Azul Marinho, Azul Escuro"
                       value={formData.colors || ''}
-                      onChange={(e) => setFormData({ ...formData, colors: e.target.value })}
+                      onChange={(e) => handleColorsInputChange(e.target.value)}
                     />
                   </div>
                 </div>
+
+                {/* Quantidade por Cor Breakdown */}
+                {(() => {
+                  const modalColorsList = (formData.colors || '')
+                    .split(',')
+                    .map((c) => c.trim())
+                    .filter(Boolean);
+                  if (modalColorsList.length === 0) return null;
+
+                  const totalColorStockSum = modalColorsList.reduce((acc, c) => acc + (formData.colorStock?.[c] ?? 1), 0);
+
+                  const distributeStock = () => {
+                    const currentTotal = Math.max(1, parseInt(formData.stock, 10) || modalColorsList.length);
+                    const perColor = Math.floor(currentTotal / modalColorsList.length);
+                    const remainder = currentTotal % modalColorsList.length;
+                    const distributed = {};
+                    modalColorsList.forEach((c, idx) => {
+                      distributed[c] = perColor + (idx < remainder ? 1 : 0);
+                    });
+                    setFormData((prev) => ({
+                      ...prev,
+                      colorStock: distributed,
+                      stock: currentTotal,
+                    }));
+                  };
+
+                  return (
+                    <div style={{
+                      background: '#f8fafc',
+                      border: '1.5px solid #cbd5e1',
+                      borderRadius: '12px',
+                      padding: '14px 16px',
+                      marginBottom: '16px',
+                      boxShadow: '0 1px 3px rgba(0,0,0,0.05)'
+                    }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px', flexWrap: 'wrap', gap: '8px' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                          <span style={{ fontSize: '1.1rem' }}>📦</span>
+                          <strong style={{ fontSize: '0.92rem', color: '#1e293b' }}>
+                            Estoque discriminado por Cor:
+                          </strong>
+                        </div>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                          <button
+                            type="button"
+                            onClick={distributeStock}
+                            style={{
+                              background: 'transparent',
+                              border: 'none',
+                              color: 'var(--color-primary)',
+                              fontSize: '0.78rem',
+                              fontWeight: 700,
+                              cursor: 'pointer',
+                              textDecoration: 'underline'
+                            }}
+                            title="Distribuir o estoque total igualmente entre as cores"
+                          >
+                            ⚡ Dividir igualmente
+                          </button>
+                          <div style={{ background: '#e0f2fe', color: '#0369a1', padding: '3px 10px', borderRadius: '999px', fontSize: '0.8rem', fontWeight: 700 }}>
+                            Total: {totalColorStockSum} {totalColorStockSum === 1 ? 'unidade' : 'unidades'}
+                          </div>
+                        </div>
+                      </div>
+                      
+                      <p style={{ fontSize: '0.78rem', color: '#64748b', marginBottom: '12px' }}>
+                        Defina a quantidade de cada cor. O <strong>Estoque Inicial ({formData.stock} un)</strong> se atualiza automaticamente com a soma!
+                      </p>
+
+                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: '10px' }}>
+                        {modalColorsList.map((colorName) => {
+                          const qty = formData.colorStock?.[colorName] ?? 1;
+                          return (
+                            <div
+                              key={colorName}
+                              style={{
+                                background: '#ffffff',
+                                border: '1px solid #cbd5e1',
+                                borderRadius: '8px',
+                                padding: '8px 12px',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'space-between',
+                                boxShadow: '0 1px 2px rgba(0,0,0,0.03)'
+                              }}
+                            >
+                              <div style={{ fontWeight: 600, fontSize: '0.86rem', color: '#1e293b', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '105px' }} title={colorName}>
+                                🎨 {colorName}
+                              </div>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
+                                <button
+                                  type="button"
+                                  onClick={() => handleColorQtyChange(colorName, Math.max(0, qty - 1))}
+                                  style={{
+                                    width: '28px',
+                                    height: '28px',
+                                    borderRadius: '6px',
+                                    border: '1px solid #cbd5e1',
+                                    background: '#f1f5f9',
+                                    cursor: 'pointer',
+                                    fontWeight: 700,
+                                    fontSize: '1rem',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    color: '#475569'
+                                  }}
+                                  title="Diminuir 1 un"
+                                >
+                                  -
+                                </button>
+                                <input
+                                  type="number"
+                                  min="0"
+                                  value={qty}
+                                  onChange={(e) => handleColorQtyChange(colorName, Math.max(0, parseInt(e.target.value, 10) || 0))}
+                                  style={{
+                                    width: '46px',
+                                    textAlign: 'center',
+                                    fontWeight: 700,
+                                    fontSize: '0.9rem',
+                                    padding: '4px 2px',
+                                    border: '1px solid #cbd5e1',
+                                    borderRadius: '6px',
+                                    background: '#ffffff',
+                                    color: '#0f172a'
+                                  }}
+                                />
+                                <button
+                                  type="button"
+                                  onClick={() => handleColorQtyChange(colorName, qty + 1)}
+                                  style={{
+                                    width: '28px',
+                                    height: '28px',
+                                    borderRadius: '6px',
+                                    border: '1px solid var(--color-primary)',
+                                    background: 'var(--color-primary-light, #eff6ff)',
+                                    cursor: 'pointer',
+                                    fontWeight: 700,
+                                    fontSize: '1rem',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    color: 'var(--color-primary)'
+                                  }}
+                                  title="Aumentar 1 un"
+                                >
+                                  +
+                                </button>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  );
+                })()}
 
                 {/* Photo Upload & Preview Section */}
                 <div className="form-group" style={{ background: 'var(--bg-surface-elevated)', border: '1px solid var(--border-color)', borderRadius: '12px', padding: '16px' }}>

@@ -90,13 +90,18 @@ export const PdvVendas = () => {
     }
 
     const defaultSize = product.sizes && product.sizes.length > 0 ? product.sizes[0] : 'Único';
+    const defaultColor = product.colors && product.colors.length > 0 ? product.colors[0] : null;
 
     setSaleItems((prev) => {
-      const idx = prev.findIndex((i) => i.productId === product.id && i.size === defaultSize);
+      const idx = prev.findIndex((i) => i.productId === product.id && i.size === defaultSize && (i.selectedColor || null) === defaultColor);
       if (idx > -1) {
         const item = prev[idx];
-        if (item.quantity + 1 > product.stock) {
-          alert(`Estoque máximo disponível: ${product.stock} un`);
+        let maxStk = product.stock;
+        if (defaultColor && product.colorStock && typeof product.colorStock[defaultColor] === 'number') {
+          maxStk = product.colorStock[defaultColor];
+        }
+        if (item.quantity + 1 > maxStk) {
+          alert(`Estoque máximo disponível ${defaultColor ? `para a cor ${defaultColor}` : ''}: ${maxStk} un`);
           return prev;
         }
         const updated = [...prev];
@@ -116,6 +121,9 @@ export const PdvVendas = () => {
           quantity: 1,
           size: defaultSize,
           availableSizes: product.sizes || ['Único'],
+          selectedColor: defaultColor,
+          availableColors: product.colors || [],
+          colorStock: product.colorStock || null,
           maxStock: product.stock,
           isCustomItem: false,
         },
@@ -256,6 +264,14 @@ export const PdvVendas = () => {
     setSaleItems((prev) => {
       const updated = [...prev];
       updated[index] = { ...updated[index], size };
+      return updated;
+    });
+  };
+
+  const updateItemColor = (index, color) => {
+    setSaleItems((prev) => {
+      const updated = [...prev];
+      updated[index] = { ...updated[index], selectedColor: color };
       return updated;
     });
   };
@@ -801,6 +817,24 @@ export const PdvVendas = () => {
                           {item.availableSizes.map((s, sIdx) => (
                             <option key={sIdx} value={s}>{s}</option>
                           ))}
+                        </select>
+                      )}
+
+                      {item.availableColors && item.availableColors.length > 0 && (
+                        <select
+                          value={item.selectedColor || ''}
+                          onChange={(e) => updateItemColor(idx, e.target.value)}
+                          style={{ fontSize: '0.73rem', padding: '2px 4px', borderRadius: '4px', border: '1px solid #cbd5e1', background: '#fff' }}
+                          title="Selecione a cor vendida"
+                        >
+                          {item.availableColors.map((c, cIdx) => {
+                            const cStk = item.colorStock?.[c];
+                            return (
+                              <option key={cIdx} value={c}>
+                                {c} {typeof cStk === 'number' ? `(${cStk} un)` : ''}
+                              </option>
+                            );
+                          })}
                         </select>
                       )}
 

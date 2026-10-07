@@ -86,8 +86,16 @@ export const StoreProvider = ({ children }) => {
   // Map an app product to a Supabase row
   const toProductRow = (p) => {
     let finalDesc = p.description || '';
-    if (p.originalPrice && !finalDesc.includes('||PROMO||')) {
+    finalDesc = finalDesc
+      .replace(/\n?\|\|PROMO\|\|[^\n]*/g, '')
+      .replace(/\n?\|\|COLOR_STOCK\|\|[^\n]*/g, '')
+      .trim();
+
+    if (p.originalPrice) {
       finalDesc += '\n||PROMO||' + JSON.stringify({ originalPrice: Number(p.originalPrice) });
+    }
+    if (p.colorStock && Object.keys(p.colorStock).length > 0) {
+      finalDesc += '\n||COLOR_STOCK||' + JSON.stringify(p.colorStock);
     }
     return {
       id: p.id,
@@ -188,18 +196,25 @@ export const StoreProvider = ({ children }) => {
         ? prodRes.data.map((p) => {
             let colors = [];
             let originalPrice = null;
+            let colorStock = null;
             const desc = p.description || '';
             if (desc.includes('||COLORS||')) {
               try {
                 const parts = desc.split('||COLORS||');
-                colors = JSON.parse(parts[1].split('||FRAG||')[0].split('||PROMO||')[0]);
+                colors = JSON.parse(parts[1].split('||FRAG||')[0].split('||PROMO||')[0].split('||COLOR_STOCK||')[0]);
               } catch (e) {}
             }
             if (desc.includes('||PROMO||')) {
               try {
                 const pParts = desc.split('||PROMO||');
-                const promoObj = JSON.parse(pParts[1].split('||FRAG||')[0].split('||COLORS||')[0]);
+                const promoObj = JSON.parse(pParts[1].split('||FRAG||')[0].split('||COLORS||')[0].split('||COLOR_STOCK||')[0]);
                 originalPrice = Number(promoObj.originalPrice) || null;
+              } catch (e) {}
+            }
+            if (desc.includes('||COLOR_STOCK||')) {
+              try {
+                const csParts = desc.split('||COLOR_STOCK||');
+                colorStock = JSON.parse(csParts[1].split('||FRAG||')[0].split('||COLORS||')[0].split('||PROMO||')[0]);
               } catch (e) {}
             }
             return {
@@ -209,6 +224,7 @@ export const StoreProvider = ({ children }) => {
               originalPrice: originalPrice,
               stock: Number(p.stock) || 0,
               colors: Array.isArray(colors) ? colors : [],
+              colorStock: (colorStock && typeof colorStock === 'object') ? colorStock : null,
             };
           })
         : (isCatalogInitialized ? [] : null);
@@ -470,8 +486,13 @@ export const StoreProvider = ({ children }) => {
     const size = selectedSize || (product.sizes && product.sizes.length > 0 ? product.sizes[0] : 'Único');
     const color = selectedColor || null;
     
-    if (product.stock <= 0) {
-      showToast('Este produto está sem estoque!', 'error');
+    let maxStock = product.stock;
+    if (color && product.colorStock && typeof product.colorStock[color] === 'number') {
+      maxStock = product.colorStock[color];
+    }
+
+    if (maxStock <= 0) {
+      showToast(color ? `A cor "${color}" está esgotada no momento!` : 'Este produto está sem estoque!', 'error');
       return;
     }
 
@@ -483,8 +504,8 @@ export const StoreProvider = ({ children }) => {
       if (existingIndex > -1) {
         const updated = [...prev];
         const newQty = updated[existingIndex].quantity + 1;
-        if (newQty > product.stock) {
-          showToast(`Estoque máximo atingido (${product.stock} un)`, 'warning');
+        if (newQty > maxStock) {
+          showToast(`Estoque máximo atingido ${color ? `para a cor ${color} (${maxStock} un)` : `(${maxStock} un)`}`, 'warning');
           return prev;
         }
         updated[existingIndex].quantity = newQty;
@@ -494,7 +515,7 @@ export const StoreProvider = ({ children }) => {
       }
     });
 
-    showToast(`Adicionado ao pedido: ${product.name}`);
+    showToast(`Adicionado ao pedido: ${product.name}${color ? ` (${color})` : ''}`);
     setIsCartOpen(true);
   };
 
@@ -510,8 +531,12 @@ export const StoreProvider = ({ children }) => {
           item.selectedSize === selectedSize &&
           (item.selectedColor || null) === (selectedColor || null)
         ) {
-          if (quantity > item.product.stock) {
-            showToast(`Estoque disponível: apenas ${item.product.stock} un`, 'warning');
+          let maxStock = item.product.stock;
+          if (item.selectedColor && item.product.colorStock && typeof item.product.colorStock[item.selectedColor] === 'number') {
+            maxStock = item.product.colorStock[item.selectedColor];
+          }
+          if (quantity > maxStock) {
+            showToast(`Estoque disponível: apenas ${maxStock} un`, 'warning');
             return item;
           }
           return { ...item, quantity };
@@ -1029,7 +1054,13 @@ export const StoreProvider = ({ children }) => {
       const updatedProducts = prev.products.map((p) => {
         const boughtItem = items.find((it) => it.productId === p.id && !it.isCustomItem);
         if (boughtItem) {
-          return { ...p, stock: Math.max(0, p.stock - boughtItem.quantity) };
+          const newStk = Math.max(0, p.stock - boughtItem.quantity);
+          let updatedColorStock = p.colorStock ? { ...p.colorStock } : null;
+          const chosenColor = boughtItem.selectedColor || boughtItem.color;
+          if (updatedColorStock && chosenColor && typeof updatedColorStock[chosenColor] === 'number') {
+            updatedColorStock[chosenColor] = Math.max(0, updatedColorStock[chosenColor] - boughtItem.quantity);
+          }
+          return { ...p, stock: newStk, colorStock: updatedColorStock };
         }
         return p;
       });
@@ -1061,10 +1092,16 @@ export const StoreProvider = ({ children }) => {
 
         // Update product stocks in Supabase
         for (const item of items) {
-          const prod = data.products.find((p) => p.id === item.productId);
+          const prod = (dataRef.current?.products || data.products || []).find((p) => p.id === item.productId);
           if (prod) {
             const newStk = Math.max(0, prod.stock - item.quantity);
-            await supabase.from('products').update({ stock: newStk }).eq('id', prod.id);
+            let updatedColorStock = prod.colorStock ? { ...prod.colorStock } : null;
+            const chosenColor = item.selectedColor || item.color;
+            if (updatedColorStock && chosenColor && typeof updatedColorStock[chosenColor] === 'number') {
+              updatedColorStock[chosenColor] = Math.max(0, updatedColorStock[chosenColor] - item.quantity);
+            }
+            const updatedProd = { ...prod, stock: newStk, colorStock: updatedColorStock };
+            await supabase.from('products').update(toProductRow(updatedProd)).eq('id', prod.id);
           }
         }
       } catch (err) {

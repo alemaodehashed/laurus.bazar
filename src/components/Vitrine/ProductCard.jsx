@@ -30,6 +30,10 @@ export const ProductCard = ({ product, onOpenModal }) => {
     availableColors = product.colors;
   }
 
+  if (displayDesc.includes('||COLOR_STOCK||')) {
+    displayDesc = displayDesc.split('||COLOR_STOCK||')[0].trim();
+  }
+
   if (displayDesc.includes('||FRAG||')) {
     displayDesc = displayDesc.split('||FRAG||')[0].trim();
   }
