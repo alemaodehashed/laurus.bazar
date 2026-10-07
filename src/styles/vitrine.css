@@ -507,6 +507,39 @@
   border: 1px solid rgba(245, 158, 11, 0.35);
 }
 
+.product-badge-promo {
+  font-size: 0.72rem;
+  font-weight: 800;
+  padding: 3px 8px;
+  border-radius: 6px;
+  background: linear-gradient(135deg, #ef4444 0%, #b91c1c 100%);
+  color: #ffffff;
+  letter-spacing: 0.2px;
+  box-shadow: 0 2px 6px rgba(239, 68, 68, 0.35);
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+}
+
+.price-promo-container {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  line-height: 1.2;
+}
+
+.price-de {
+  font-size: 0.78rem;
+  color: #94a3b8;
+  text-decoration: line-through;
+  font-weight: 600;
+}
+
+.price-por {
+  color: var(--color-primary);
+  font-weight: 800;
+}
+
 /* Product Grid */
 .product-grid {
   display: grid;

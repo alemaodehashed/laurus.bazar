@@ -58,6 +58,7 @@ export const EstoqueManager = () => {
     category: 'Roupas Femininas',
     costPrice: '',
     price: '',
+    originalPrice: '',
     specialPrice: '',
     stock: 1,
     sizes: 'P, M, G',
@@ -228,11 +229,24 @@ export const EstoqueManager = () => {
       detectedGender = 'Masculino';
     }
 
+    let origPrice = product.originalPrice || '';
+    if (!origPrice && baseDesc.includes('||PROMO||')) {
+      try {
+        const pParts = baseDesc.split('||PROMO||');
+        const promoObj = JSON.parse(pParts[1].split('||FRAG||')[0].split('||COLORS||')[0]);
+        origPrice = promoObj.originalPrice || '';
+      } catch (e) {}
+    }
+    if (baseDesc.includes('||PROMO||')) {
+      baseDesc = baseDesc.split('||PROMO||')[0].trim();
+    }
+
     setFormData({
       name: product.name,
       category: product.category,
       costPrice: product.costPrice || '',
       price: product.price || '',
+      originalPrice: origPrice,
       specialPrice: product.specialPrice || '',
       stock: product.stock,
       sizes: product.sizes ? product.sizes.join(', ') : '',
@@ -277,6 +291,11 @@ export const EstoqueManager = () => {
       }
     }
 
+    const origPriceNum = parseFloat(formData.originalPrice);
+    if (origPriceNum && origPriceNum > parseFloat(formData.price)) {
+      finalDesc += '\n||PROMO||' + JSON.stringify({ originalPrice: origPriceNum });
+    }
+
     if (colorsArray.length > 0) {
       finalDesc += '\n||COLORS||' + JSON.stringify(colorsArray);
     }
@@ -299,6 +318,7 @@ export const EstoqueManager = () => {
       colors: colorsArray,
       costPrice: parseFloat(formData.costPrice) || 0,
       price: parseFloat(formData.price) || 0,
+      originalPrice: (origPriceNum && origPriceNum > parseFloat(formData.price)) ? origPriceNum : null,
       specialPrice: formData.specialPrice ? parseFloat(formData.specialPrice) : null,
       stock: parseInt(formData.stock, 10) || 0,
       description: finalDesc,
@@ -343,71 +363,89 @@ export const EstoqueManager = () => {
     }
   };
 
-  // Upload and compress image from device camera / file picker
-  const handleImageFileChange = async (e) => {
-    let file = e.target.files?.[0];
-    if (!file) return;
+  const MAX_IMAGES = 10;
 
-    // Removida a validação estrita de extensão para permitir formatos do iPhone (.heic, .img)
-    // O img.onerror logo abaixo já serve como validação segura.
-
-    setIsUploadingImage(true);
-
-    try {
-      if (file.name.toLowerCase().match(/\.(heic|heif)$/) || file.type === 'image/heic' || file.type === 'image/heif') {
+  // Process and compress a single image file to max 800px (~60-90kb)
+  const processImageFile = async (rawFile) => {
+    let file = rawFile;
+    if (file.name.toLowerCase().match(/\.(heic|heif)$/) || file.type === 'image/heic' || file.type === 'image/heif') {
+      try {
         const convertedBlob = await heic2any({
           blob: file,
           toType: 'image/jpeg',
           quality: 0.8
         });
         file = Array.isArray(convertedBlob) ? convertedBlob[0] : convertedBlob;
+      } catch (err) {
+        console.error('HEIC conversion error:', err);
       }
-    } catch (error) {
-      console.error('HEIC conversion error:', error);
-      setIsUploadingImage(false);
-      alert('Erro ao processar imagem HEIC. Tente outro formato ou foto.');
+    }
+
+    return new Promise((resolve) => {
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        const img = new Image();
+        img.onload = () => {
+          const canvas = document.createElement('canvas');
+          const MAX_SIZE = 800;
+          let width = img.width;
+          let height = img.height;
+          if (width > height) {
+            if (width > MAX_SIZE) {
+              height = Math.round((height * MAX_SIZE) / width);
+              width = MAX_SIZE;
+            }
+          } else {
+            if (height > MAX_SIZE) {
+              width = Math.round((width * MAX_SIZE) / height);
+              height = MAX_SIZE;
+            }
+          }
+          canvas.width = width;
+          canvas.height = height;
+          const ctx = canvas.getContext('2d');
+          ctx.drawImage(img, 0, 0, width, height);
+          resolve(canvas.toDataURL('image/jpeg', 0.84));
+        };
+        img.onerror = () => resolve(null);
+        img.src = event.target.result;
+      };
+      reader.onerror = () => resolve(null);
+      reader.readAsDataURL(file);
+    });
+  };
+
+  // Upload and compress images from device camera / gallery (supports multiple files)
+  const handleImageFileChange = async (e) => {
+    const files = Array.from(e.target.files || []);
+    if (files.length === 0) return;
+
+    const remainingSlots = MAX_IMAGES - (formData.images || []).length;
+    if (remainingSlots <= 0) {
+      alert(`Limite máximo de ${MAX_IMAGES} fotos atingido.`);
+      e.target.value = null;
       return;
     }
 
-    const reader = new FileReader();
-    reader.onload = (event) => {
-      const img = new Image();
-      img.onload = () => {
-        // Resize image to max 800px to maintain quality while keeping file size small (~60-90kb)
-        const canvas = document.createElement('canvas');
-        const MAX_SIZE = 800;
-        let width = img.width;
-        let height = img.height;
+    setIsUploadingImage(true);
+    const filesToProcess = files.slice(0, remainingSlots);
+    const newImages = [];
 
-        if (width > height) {
-          if (width > MAX_SIZE) {
-            height = Math.round((height * MAX_SIZE) / width);
-            width = MAX_SIZE;
-          }
-        } else {
-          if (height > MAX_SIZE) {
-            width = Math.round((width * MAX_SIZE) / height);
-            height = MAX_SIZE;
-          }
-        }
+    for (const f of filesToProcess) {
+      try {
+        const dataUrl = await processImageFile(f);
+        if (dataUrl) newImages.push(dataUrl);
+      } catch (err) {
+        console.error('Erro ao processar imagem:', err);
+      }
+    }
 
-        canvas.width = width;
-        canvas.height = height;
-        const ctx = canvas.getContext('2d');
-        ctx.drawImage(img, 0, 0, width, height);
-
-        const compressedDataUrl = canvas.toDataURL('image/jpeg', 0.84);
-        setFormData((prev) => ({ ...prev, images: [...prev.images, compressedDataUrl].slice(0, 3) }));
-        setIsUploadingImage(false);
-      };
-      img.onerror = () => {
-        setIsUploadingImage(false);
-        alert('Erro ao processar a imagem selecionada.');
-      };
-      img.src = event.target.result;
-    };
-    reader.readAsDataURL(file);
-    e.target.value = null; // reset input
+    setFormData((prev) => ({
+      ...prev,
+      images: [...prev.images, ...newImages].slice(0, MAX_IMAGES),
+    }));
+    setIsUploadingImage(false);
+    e.target.value = null;
   };
 
   // Calculate margin preview
@@ -560,6 +598,11 @@ export const EstoqueManager = () => {
                         <strong style={{ color: 'var(--color-secondary)', fontSize: '0.95rem' }}>
                           {formatCurrency(p.price)}
                         </strong>
+                        {p.originalPrice && p.originalPrice > p.price && (
+                          <div style={{ fontSize: '0.72rem', color: '#dc2626', fontWeight: 700 }}>
+                            <s>De {formatCurrency(p.originalPrice)}</s> (-{Math.round(((p.originalPrice - p.price) / p.originalPrice) * 100)}%)
+                          </div>
+                        )}
                         {p.specialPrice && (
                           <div style={{ fontSize: '0.72rem', color: '#b45309', fontWeight: 600 }}>
                             Diferenciado: {formatCurrency(p.specialPrice)}
@@ -726,13 +769,15 @@ export const EstoqueManager = () => {
                   </div>
 
                   <div className="form-group">
-                    <label className="form-label">Preço de Venda (R$):</label>
+                    <label className="form-label" style={{ fontWeight: 700 }}>
+                      Preço de Venda / "Por" (R$):
+                    </label>
                     <input
                       type="number"
                       step="0.01"
                       min="0"
                       className="form-control"
-                      placeholder="Ex: 79.90"
+                      placeholder="Ex: 79.90 (Cobrado)"
                       value={formData.price}
                       onChange={(e) => setFormData({ ...formData, price: e.target.value })}
                       required
@@ -740,19 +785,43 @@ export const EstoqueManager = () => {
                   </div>
 
                   <div className="form-group">
-                    <label className="form-label">Preço Diferenciado (R$):</label>
+                    <label className="form-label" style={{ color: '#b45309', fontWeight: 700 }}>
+                      🏷️ Preço Original / "De" (R$):
+                    </label>
                     <input
                       type="number"
                       step="0.01"
                       min="0"
                       className="form-control"
-                      placeholder="Ex: 69.90 (Opcional)"
-                      value={formData.specialPrice}
-                      onChange={(e) => setFormData({ ...formData, specialPrice: e.target.value })}
-                      title="Preço especial ou promocional configurado para este produto"
+                      placeholder="Ex: 119.90 (Opcional)"
+                      value={formData.originalPrice}
+                      onChange={(e) => setFormData({ ...formData, originalPrice: e.target.value })}
+                      title="Preço antigo para exibir 'De R$ 119,90 Por R$ 79,90' riscado na vitrine"
                     />
                   </div>
                 </div>
+
+                {/* Promo notice box */}
+                {parseFloat(formData.originalPrice) > parseFloat(formData.price) && (
+                  <div style={{
+                    background: '#fef2f2',
+                    border: '1px solid #fecaca',
+                    padding: '9px 13px',
+                    borderRadius: '8px',
+                    marginBottom: '12px',
+                    fontSize: '0.84rem',
+                    color: '#991b1b',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    fontWeight: 600
+                  }}>
+                    <span>🔥 Promoção Ativa: <s>{formatCurrency(formData.originalPrice)}</s> por <strong>{formatCurrency(formData.price)}</strong></span>
+                    <span style={{ background: '#ef4444', color: '#fff', padding: '2px 9px', borderRadius: '999px', fontSize: '0.74rem', fontWeight: 800 }}>
+                      -{Math.round(((parseFloat(formData.originalPrice) - parseFloat(formData.price)) / parseFloat(formData.originalPrice)) * 100)}% OFF (Economia de {formatCurrency(parseFloat(formData.originalPrice) - parseFloat(formData.price))})
+                    </span>
+                  </div>
+                )}
 
                 {/* Profit indicator box */}
                 {sell > 0 && (
@@ -786,7 +855,7 @@ export const EstoqueManager = () => {
                     <input
                       type="text"
                       className="form-control"
-                      placeholder="Ex: Azul Marinho, Preto, Bege"
+                      placeholder="Ex: Branco, Preto, Bege, Azul Marinho, Azul Escuro"
                       value={formData.colors || ''}
                       onChange={(e) => setFormData({ ...formData, colors: e.target.value })}
                     />
@@ -798,7 +867,7 @@ export const EstoqueManager = () => {
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px', flexWrap: 'wrap', gap: '8px' }}>
                     <label className="form-label" style={{ marginBottom: 0, display: 'flex', alignItems: 'center', gap: '6px' }}>
                       <Camera size={16} color="var(--color-primary)" />
-                      <span>Foto do Produto</span>
+                      <span>Fotos do Produto ({formData.images.length}/{MAX_IMAGES})</span>
                     </label>
                     <button
                       type="button"
@@ -809,50 +878,93 @@ export const EstoqueManager = () => {
                     </button>
                   </div>
 
-                  {/* Hidden File Input for Native Camera/Gallery Picker */}
+                  {/* Hidden File Input for Native Camera/Gallery Picker with Multiple Selection */}
                   <input
                     type="file"
                     ref={fileInputRef}
                     accept="image/*"
+                    multiple
                     onChange={handleImageFileChange}
                     style={{ display: 'none' }}
                   />
 
                   {/* Image Preview & Upload Controls */}
                   <div style={{ display: 'flex', gap: '16px', alignItems: 'center', flexWrap: 'wrap' }}>
-                    <div style={{ display: 'flex', gap: '8px' }}>
-                      {formData.images.map((imgUrl, idx) => (
-                        <div key={idx} style={{ position: 'relative', width: '90px', height: '90px', borderRadius: '10px', overflow: 'hidden', border: '2px solid var(--color-accent)', boxShadow: 'var(--shadow-sm)', flexShrink: 0 }}>
-                          <img
-                            src={imgUrl}
-                            alt={`Prévia ${idx + 1}`}
-                            style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-                          />
-                          <button
-                            type="button"
-                            onClick={() => setFormData((prev) => ({ ...prev, images: prev.images.filter((_, i) => i !== idx) }))}
-                            title="Remover foto"
-                            style={{
-                              position: 'absolute',
-                              top: '4px',
-                              right: '4px',
-                              background: 'rgba(0,0,0,0.7)',
-                              color: '#ffffff',
-                              borderRadius: '50%',
-                              width: '22px',
-                              height: '22px',
-                              display: 'flex',
-                              alignItems: 'center',
-                              justifyContent: 'center'
-                            }}
-                          >
-                            <X size={13} />
-                          </button>
-                        </div>
-                      ))}
+                    <div style={{ display: 'flex', gap: '8px', overflowX: 'auto', paddingBottom: '6px', maxWidth: '100%' }}>
+                      {formData.images.map((imgUrl, idx) => {
+                        const parsedColors = (formData.colors || '').split(',').map((c) => c.trim()).filter(Boolean);
+                        const matchedColor = parsedColors[idx];
+                        return (
+                          <div key={idx} style={{ position: 'relative', width: '90px', height: '90px', borderRadius: '10px', overflow: 'hidden', border: '2px solid var(--color-accent)', boxShadow: 'var(--shadow-sm)', flexShrink: 0 }}>
+                            <img
+                              src={imgUrl}
+                              alt={`Prévia ${idx + 1}`}
+                              style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                            />
+                            {matchedColor && (
+                              <span
+                                style={{
+                                  position: 'absolute',
+                                  bottom: 0,
+                                  left: 0,
+                                  right: 0,
+                                  background: 'rgba(0,0,0,0.78)',
+                                  color: '#ffffff',
+                                  fontSize: '0.64rem',
+                                  padding: '2px 4px',
+                                  textAlign: 'center',
+                                  whiteSpace: 'nowrap',
+                                  overflow: 'hidden',
+                                  textOverflow: 'ellipsis',
+                                  fontWeight: 700
+                                }}
+                                title={`Foto vinculada à cor: ${matchedColor}`}
+                              >
+                                {idx + 1}. {matchedColor}
+                              </span>
+                            )}
+                            <button
+                              type="button"
+                              onClick={() => setFormData((prev) => ({ ...prev, images: prev.images.filter((_, i) => i !== idx) }))}
+                              title="Remover foto"
+                              style={{
+                                position: 'absolute',
+                                top: '4px',
+                                right: '4px',
+                                background: 'rgba(0,0,0,0.7)',
+                                color: '#ffffff',
+                                borderRadius: '50%',
+                                width: '22px',
+                                height: '22px',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center'
+                              }}
+                            >
+                              <X size={13} />
+                            </button>
+                          </div>
+                        );
+                      })}
                       
-                      {formData.images.length < 3 && (
-                        <div style={{ width: '90px', height: '90px', borderRadius: '10px', border: '2px dashed var(--border-color)', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', color: 'var(--color-taupe)', background: '#ffffff', flexShrink: 0 }}>
+                      {formData.images.length < MAX_IMAGES && (
+                        <div
+                          onClick={() => fileInputRef.current?.click()}
+                          style={{
+                            width: '90px',
+                            height: '90px',
+                            borderRadius: '10px',
+                            border: '2px dashed var(--border-color)',
+                            display: 'flex',
+                            flexDirection: 'column',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            color: 'var(--color-taupe)',
+                            background: '#ffffff',
+                            flexShrink: 0,
+                            cursor: 'pointer'
+                          }}
+                        >
                           <Camera size={24} />
                           <span style={{ fontSize: '0.68rem', marginTop: '4px', textAlign: 'center' }}>
                             {formData.images.length === 0 ? 'Sem foto' : `Foto ${formData.images.length + 1}`}
@@ -862,7 +974,7 @@ export const EstoqueManager = () => {
                     </div>
 
                     <div style={{ flex: 1, minWidth: '200px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                      {formData.images.length < 3 ? (
+                      {formData.images.length < MAX_IMAGES ? (
                         <button
                           type="button"
                           className="btn btn-primary btn-sm"
@@ -871,17 +983,17 @@ export const EstoqueManager = () => {
                           style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', width: 'fit-content' }}
                         >
                           <Upload size={15} />
-                          <span>{isUploadingImage ? 'Carregando foto...' : '📷 Adicionar Foto (Até 3)'}</span>
+                          <span>{isUploadingImage ? 'Carregando foto...' : `📷 Adicionar Fotos (${formData.images.length}/${MAX_IMAGES})`}</span>
                         </button>
                       ) : (
-                        <span style={{ fontSize: '0.8rem', color: '#b45309', fontWeight: 600 }}>Limite de 3 fotos atingido.</span>
+                        <span style={{ fontSize: '0.8rem', color: '#b45309', fontWeight: 600 }}>Limite de {MAX_IMAGES} fotos atingido.</span>
                       )}
 
                       <span style={{ fontSize: '0.74rem', color: 'var(--color-text-muted)' }}>
-                        Selecione da galeria ou tire uma foto na hora com a câmera.
+                        Selecione várias fotos da galeria ou câmera (cada foto se vincula à cor correspondente na ordem).
                       </span>
 
-                      {formData.images.length < 3 && (
+                      {formData.images.length < MAX_IMAGES && (
                         <details style={{ marginTop: '4px' }}>
                           <summary style={{ fontSize: '0.75rem', color: 'var(--color-taupe)', cursor: 'pointer', fontWeight: 600 }}>
                             Ou colar link de imagem da internet (URL)
@@ -900,7 +1012,7 @@ export const EstoqueManager = () => {
                               onClick={() => {
                                 const el = document.getElementById('url-input');
                                 if (el.value) {
-                                  setFormData(prev => ({ ...prev, images: [...prev.images, el.value].slice(0, 3) }));
+                                  setFormData(prev => ({ ...prev, images: [...prev.images, el.value].slice(0, MAX_IMAGES) }));
                                   el.value = '';
                                 }
                               }}

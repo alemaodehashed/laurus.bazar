@@ -22,12 +22,25 @@ export const ProductModal = ({ product, onClose }) => {
     const cParts = displayDesc.split('||COLORS||');
     displayDesc = cParts[0].trim();
     try {
-      const parsedColors = JSON.parse(cParts[1].split('||FRAG||')[0]);
+      const parsedColors = JSON.parse(cParts[1].split('||FRAG||')[0].split('||PROMO||')[0]);
       availableColors = Array.isArray(parsedColors) ? parsedColors : [];
     } catch (e) {}
   } else if (product.colors && Array.isArray(product.colors)) {
     availableColors = product.colors;
   }
+
+  let originalPrice = product?.originalPrice || null;
+  if (displayDesc.includes('||PROMO||')) {
+    const pParts = displayDesc.split('||PROMO||');
+    displayDesc = pParts[0].trim();
+    try {
+      const pData = JSON.parse(pParts[1].split('||FRAG||')[0].split('||COLORS||')[0]);
+      if (!originalPrice) originalPrice = Number(pData.originalPrice) || null;
+    } catch (e) {}
+  }
+  const hasPromo = Boolean(originalPrice && originalPrice > product.price);
+  const discountPct = hasPromo ? Math.round(((originalPrice - product.price) / originalPrice) * 100) : 0;
+  const discountDiff = hasPromo ? originalPrice - product.price : 0;
 
   const [selectedColor, setSelectedColor] = useState(
     availableColors.length > 0 ? availableColors[0] : null
@@ -126,7 +139,10 @@ export const ProductModal = ({ product, onClose }) => {
   };
 
   const colorNotice = selectedColor ? ` • Cor: ${selectedColor}` : '';
-  const whatsappMessage = `Olá! Gostei do produto: *${product.name}* (Tamanho: ${selectedSize}${colorNotice}) por *${formatCurrency(product.price)}*. Ainda está disponível?`;
+  const promoNotice = hasPromo
+    ? ` (De ~${formatCurrency(originalPrice)}~ por *${formatCurrency(product.price)}* - ${discountPct}% OFF)`
+    : ` por *${formatCurrency(product.price)}*`;
+  const whatsappMessage = `Olá! Gostei do produto: *${product.name}* (Tamanho: ${selectedSize}${colorNotice})${promoNotice}. Ainda está disponível?`;
   const whatsappUrl = generateWhatsAppLink(settings.whatsapp, whatsappMessage);
 
   return (
@@ -376,10 +392,31 @@ export const ProductModal = ({ product, onClose }) => {
           {/* Pricing & Installment details */}
           <div style={{ background: 'var(--bg-subtle)', padding: '16px', borderRadius: '12px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <div>
-              <div style={{ fontSize: '0.85rem', color: 'var(--color-secondary-muted)' }}>Preço à vista:</div>
-              <div style={{ fontSize: '1.7rem', fontWeight: 800, color: 'var(--color-secondary)', fontFamily: 'var(--font-heading)' }}>
-                {formatCurrency(product.price)}
-              </div>
+              {hasPromo ? (
+                <>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '2px' }}>
+                    <span style={{ fontSize: '0.9rem', color: '#94a3b8', textDecoration: 'line-through' }}>
+                      De {formatCurrency(originalPrice)}
+                    </span>
+                    <span style={{ background: '#ef4444', color: '#ffffff', fontSize: '0.72rem', fontWeight: 800, padding: '2px 8px', borderRadius: '999px' }}>
+                      -{discountPct}% OFF
+                    </span>
+                  </div>
+                  <div style={{ fontSize: '1.7rem', fontWeight: 800, color: 'var(--color-primary)', fontFamily: 'var(--font-heading)' }}>
+                    Por {formatCurrency(product.price)}
+                  </div>
+                  <div style={{ fontSize: '0.76rem', color: '#16a34a', fontWeight: 700, marginTop: '2px' }}>
+                    Economia de {formatCurrency(discountDiff)}
+                  </div>
+                </>
+              ) : (
+                <>
+                  <div style={{ fontSize: '0.85rem', color: 'var(--color-secondary-muted)' }}>Preço à vista:</div>
+                  <div style={{ fontSize: '1.7rem', fontWeight: 800, color: 'var(--color-secondary)', fontFamily: 'var(--font-heading)' }}>
+                    {formatCurrency(product.price)}
+                  </div>
+                </>
+              )}
             </div>
             <div style={{ textAlign: 'right' }}>
               <div className="badge badge-warning" style={{ marginBottom: '4px' }}>Facilidade</div>

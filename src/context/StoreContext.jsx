@@ -84,19 +84,25 @@ export const StoreProvider = ({ children }) => {
   }, [data]);
 
   // Map an app product to a Supabase row
-  const toProductRow = (p) => ({
-    id: p.id,
-    name: p.name || 'Sem nome',
-    category: p.category || 'Bazar',
-    cost_price: Number(p.costPrice) || 0,
-    price: Number(p.price) || 0,
-    stock: Number(p.stock) || 0,
-    sizes: p.sizes || [],
-    image: p.image || '',
-    description: p.description || '',
-    featured: Boolean(p.featured),
-    active: p.active !== false,
-  });
+  const toProductRow = (p) => {
+    let finalDesc = p.description || '';
+    if (p.originalPrice && !finalDesc.includes('||PROMO||')) {
+      finalDesc += '\n||PROMO||' + JSON.stringify({ originalPrice: Number(p.originalPrice) });
+    }
+    return {
+      id: p.id,
+      name: p.name || 'Sem nome',
+      category: p.category || 'Bazar',
+      cost_price: Number(p.costPrice) || 0,
+      price: Number(p.price) || 0,
+      stock: Number(p.stock) || 0,
+      sizes: p.sizes || [],
+      image: p.image || '',
+      description: finalDesc,
+      featured: Boolean(p.featured),
+      active: p.active !== false,
+    };
+  };
 
   const toFinanceRow = (f) => ({
     id: f.id,
@@ -181,17 +187,26 @@ export const StoreProvider = ({ children }) => {
       const newProducts = (prodRes.data && prodRes.data.length > 0)
         ? prodRes.data.map((p) => {
             let colors = [];
+            let originalPrice = null;
             const desc = p.description || '';
             if (desc.includes('||COLORS||')) {
               try {
                 const parts = desc.split('||COLORS||');
-                colors = JSON.parse(parts[1].split('||FRAG||')[0]);
+                colors = JSON.parse(parts[1].split('||FRAG||')[0].split('||PROMO||')[0]);
+              } catch (e) {}
+            }
+            if (desc.includes('||PROMO||')) {
+              try {
+                const pParts = desc.split('||PROMO||');
+                const promoObj = JSON.parse(pParts[1].split('||FRAG||')[0].split('||COLORS||')[0]);
+                originalPrice = Number(promoObj.originalPrice) || null;
               } catch (e) {}
             }
             return {
               ...p,
               costPrice: Number(p.cost_price) || 0,
               price: Number(p.price) || 0,
+              originalPrice: originalPrice,
               stock: Number(p.stock) || 0,
               colors: Array.isArray(colors) ? colors : [],
             };

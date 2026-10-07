@@ -34,6 +34,20 @@ export const ProductCard = ({ product, onOpenModal }) => {
     displayDesc = displayDesc.split('||FRAG||')[0].trim();
   }
 
+  if (displayDesc.includes('||PROMO||')) {
+    displayDesc = displayDesc.split('||PROMO||')[0].trim();
+  }
+
+  let originalPrice = product.originalPrice || null;
+  if (!originalPrice && product.description?.includes('||PROMO||')) {
+    try {
+      const promoData = JSON.parse(product.description.split('||PROMO||')[1].split('\n')[0].split('||FRAG||')[0].split('||COLORS||')[0]);
+      originalPrice = Number(promoData.originalPrice) || null;
+    } catch (e) {}
+  }
+  const hasPromo = Boolean(originalPrice && originalPrice > product.price);
+  const discountPct = hasPromo ? Math.round(((originalPrice - product.price) / originalPrice) * 100) : 0;
+
   const isPerfume = product.category === 'Perfumes' || product.category?.toLowerCase().includes('perfume');
   let perfumeGender = null;
   if (isPerfume) {
@@ -67,6 +81,11 @@ export const ProductCard = ({ product, onOpenModal }) => {
           {product.featured && (
             <span className="product-badge-destaque">
               ⭐ Destaque
+            </span>
+          )}
+          {hasPromo && (
+            <span className="product-badge-promo">
+              🔥 -{discountPct}% OFF
             </span>
           )}
           {perfumeGender && (
@@ -124,7 +143,14 @@ export const ProductCard = ({ product, onOpenModal }) => {
 
         <div className="product-footer">
           <div className="price-box">
-            <span className="price-main">{formatCurrency(product.price)}</span>
+            {hasPromo ? (
+              <div className="price-promo-container">
+                <span className="price-de">De {formatCurrency(originalPrice)}</span>
+                <span className="price-main price-por">Por {formatCurrency(product.price)}</span>
+              </div>
+            ) : (
+              <span className="price-main">{formatCurrency(product.price)}</span>
+            )}
             <span className="price-installment">
               ou 2x de {formatCurrency(halfPrice)}
             </span>
