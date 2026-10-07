@@ -179,12 +179,23 @@ export const StoreProvider = ({ children }) => {
       }
 
       const newProducts = (prodRes.data && prodRes.data.length > 0)
-        ? prodRes.data.map((p) => ({
-            ...p,
-            costPrice: Number(p.cost_price) || 0,
-            price: Number(p.price) || 0,
-            stock: Number(p.stock) || 0,
-          }))
+        ? prodRes.data.map((p) => {
+            let colors = [];
+            const desc = p.description || '';
+            if (desc.includes('||COLORS||')) {
+              try {
+                const parts = desc.split('||COLORS||');
+                colors = JSON.parse(parts[1].split('||FRAG||')[0]);
+              } catch (e) {}
+            }
+            return {
+              ...p,
+              costPrice: Number(p.cost_price) || 0,
+              price: Number(p.price) || 0,
+              stock: Number(p.stock) || 0,
+              colors: Array.isArray(colors) ? colors : [],
+            };
+          })
         : (isCatalogInitialized ? [] : null);
 
       const newCustomers = custRes.data || [];
@@ -440,8 +451,9 @@ export const StoreProvider = ({ children }) => {
   };
 
   // Cart operations
-  const addToCart = (product, selectedSize = null) => {
+  const addToCart = (product, selectedSize = null, selectedColor = null) => {
     const size = selectedSize || (product.sizes && product.sizes.length > 0 ? product.sizes[0] : 'Único');
+    const color = selectedColor || null;
     
     if (product.stock <= 0) {
       showToast('Este produto está sem estoque!', 'error');
@@ -450,7 +462,7 @@ export const StoreProvider = ({ children }) => {
 
     setCart((prev) => {
       const existingIndex = prev.findIndex(
-        (item) => item.product.id === product.id && item.selectedSize === size
+        (item) => item.product.id === product.id && item.selectedSize === size && item.selectedColor === color
       );
 
       if (existingIndex > -1) {
@@ -463,7 +475,7 @@ export const StoreProvider = ({ children }) => {
         updated[existingIndex].quantity = newQty;
         return updated;
       } else {
-        return [...prev, { product, quantity: 1, selectedSize: size }];
+        return [...prev, { product, quantity: 1, selectedSize: size, selectedColor: color }];
       }
     });
 
@@ -471,14 +483,18 @@ export const StoreProvider = ({ children }) => {
     setIsCartOpen(true);
   };
 
-  const updateCartQuantity = (productId, selectedSize, quantity) => {
+  const updateCartQuantity = (productId, selectedSize, quantity, selectedColor = null) => {
     if (quantity <= 0) {
-      removeFromCart(productId, selectedSize);
+      removeFromCart(productId, selectedSize, selectedColor);
       return;
     }
     setCart((prev) =>
       prev.map((item) => {
-        if (item.product.id === productId && item.selectedSize === selectedSize) {
+        if (
+          item.product.id === productId &&
+          item.selectedSize === selectedSize &&
+          (item.selectedColor || null) === (selectedColor || null)
+        ) {
           if (quantity > item.product.stock) {
             showToast(`Estoque disponível: apenas ${item.product.stock} un`, 'warning');
             return item;
@@ -490,10 +506,15 @@ export const StoreProvider = ({ children }) => {
     );
   };
 
-  const removeFromCart = (productId, selectedSize) => {
+  const removeFromCart = (productId, selectedSize, selectedColor = null) => {
     setCart((prev) =>
       prev.filter(
-        (item) => !(item.product.id === productId && item.selectedSize === selectedSize)
+        (item) =>
+          !(
+            item.product.id === productId &&
+            item.selectedSize === selectedSize &&
+            (item.selectedColor || null) === (selectedColor || null)
+          )
       )
     );
   };

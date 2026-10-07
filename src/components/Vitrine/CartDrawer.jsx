@@ -17,7 +17,10 @@ export const CartDrawer = () => {
 
     cart.forEach((item, index) => {
       msg += `${index + 1}. *${item.product.name}*\n`;
-      msg += `   • Variação: ${item.selectedSize}\n`;
+      msg += `   • Tamanho/Variação: ${item.selectedSize}\n`;
+      if (item.selectedColor) {
+        msg += `   • Cor: ${item.selectedColor}\n`;
+      }
       msg += `   • Qtd: ${item.quantity}x de ${formatCurrency(item.product.price)} = ${formatCurrency(item.product.price * item.quantity)}\n\n`;
     });
 
@@ -65,7 +68,7 @@ export const CartDrawer = () => {
           <>
             <div className="cart-items-list">
               {cart.map((item, idx) => (
-                <div key={`${item.product.id}_${item.selectedSize}_${idx}`} className="cart-item">
+                <div key={`${item.product.id}_${item.selectedSize}_${item.selectedColor || ''}_${idx}`} className="cart-item">
                   <img
                     src={item.product.image ? item.product.image.split('|||')[0] : 'https://images.unsplash.com/photo-1441986300917-64674bd600d8?w=700&auto=format&fit=crop&q=80'}
                     alt={item.product.name}
@@ -74,14 +77,21 @@ export const CartDrawer = () => {
                   <div className="cart-item-info">
                     <div>
                       <div className="cart-item-title">{item.product.name}</div>
-                      <div className="cart-item-size">Variação: {item.selectedSize}</div>
+                      <div className="cart-item-size" style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginTop: '2px' }}>
+                        <span>Variação: <strong>{item.selectedSize}</strong></span>
+                        {item.selectedColor && (
+                          <span style={{ color: 'var(--color-primary)', fontWeight: 600 }}>
+                            • Cor: <strong>{item.selectedColor}</strong>
+                          </span>
+                        )}
+                      </div>
                     </div>
 
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                       <div className="cart-item-qty">
                         <button
                           className="qty-btn"
-                          onClick={() => updateCartQuantity(item.product.id, item.selectedSize, item.quantity - 1)}
+                          onClick={() => updateCartQuantity(item.product.id, item.selectedSize, item.quantity - 1, item.selectedColor)}
                         >
                           <Minus size={12} />
                         </button>
@@ -90,7 +100,7 @@ export const CartDrawer = () => {
                         </span>
                         <button
                           className="qty-btn"
-                          onClick={() => updateCartQuantity(item.product.id, item.selectedSize, item.quantity + 1)}
+                          onClick={() => updateCartQuantity(item.product.id, item.selectedSize, item.quantity + 1, item.selectedColor)}
                         >
                           <Plus size={12} />
                         </button>
@@ -101,7 +111,7 @@ export const CartDrawer = () => {
                           {formatCurrency(item.product.price * item.quantity)}
                         </span>
                         <button
-                          onClick={() => removeFromCart(item.product.id, item.selectedSize)}
+                          onClick={() => removeFromCart(item.product.id, item.selectedSize, item.selectedColor)}
                           style={{ color: '#94a3b8', padding: '4px', borderRadius: '4px' }}
                           title="Remover item"
                         >

@@ -16,6 +16,23 @@ export const ProductModal = ({ product, onClose }) => {
   if (!product) return null;
 
   let displayDesc = product.description || '';
+  let availableColors = [];
+
+  if (displayDesc.includes('||COLORS||')) {
+    const cParts = displayDesc.split('||COLORS||');
+    displayDesc = cParts[0].trim();
+    try {
+      const parsedColors = JSON.parse(cParts[1].split('||FRAG||')[0]);
+      availableColors = Array.isArray(parsedColors) ? parsedColors : [];
+    } catch (e) {}
+  } else if (product.colors && Array.isArray(product.colors)) {
+    availableColors = product.colors;
+  }
+
+  const [selectedColor, setSelectedColor] = useState(
+    availableColors.length > 0 ? availableColors[0] : null
+  );
+
   let customFrag = null;
   let customPerformance = null;
 
@@ -84,11 +101,12 @@ export const ProductModal = ({ product, onClose }) => {
   const isOutOfStock = product.stock <= 0;
 
   const handleAddToCart = () => {
-    addToCart(product, selectedSize);
+    addToCart(product, selectedSize, selectedColor);
     onClose();
   };
 
-  const whatsappMessage = `Olá! Gostei do produto: *${product.name}* (Variação/Tamanho: ${selectedSize}) por *${formatCurrency(product.price)}*. Ainda está disponível?`;
+  const colorNotice = selectedColor ? ` • Cor: ${selectedColor}` : '';
+  const whatsappMessage = `Olá! Gostei do produto: *${product.name}* (Tamanho: ${selectedSize}${colorNotice}) por *${formatCurrency(product.price)}*. Ainda está disponível?`;
   const whatsappUrl = generateWhatsAppLink(settings.whatsapp, whatsappMessage);
 
   return (
@@ -239,6 +257,57 @@ export const ProductModal = ({ product, onClose }) => {
             </div>
           )}
 
+          {/* Color selector */}
+          {availableColors && availableColors.length > 0 && (
+            <div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                <label style={{ fontWeight: 600, fontSize: '0.88rem' }}>
+                  🎨 Escolha a Cor:
+                </label>
+                {selectedColor && (
+                  <span style={{ fontSize: '0.82rem', fontWeight: 700, color: 'var(--color-primary)' }}>
+                    Cor: {selectedColor}
+                  </span>
+                )}
+              </div>
+              <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                {availableColors.map((colorName, idx) => {
+                  const isSelected = selectedColor === colorName;
+                  return (
+                    <button
+                      key={idx}
+                      type="button"
+                      onClick={() => {
+                        setSelectedColor(colorName);
+                        // Troca de foto se houver foto correspondente à posição da cor
+                        if (images[idx]) {
+                          setActiveImage(images[idx]);
+                        }
+                      }}
+                      style={{
+                        padding: '8px 16px',
+                        borderRadius: '8px',
+                        border: `2px solid ${isSelected ? 'var(--color-primary)' : 'var(--border-color)'}`,
+                        background: isSelected ? 'var(--color-primary-light)' : '#ffffff',
+                        fontWeight: 700,
+                        color: isSelected ? 'var(--color-primary-hover)' : 'var(--color-secondary)',
+                        fontSize: '0.88rem',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '6px',
+                        cursor: 'pointer',
+                        transition: 'all 0.15s ease'
+                      }}
+                    >
+                      {isSelected && <Check size={14} />}
+                      {colorName}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
           {/* Size / Variation selector */}
           {product.sizes && product.sizes.length > 0 && (
             <div>
@@ -311,7 +380,7 @@ export const ProductModal = ({ product, onClose }) => {
             <a
               href={generateWhatsAppLink(
                 settings.whatsapp,
-                `Olá! Gostaria de encomendar o produto: *${product.name}* (Variação: ${selectedSize}) no valor de ${formatCurrency(product.price)}. Como funciona para fazer o pedido sob encomenda?`
+                `Olá! Gostaria de encomendar o produto: *${product.name}* (Tamanho: ${selectedSize}${colorNotice}) no valor de ${formatCurrency(product.price)}. Como funciona para fazer o pedido sob encomenda?`
               )}
               target="_blank"
               rel="noopener noreferrer"

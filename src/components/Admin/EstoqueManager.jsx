@@ -61,6 +61,7 @@ export const EstoqueManager = () => {
     specialPrice: '',
     stock: 1,
     sizes: 'P, M, G',
+    colors: '',
     images: [],
     description: '',
     customAccords: '',
@@ -187,6 +188,18 @@ export const EstoqueManager = () => {
     let customSeasons = { inverno: 20, primavera: 20, verao: 20, outono: 20, dia: 20, noite: 20 };
     let customPerformance = emptyPerformance();
 
+    let colorsStr = '';
+    if (baseDesc.includes('||COLORS||')) {
+      const cParts = baseDesc.split('||COLORS||');
+      baseDesc = cParts[0].trim();
+      try {
+        const cData = JSON.parse(cParts[1].split('||FRAG||')[0]);
+        colorsStr = Array.isArray(cData) ? cData.join(', ') : '';
+      } catch (e) {}
+    } else if (product.colors && Array.isArray(product.colors)) {
+      colorsStr = product.colors.join(', ');
+    }
+
     if (baseDesc.includes('||FRAG||')) {
       const parts = baseDesc.split('||FRAG||');
       baseDesc = parts[0].trim();
@@ -211,6 +224,7 @@ export const EstoqueManager = () => {
       specialPrice: product.specialPrice || '',
       stock: product.stock,
       sizes: product.sizes ? product.sizes.join(', ') : '',
+      colors: colorsStr,
       images: product.image ? product.image.split('|||').filter(Boolean) : [],
       description: baseDesc,
       customAccords,
@@ -229,12 +243,21 @@ export const EstoqueManager = () => {
       return;
     }
 
-    const sizesArray = formData.sizes
+    const sizesArray = (formData.sizes || '')
       .split(',')
       .map((s) => s.trim())
       .filter(Boolean);
 
-    let finalDesc = formData.description;
+    const colorsArray = (formData.colors || '')
+      .split(',')
+      .map((c) => c.trim())
+      .filter(Boolean);
+
+    let finalDesc = formData.description || '';
+    if (colorsArray.length > 0) {
+      finalDesc += '\n||COLORS||' + JSON.stringify(colorsArray);
+    }
+
     const hasAccords = formData.customAccords && formData.customAccords.trim() !== '';
     const hasPerf = hasPerformanceData(formData.customPerformance);
     if (formData.category === 'Perfumes' && (hasAccords || hasPerf)) {
@@ -250,6 +273,7 @@ export const EstoqueManager = () => {
       ...formData,
       image: formData.images ? formData.images.filter(Boolean).join('|||') : '',
       sizes: sizesArray.length > 0 ? sizesArray : ['Único'],
+      colors: colorsArray,
       costPrice: parseFloat(formData.costPrice) || 0,
       price: parseFloat(formData.price) || 0,
       specialPrice: formData.specialPrice ? parseFloat(formData.specialPrice) : null,
@@ -559,6 +583,11 @@ export const EstoqueManager = () => {
                               {s}
                             </span>
                           ))}
+                          {p.colors && p.colors.length > 0 && (
+                            <div style={{ width: '100%', marginTop: '3px', fontSize: '0.68rem', color: '#64748b' }}>
+                              🎨 {p.colors.join(', ')}
+                            </div>
+                          )}
                         </div>
                       </td>
 
@@ -716,15 +745,28 @@ export const EstoqueManager = () => {
                   </div>
                 )}
 
-                <div className="form-group">
-                  <label className="form-label">Variações / Tamanhos (separados por vírgula):</label>
-                  <input
-                    type="text"
-                    className="form-control"
-                    placeholder="Ex: P, M, G, GG ou 50ml, 100ml ou Único"
-                    value={formData.sizes}
-                    onChange={(e) => setFormData({ ...formData, sizes: e.target.value })}
-                  />
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px' }}>
+                  <div className="form-group">
+                    <label className="form-label">Tamanhos / Medidas (separados por vírgula):</label>
+                    <input
+                      type="text"
+                      className="form-control"
+                      placeholder="Ex: P, M, G, GG ou 100ml ou Único"
+                      value={formData.sizes}
+                      onChange={(e) => setFormData({ ...formData, sizes: e.target.value })}
+                    />
+                  </div>
+
+                  <div className="form-group">
+                    <label className="form-label">🎨 Cores Disponíveis (separadas por vírgula):</label>
+                    <input
+                      type="text"
+                      className="form-control"
+                      placeholder="Ex: Azul Marinho, Preto, Bege"
+                      value={formData.colors || ''}
+                      onChange={(e) => setFormData({ ...formData, colors: e.target.value })}
+                    />
+                  </div>
                 </div>
 
                 {/* Photo Upload & Preview Section */}

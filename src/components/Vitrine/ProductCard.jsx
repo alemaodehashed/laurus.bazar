@@ -16,6 +16,24 @@ export const ProductCard = ({ product, onOpenModal }) => {
     window.open(url, '_blank');
   };
 
+  let displayDesc = product.description || '';
+  let availableColors = [];
+
+  if (displayDesc.includes('||COLORS||')) {
+    const cParts = displayDesc.split('||COLORS||');
+    displayDesc = cParts[0].trim();
+    try {
+      const parsedColors = JSON.parse(cParts[1].split('||FRAG||')[0]);
+      availableColors = Array.isArray(parsedColors) ? parsedColors : [];
+    } catch (e) {}
+  } else if (product.colors && Array.isArray(product.colors)) {
+    availableColors = product.colors;
+  }
+
+  if (displayDesc.includes('||FRAG||')) {
+    displayDesc = displayDesc.split('||FRAG||')[0].trim();
+  }
+
   return (
     <div className="product-card">
       <div className="product-image-container" onClick={() => onOpenModal(product)}>
@@ -36,7 +54,7 @@ export const ProductCard = ({ product, onOpenModal }) => {
         <h3 className="product-name" onClick={() => onOpenModal(product)}>
           {product.name}
         </h3>
-        <p className="product-desc">{product.description}</p>
+        <p className="product-desc">{displayDesc}</p>
 
         {product.sizes && product.sizes.length > 0 && (
           <div className="product-sizes-bar">
@@ -45,6 +63,33 @@ export const ProductCard = ({ product, onOpenModal }) => {
                 {s}
               </span>
             ))}
+          </div>
+        )}
+
+        {availableColors && availableColors.length > 0 && (
+          <div style={{ display: 'flex', alignItems: 'center', gap: '4px', flexWrap: 'wrap', marginTop: '6px', marginBottom: '4px' }}>
+            <span style={{ fontSize: '0.72rem', color: '#64748b', fontWeight: 600 }}>Cores:</span>
+            {availableColors.slice(0, 3).map((c, idx) => (
+              <span
+                key={idx}
+                style={{
+                  fontSize: '0.7rem',
+                  padding: '1px 6px',
+                  borderRadius: '999px',
+                  background: '#f1f5f9',
+                  border: '1px solid #e2e8f0',
+                  color: '#334155',
+                  fontWeight: 500
+                }}
+              >
+                {c}
+              </span>
+            ))}
+            {availableColors.length > 3 && (
+              <span style={{ fontSize: '0.7rem', color: '#94a3b8', fontWeight: 600 }}>
+                +{availableColors.length - 3}
+              </span>
+            )}
           </div>
         )}
 
@@ -87,7 +132,7 @@ export const ProductCard = ({ product, onOpenModal }) => {
             <button
               type="button"
               className="btn btn-primary btn-sm"
-              onClick={() => (product.sizes?.length > 1 ? onOpenModal(product) : addToCart(product))}
+              onClick={() => ((product.sizes?.length > 1 || availableColors.length > 0) ? onOpenModal(product) : addToCart(product))}
               title="Adicionar à sacola"
             >
               <ShoppingBag size={16} />
