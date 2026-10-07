@@ -1,287 +1,1376 @@
 export const initialData = {
-  settings: {
-    storeName: 'Laurus',
-    storeSubtitle: 'Perfumaria Importada, Roupas e Variedades',
-    whatsapp: '5511999998888',
-    adminPassword: '1234',
-    acceptInstallments: true,
-    maxInstallments: 3,
-    welcomeMessage: 'Olá! Vim pela vitrine online e gostaria de saber mais sobre este perfume:',
+  "settings": {
+    "storeName": "Laurus",
+    "storeSubtitle": "Perfumaria Importada, Roupas e Variedades",
+    "whatsapp": "5511999998888",
+    "adminPassword": "1234",
+    "acceptInstallments": true,
+    "maxInstallments": 3,
+    "welcomeMessage": "Olá! Vim pela vitrine online e gostaria de saber mais sobre este perfume:"
   },
-  products: [],
-  customers: [
-    { id: 'c_1', name: 'CESAR', phone: '', address: '', notes: 'Cliente Laurus' },
-    { id: 'c_2', name: 'JÁU', phone: '', address: '', notes: 'Cliente Laurus' },
-    { id: 'c_3', name: 'VICTOR EB', phone: '', address: '', notes: 'Cliente Laurus' },
-    { id: 'c_4', name: 'LARA', phone: '', address: '', notes: 'Cliente Laurus' },
-    { id: 'c_5', name: 'DUDU', phone: '', address: '', notes: 'Cliente Laurus' },
-    { id: 'c_6', name: 'ISAQUE', phone: '', address: '', notes: 'Cliente Laurus' },
-    { id: 'c_7', name: 'CB AURELIO', phone: '', address: '', notes: 'Cliente Laurus' },
-    { id: 'c_8', name: 'IGOR', phone: '', address: '', notes: 'Cliente Laurus' },
-    { id: 'c_9', name: 'CB MACHADO', phone: '', address: '', notes: 'Paga todo Dia 01' },
-    { id: 'c_10', name: 'CB R. BARBOZA', phone: '', address: '', notes: 'Paga todo Dia 01' },
-    { id: 'c_11', name: 'PAULINHO KOSTTA', phone: '', address: '', notes: 'Cliente Laurus' },
-    { id: 'c_12', name: 'TEN HEISHEN', phone: '', address: '', notes: 'Cliente Laurus' },
-    { id: 'c_13', name: 'CB FERNANDES', phone: '', address: '', notes: 'Cliente Laurus' },
-    { id: 'c_14', name: 'PAITZ', phone: '', address: '', notes: 'Cliente Laurus' },
-    { id: 'c_15', name: 'CB LEANDRO', phone: '', address: '', notes: 'Cliente Laurus' },
-    { id: 'c_16', name: 'CB LEAL', phone: '', address: '', notes: 'Paga todo Dia 01' },
-    { id: 'c_17', name: 'VITOR SANTOS', phone: '', address: '', notes: 'Cliente Laurus' },
-    { id: 'c_18', name: 'ANA JULIA', phone: '', address: '', notes: 'Cliente Laurus' },
-    { id: 'c_19', name: 'LACOMSKI', phone: '', address: '', notes: 'Cliente Laurus' },
-    { id: 'c_20', name: 'NARIZ', phone: '', address: '', notes: 'Cliente Laurus' },
-    { id: 'c_21', name: 'CESAR CSB', phone: '', address: '', notes: 'Cliente Laurus' },
-    { id: 'c_22', name: 'BRUNAO CSB', phone: '', address: '', notes: 'Cliente Laurus' },
-    { id: 'c_23', name: 'GABE CSB', phone: '', address: '', notes: 'Cliente Laurus' },
-    { id: 'c_24', name: 'asafeh EB', phone: '', address: '', notes: 'Cliente Laurus' },
-    { id: 'c_25', name: 'TIO ZINHO', phone: '', address: '', notes: 'Cliente Laurus' },
-    { id: 'c_26', name: 'LUANA MONTEIRO', phone: '', address: '', notes: 'Cliente Laurus' },
-    { id: 'c_27', name: 'CARLÃO CSB', phone: '', address: '', notes: 'Cliente Laurus' }
-  ],
-  sales: [
+  "products": [
     {
-      id: 'sale_real_1',
-      date: '2026-08-26',
-      customerId: 'c_24',
-      customerName: 'asafeh EB',
-      customerPhone: '',
-      items: [{ productId: 'prod_1', name: 'Perfume Importado', quantity: 1, unitPrice: 700.0, size: 'Original' }],
-      total: 700.0,
-      paymentMethod: 'boca_2x',
-      paidAtSale: 350.0,
-      remainingBalance: 350.0,
-      status: 'parcial',
-      installments: [
-        { number: 1, amount: 350.0, dueDate: '2026-08-26', paid: true, paidDate: '2026-08-26' },
-        { number: 2, amount: 350.0, dueDate: '2026-09-26', paid: false, paidDate: null }
-      ]
-    },
-    {
-      id: 'sale_real_2',
-      date: '2026-08-25',
-      customerId: 'c_22',
-      customerName: 'BRUNAO CSB',
-      customerPhone: '',
-      items: [{ productId: 'prod_6', name: 'ASAD ELIXIR', quantity: 1, unitPrice: 290.0, size: 'Masc - Lattafa' }],
-      total: 290.0,
-      paymentMethod: 'boca_2x',
-      paidAtSale: 0,
-      remainingBalance: 290.0,
-      status: 'pendente',
-      installments: [
-        { number: 1, amount: 145.0, dueDate: '2026-09-15', paid: false, paidDate: null },
-        { number: 2, amount: 145.0, dueDate: '2026-10-15', paid: false, paidDate: null }
-      ]
-    },
-    {
-      id: 'sale_real_3',
-      date: '2026-07-30',
-      customerId: 'c_16',
-      customerName: 'CB LEAL',
-      customerPhone: '',
-      items: [{ productId: 'prod_16', name: 'FAKHAR BLACK', quantity: 1, unitPrice: 180.0, size: 'Masc - Lattafa' }],
-      total: 180.0,
-      paymentMethod: 'boca_2x',
-      paidAtSale: 120.0,
-      remainingBalance: 60.0,
-      status: 'parcial',
-      installments: [
-        { number: 1, amount: 60.0, dueDate: '2026-08-01', paid: true, paidDate: '2026-08-01' },
-        { number: 2, amount: 60.0, dueDate: '2026-09-01', paid: true, paidDate: '2026-09-01' },
-        { number: 3, amount: 60.0, dueDate: '2026-10-01', paid: false, paidDate: null }
-      ]
-    },
-    {
-      id: 'sale_real_4',
-      date: '2026-08-04',
-      customerId: 'c_9',
-      customerName: 'CB MACHADO',
-      customerPhone: '',
-      items: [
-        { productId: 'prod_7', name: 'ASAD TRADICIONAL + YARA + CREME', quantity: 1, unitPrice: 570.0, size: 'Combo' }
+      "id": "prod_1",
+      "name": "AL NOBLE WAZEER",
+      "category": "Perfumes",
+      "costPrice": 120,
+      "price": 219,
+      "stock": 1,
+      "sizes": [
+        "Unisex - Lattafa"
       ],
-      total: 570.0,
-      paymentMethod: 'boca_2x',
-      paidAtSale: 190.0,
-      remainingBalance: 380.0,
-      status: 'parcial',
-      installments: [
-        { number: 1, amount: 190.0, dueDate: '2026-08-04', paid: true, paidDate: '2026-08-04' },
-        { number: 2, amount: 190.0, dueDate: '2026-09-01', paid: false, paidDate: null },
-        { number: 3, amount: 190.0, dueDate: '2026-10-01', paid: false, paidDate: null }
+      "image": "https://images.unsplash.com/photo-1592945403244-b3fbafd7f539?w=700&auto=format&fit=crop&q=80",
+      "description": "Marca: Lattafa • Gênero: Unisex • Fragrância sofisticada oriental.",
+      "featured": true,
+      "active": true
+    },
+    {
+      "id": "prod_2",
+      "name": "AMEER AL ARAB BLACK",
+      "category": "Perfumes",
+      "costPrice": 84,
+      "price": 169,
+      "stock": 1,
+      "sizes": [
+        "Masc - Asdaaf"
+      ],
+      "image": "https://images.unsplash.com/photo-1523293182086-7651a899d37f?w=700&auto=format&fit=crop&q=80",
+      "description": "Marca: Asdaaf • Gênero: Masculino • Amostra disponível: Sim.",
+      "featured": true,
+      "active": true
+    },
+    {
+      "id": "prod_3",
+      "name": "AMEERAT AL ARAB",
+      "category": "Perfumes",
+      "costPrice": 96,
+      "price": 179,
+      "stock": 1,
+      "sizes": [
+        "Fem - Asdaaf"
+      ],
+      "image": "https://images.unsplash.com/photo-1588405748880-12d1d2a59f75?w=700&auto=format&fit=crop&q=80",
+      "description": "Marca: Asdaaf • Gênero: Feminino • Doce floral árabe marcante.",
+      "featured": true,
+      "active": true
+    },
+    {
+      "id": "prod_4",
+      "name": "AMEERAT PRIVE ROSE",
+      "category": "Perfumes",
+      "costPrice": 108,
+      "price": 209,
+      "stock": 1,
+      "sizes": [
+        "Fem - Asdaaf"
+      ],
+      "image": "https://images.unsplash.com/photo-1594035910387-fea47794261f?w=700&auto=format&fit=crop&q=80",
+      "description": "Marca: Asdaaf • Gênero: Feminino • Rosas refinadas com toque almiscarado.",
+      "featured": false,
+      "active": true
+    },
+    {
+      "id": "prod_5",
+      "name": "ASAD BOURBON",
+      "category": "Perfumes",
+      "costPrice": 180,
+      "price": 299,
+      "stock": 0,
+      "sizes": [
+        "Masc - Lattafa"
+      ],
+      "image": "https://images.unsplash.com/photo-1547887537-6158d64c35b3?w=700&auto=format&fit=crop&q=80",
+      "description": "Marca: Lattafa • Gênero: Masculino • Notas quentes de baunilha bourbon e especiarias.",
+      "featured": true,
+      "active": true
+    },
+    {
+      "id": "prod_6",
+      "name": "ASAD ELIXIR",
+      "category": "Perfumes",
+      "costPrice": 168,
+      "price": 299,
+      "stock": 0,
+      "sizes": [
+        "Masc - Lattafa"
+      ],
+      "image": "https://images.unsplash.com/photo-1523293182086-7651a899d37f?w=700&auto=format&fit=crop&q=80",
+      "description": "Marca: Lattafa • Gênero: Masculino • Versão elixir ultra intensa e duradoura.",
+      "featured": true,
+      "active": true
+    },
+    {
+      "id": "prod_7",
+      "name": "ASAD TRADICIONAL",
+      "category": "Perfumes",
+      "costPrice": 144,
+      "price": 260,
+      "stock": 1,
+      "sizes": [
+        "Masc - Lattafa"
+      ],
+      "image": "https://images.unsplash.com/photo-1592945403244-b3fbafd7f539?w=700&auto=format&fit=crop&q=80",
+      "description": "Marca: Lattafa • Gênero: Masculino • Campeão de elogios, projeção excelente.",
+      "featured": true,
+      "active": true
+    },
+    {
+      "id": "prod_8",
+      "name": "ATHEERI",
+      "category": "Perfumes",
+      "costPrice": 288,
+      "price": 490,
+      "stock": 1,
+      "sizes": [
+        "Fem - Lattafa"
+      ],
+      "image": "https://images.unsplash.com/photo-1588405748880-12d1d2a59f75?w=700&auto=format&fit=crop&q=80",
+      "description": "Marca: Lattafa • Gênero: Feminino • Luxo oriental com notas florais e amadeiradas.",
+      "featured": true,
+      "active": true
+    },
+    {
+      "id": "prod_9",
+      "name": "BAREEQ AL DHAHAB",
+      "category": "Perfumes",
+      "costPrice": 72,
+      "price": 139.9,
+      "stock": 0,
+      "sizes": [
+        "Masc - Al Wataniah"
+      ],
+      "image": "https://images.unsplash.com/photo-1547887537-6158d64c35b3?w=700&auto=format&fit=crop&q=80",
+      "description": "Marca: Al Wataniah • Gênero: Masculino • Âmbar e especiarias refinadas.",
+      "featured": false,
+      "active": true
+    },
+    {
+      "id": "prod_10",
+      "name": "BODY BARE VANILLA",
+      "category": "Perfumes",
+      "costPrice": 80,
+      "price": 160,
+      "stock": 0,
+      "sizes": [
+        "Fem - Victoria Secret"
+      ],
+      "image": "https://images.unsplash.com/photo-1594035910387-fea47794261f?w=700&auto=format&fit=crop&q=80",
+      "description": "Marca: Victoria Secret • Gênero: Feminino • Body Splash baunilha marcante.",
+      "featured": false,
+      "active": true
+    },
+    {
+      "id": "prod_11",
+      "name": "CALVIN KLEIN ONE",
+      "category": "Perfumes",
+      "costPrice": 140,
+      "price": 280,
+      "stock": 1,
+      "sizes": [
+        "Unisex - CK"
+      ],
+      "image": "https://images.unsplash.com/photo-1523293182086-7651a899d37f?w=700&auto=format&fit=crop&q=80",
+      "description": "Marca: Calvin Klein • Gênero: Unisex • Cítrico aromático clássico mundial.",
+      "featured": true,
+      "active": true
+    },
+    {
+      "id": "prod_12",
+      "name": "CREME CORPORAL ASAD",
+      "category": "Bazar",
+      "costPrice": 80,
+      "price": 139,
+      "stock": 0,
+      "sizes": [
+        "Masc - Lattafa"
+      ],
+      "image": "https://images.unsplash.com/photo-1522337360788-8b13dee7a37e?w=700&auto=format&fit=crop&q=80",
+      "description": "Marca: Lattafa • Hidratação intensa perfumada com a fragrância Asad.",
+      "featured": false,
+      "active": true
+    },
+    {
+      "id": "prod_13",
+      "name": "CUBA WINNER",
+      "category": "Perfumes",
+      "costPrice": 25,
+      "price": 60,
+      "stock": 1,
+      "sizes": [
+        "Masc - Cuba"
+      ],
+      "image": "https://images.unsplash.com/photo-1592945403244-b3fbafd7f539?w=700&auto=format&fit=crop&q=80",
+      "description": "Marca: Cuba • Gênero: Masculino • Fresco aquático aromático.",
+      "featured": false,
+      "active": true
+    },
+    {
+      "id": "prod_14",
+      "name": "DECANT (Fracionado)",
+      "category": "Perfumes",
+      "costPrice": 10,
+      "price": 30,
+      "stock": 0,
+      "sizes": [
+        "5ml / 10ml"
+      ],
+      "image": "https://images.unsplash.com/photo-1588405748880-12d1d2a59f75?w=700&auto=format&fit=crop&q=80",
+      "description": "Decants fracionados para experimentar fragrâncias árabes e importadas.",
+      "featured": false,
+      "active": true
+    },
+    {
+      "id": "prod_15",
+      "name": "ECLAIRE TRADICIONAL",
+      "category": "Perfumes",
+      "costPrice": 140,
+      "price": 249,
+      "stock": 1,
+      "sizes": [
+        "Fem - Lattafa"
+      ],
+      "image": "https://images.unsplash.com/photo-1594035910387-fea47794261f?w=700&auto=format&fit=crop&q=80",
+      "description": "Marca: Lattafa • Gênero: Feminino • Doce gourmand caramelizado irresistível.",
+      "featured": true,
+      "active": true
+    },
+    {
+      "id": "prod_16",
+      "name": "FAKHAR BLACK",
+      "category": "Perfumes",
+      "costPrice": 144,
+      "price": 219,
+      "stock": 0,
+      "sizes": [
+        "Masc - Lattafa"
+      ],
+      "image": "https://images.unsplash.com/photo-1523293182086-7651a899d37f?w=700&auto=format&fit=crop&q=80",
+      "description": "Marca: Lattafa • Gênero: Masculino • Inspirado em grandes sucessos aromáticos.",
+      "featured": true,
+      "active": true
+    },
+    {
+      "id": "prod_17",
+      "name": "FAKHAR GOLD",
+      "category": "Perfumes",
+      "costPrice": 124,
+      "price": 209,
+      "stock": 0,
+      "sizes": [
+        "Unisex - Lattafa"
+      ],
+      "image": "https://images.unsplash.com/photo-1547887537-6158d64c35b3?w=700&auto=format&fit=crop&q=80",
+      "description": "Marca: Lattafa • Gênero: Unisex • Âmbar especiado luxuoso.",
+      "featured": false,
+      "active": true
+    },
+    {
+      "id": "prod_18",
+      "name": "FAKHAR ROSE",
+      "category": "Perfumes",
+      "costPrice": 168,
+      "price": 269,
+      "stock": 0,
+      "sizes": [
+        "Fem - Lattafa"
+      ],
+      "image": "https://images.unsplash.com/photo-1588405748880-12d1d2a59f75?w=700&auto=format&fit=crop&q=80",
+      "description": "Marca: Lattafa • Gênero: Feminino • Floral frutado radiante.",
+      "featured": false,
+      "active": true
+    },
+    {
+      "id": "prod_19",
+      "name": "FIRE ON ICE",
+      "category": "Perfumes",
+      "costPrice": 140,
+      "price": 269,
+      "stock": 0,
+      "sizes": [
+        "Masc - Lattafa"
+      ],
+      "image": "https://images.unsplash.com/photo-1523293182086-7651a899d37f?w=700&auto=format&fit=crop&q=80",
+      "description": "Marca: Lattafa • Gênero: Masculino • Contraste refrescante e apimentado.",
+      "featured": false,
+      "active": true
+    },
+    {
+      "id": "prod_20",
+      "name": "HAWAS MALIBU",
+      "category": "Perfumes",
+      "costPrice": 168,
+      "price": 330,
+      "stock": 0,
+      "sizes": [
+        "Masc - Rasasi"
+      ],
+      "image": "https://images.unsplash.com/photo-1547887537-6158d64c35b3?w=700&auto=format&fit=crop&q=80",
+      "description": "Marca: Rasasi • Gênero: Masculino • Aquático potente de altíssima fixação.",
+      "featured": true,
+      "active": true
+    },
+    {
+      "id": "prod_21",
+      "name": "HIS CONFESSION",
+      "category": "Perfumes",
+      "costPrice": 182.9,
+      "price": 299,
+      "stock": 1,
+      "sizes": [
+        "Masc - Lattafa"
+      ],
+      "image": "https://images.unsplash.com/photo-1592945403244-b3fbafd7f539?w=700&auto=format&fit=crop&q=80",
+      "description": "Marca: Lattafa • Gênero: Masculino • Canela, lavanda e âmbar envolvente.",
+      "featured": true,
+      "active": true
+    },
+    {
+      "id": "prod_22",
+      "name": "INVICTUS",
+      "category": "Perfumes",
+      "costPrice": 324,
+      "price": 549,
+      "stock": 0,
+      "sizes": [
+        "Masc - Paco Rabanne"
+      ],
+      "image": "https://images.unsplash.com/photo-1523293182086-7651a899d37f?w=700&auto=format&fit=crop&q=80",
+      "description": "Gênero: Masculino • Clássico campeão aquático amadeirado.",
+      "featured": true,
+      "active": true
+    },
+    {
+      "id": "prod_23",
+      "name": "KIT YARA COLLECTION",
+      "category": "Perfumes",
+      "costPrice": 102,
+      "price": 210,
+      "stock": 0,
+      "sizes": [
+        "Fem - Lattafa"
+      ],
+      "image": "https://images.unsplash.com/photo-1594035910387-fea47794261f?w=700&auto=format&fit=crop&q=80",
+      "description": "Marca: Lattafa • Coleção Yara com miniaturas luxuosas.",
+      "featured": false,
+      "active": true
+    },
+    {
+      "id": "prod_24",
+      "name": "LE MALE EDT",
+      "category": "Perfumes",
+      "costPrice": 379,
+      "price": 580,
+      "stock": 0,
+      "sizes": [
+        "Masc - Jean Paul Gaultier"
+      ],
+      "image": "https://images.unsplash.com/photo-1547887537-6158d64c35b3?w=700&auto=format&fit=crop&q=80",
+      "description": "Marca: Jean Paul Gaultier • Ícone da perfumaria masculina importada.",
+      "featured": true,
+      "active": true
+    },
+    {
+      "id": "prod_25",
+      "name": "MAAHIR LEGACY",
+      "category": "Perfumes",
+      "costPrice": 145,
+      "price": 229,
+      "stock": 0,
+      "sizes": [
+        "Masc - Lattafa"
+      ],
+      "image": "https://images.unsplash.com/photo-1523293182086-7651a899d37f?w=700&auto=format&fit=crop&q=80",
+      "description": "Marca: Lattafa • Gênero: Masculino • Frescor mentolado e elegante.",
+      "featured": false,
+      "active": true
+    },
+    {
+      "id": "prod_26",
+      "name": "MALEKA CLUB DE NUIT",
+      "category": "Perfumes",
+      "costPrice": 192,
+      "price": 299,
+      "stock": 1,
+      "sizes": [
+        "Fem - Armaf"
+      ],
+      "image": "https://images.unsplash.com/photo-1588405748880-12d1d2a59f75?w=700&auto=format&fit=crop&q=80",
+      "description": "Marca: Armaf • Gênero: Feminino • Floral âmbar potente.",
+      "featured": true,
+      "active": true
+    },
+    {
+      "id": "prod_27",
+      "name": "MANAAL ARD AL ZAAFARAN",
+      "category": "Perfumes",
+      "costPrice": 150,
+      "price": 279,
+      "stock": 0,
+      "sizes": [
+        "Fem - Al Zaafaran"
+      ],
+      "image": "https://images.unsplash.com/photo-1594035910387-fea47794261f?w=700&auto=format&fit=crop&q=80",
+      "description": "Marca: Al Zaafaran • Gênero: Feminino • Toque aveludado e requintado.",
+      "featured": false,
+      "active": true
+    },
+    {
+      "id": "prod_28",
+      "name": "MASHMALLOW BLUSH",
+      "category": "Perfumes",
+      "costPrice": 174,
+      "price": 289,
+      "stock": 1,
+      "sizes": [
+        "Fem - Paris Corner"
+      ],
+      "image": "https://images.unsplash.com/photo-1592945403244-b3fbafd7f539?w=700&auto=format&fit=crop&q=80",
+      "description": "Marca: Paris Corner • Gênero: Feminino • Doce, fofo e sedutor.",
+      "featured": true,
+      "active": true
+    },
+    {
+      "id": "prod_29",
+      "name": "MICHAEL KORS",
+      "category": "Perfumes",
+      "costPrice": 250,
+      "price": 540,
+      "stock": 0,
+      "sizes": [
+        "Fem - Michael Kors"
+      ],
+      "image": "https://images.unsplash.com/photo-1588405748880-12d1d2a59f75?w=700&auto=format&fit=crop&q=80",
+      "description": "Marca: Michael Kors • Gênero: Feminino • Floral branco sofisticado.",
+      "featured": false,
+      "active": true
+    },
+    {
+      "id": "prod_30",
+      "name": "MUSAMAN",
+      "category": "Perfumes",
+      "costPrice": 130,
+      "price": 319,
+      "stock": 1,
+      "sizes": [
+        "Unisex - Lattafa"
+      ],
+      "image": "https://images.unsplash.com/photo-1523293182086-7651a899d37f?w=700&auto=format&fit=crop&q=80",
+      "description": "Marca: Lattafa • Gênero: Unisex • Frasco imponente de serpente dourada.",
+      "featured": true,
+      "active": true
+    },
+    {
+      "id": "prod_31",
+      "name": "MUSAMAN WHITE",
+      "category": "Perfumes",
+      "costPrice": 199,
+      "price": 380,
+      "stock": 0,
+      "sizes": [
+        "Fem - Lattafa"
+      ],
+      "image": "https://images.unsplash.com/photo-1594035910387-fea47794261f?w=700&auto=format&fit=crop&q=80",
+      "description": "Marca: Lattafa • Gênero: Feminino • Baunilha e notas amadeiradas cremosas.",
+      "featured": false,
+      "active": true
+    },
+    {
+      "id": "prod_32",
+      "name": "NEBRAS",
+      "category": "Perfumes",
+      "costPrice": 158.9,
+      "price": 279,
+      "stock": 1,
+      "sizes": [
+        "Fem - Lattafa"
+      ],
+      "image": "https://images.unsplash.com/photo-1588405748880-12d1d2a59f75?w=700&auto=format&fit=crop&q=80",
+      "description": "Marca: Lattafa • Gênero: Feminino • Chocolate, baunilha e frutas vermelhas.",
+      "featured": true,
+      "active": true
+    },
+    {
+      "id": "prod_33",
+      "name": "ODYSSEY CANDEE",
+      "category": "Perfumes",
+      "costPrice": 99,
+      "price": 220,
+      "stock": 0,
+      "sizes": [
+        "Fem - Armaf"
+      ],
+      "image": "https://images.unsplash.com/photo-1592945403244-b3fbafd7f539?w=700&auto=format&fit=crop&q=80",
+      "description": "Marca: Armaf • Gênero: Feminino • Doce jovial e alegre.",
+      "featured": false,
+      "active": true
+    },
+    {
+      "id": "prod_34",
+      "name": "ODYSSEY SPECTRA",
+      "category": "Perfumes",
+      "costPrice": 130,
+      "price": 240,
+      "stock": 1,
+      "sizes": [
+        "Masc - Armaf"
+      ],
+      "image": "https://images.unsplash.com/photo-1547887537-6158d64c35b3?w=700&auto=format&fit=crop&q=80",
+      "description": "Marca: Armaf • Gênero: Masculino • Aromático moderno.",
+      "featured": false,
+      "active": true
+    },
+    {
+      "id": "prod_35",
+      "name": "ODYSSEY WILD ONE",
+      "category": "Perfumes",
+      "costPrice": 140,
+      "price": 219,
+      "stock": 0,
+      "sizes": [
+        "Masc - Armaf"
+      ],
+      "image": "https://images.unsplash.com/photo-1523293182086-7651a899d37f?w=700&auto=format&fit=crop&q=80",
+      "description": "Marca: Armaf • Gênero: Masculino • Especiarias marcantes.",
+      "featured": false,
+      "active": true
+    },
+    {
+      "id": "prod_36",
+      "name": "PERSEUS",
+      "category": "Perfumes",
+      "costPrice": 96,
+      "price": 190,
+      "stock": 0,
+      "sizes": [
+        "Masc - Maison"
+      ],
+      "image": "https://images.unsplash.com/photo-1592945403244-b3fbafd7f539?w=700&auto=format&fit=crop&q=80",
+      "description": "Marca: Maison • Gênero: Masculino • Amêndoa amarga e lavanda clássica.",
+      "featured": false,
+      "active": true
+    },
+    {
+      "id": "prod_37",
+      "name": "SABAH AL WARD",
+      "category": "Perfumes",
+      "costPrice": 110,
+      "price": 199,
+      "stock": 1,
+      "sizes": [
+        "Fem - Al Wataniah"
+      ],
+      "image": "https://images.unsplash.com/photo-1588405748880-12d1d2a59f75?w=700&auto=format&fit=crop&q=80",
+      "description": "Marca: Al Wataniah • Gênero: Feminino • O queridinho árabe feminino.",
+      "featured": true,
+      "active": true
+    },
+    {
+      "id": "prod_38",
+      "name": "SABAH AL WARD SUGAR",
+      "category": "Perfumes",
+      "costPrice": 99,
+      "price": 209,
+      "stock": 1,
+      "sizes": [
+        "Fem - Al Wataniah"
+      ],
+      "image": "https://images.unsplash.com/photo-1594035910387-fea47794261f?w=700&auto=format&fit=crop&q=80",
+      "description": "Marca: Al Wataniah • Gênero: Feminino • Versão docinha açucarada.",
+      "featured": true,
+      "active": true
+    },
+    {
+      "id": "prod_39",
+      "name": "SABAH GARDEN OF EDEN",
+      "category": "Perfumes",
+      "costPrice": 146.36,
+      "price": 300,
+      "stock": 0,
+      "sizes": [
+        "Fem - Al Wataniah"
+      ],
+      "image": "https://images.unsplash.com/photo-1588405748880-12d1d2a59f75?w=700&auto=format&fit=crop&q=80",
+      "description": "Marca: Al Wataniah • Gênero: Feminino • Frutado tropical elegante.",
+      "featured": false,
+      "active": true
+    },
+    {
+      "id": "prod_40",
+      "name": "THE HUNTING",
+      "category": "Perfumes",
+      "costPrice": 70,
+      "price": 130,
+      "stock": 0,
+      "sizes": [
+        "Masc - La Rive"
+      ],
+      "image": "https://images.unsplash.com/photo-1523293182086-7651a899d37f?w=700&auto=format&fit=crop&q=80",
+      "description": "Marca: La Rive • Gênero: Masculino • Amadeirado aromático.",
+      "featured": false,
+      "active": true
+    },
+    {
+      "id": "prod_41",
+      "name": "TOY BOY MOSCHINO",
+      "category": "Perfumes",
+      "costPrice": 230,
+      "price": 400,
+      "stock": 1,
+      "sizes": [
+        "Masc - Moschino"
+      ],
+      "image": "https://images.unsplash.com/photo-1547887537-6158d64c35b3?w=700&auto=format&fit=crop&q=80",
+      "description": "Marca: Moschino • Gênero: Masculino • Frasco do ursinho preto, rosa e pimenta.",
+      "featured": true,
+      "active": true
+    },
+    {
+      "id": "prod_42",
+      "name": "WAZEER AL NOBLE",
+      "category": "Perfumes",
+      "costPrice": 125,
+      "price": 249,
+      "stock": 1,
+      "sizes": [
+        "Masc - Lattafa"
+      ],
+      "image": "https://images.unsplash.com/photo-1523293182086-7651a899d37f?w=700&auto=format&fit=crop&q=80",
+      "description": "Marca: Lattafa • Gênero: Masculino • Elegância árabe com chocolate e frutas.",
+      "featured": true,
+      "active": true
+    }
+  ],
+  "customers": [
+    {
+      "id": "c_1",
+      "name": "CESAR",
+      "phone": "",
+      "address": "",
+      "notes": "Cliente Laurus"
+    },
+    {
+      "id": "c_2",
+      "name": "JÁU",
+      "phone": "",
+      "address": "",
+      "notes": "Cliente Laurus"
+    },
+    {
+      "id": "c_3",
+      "name": "VICTOR EB",
+      "phone": "",
+      "address": "",
+      "notes": "Cliente Laurus"
+    },
+    {
+      "id": "c_4",
+      "name": "LARA",
+      "phone": "",
+      "address": "",
+      "notes": "Cliente Laurus"
+    },
+    {
+      "id": "c_5",
+      "name": "DUDU",
+      "phone": "",
+      "address": "",
+      "notes": "Cliente Laurus"
+    },
+    {
+      "id": "c_6",
+      "name": "ISAQUE",
+      "phone": "",
+      "address": "",
+      "notes": "Cliente Laurus"
+    },
+    {
+      "id": "c_7",
+      "name": "CB AURELIO",
+      "phone": "",
+      "address": "",
+      "notes": "Cliente Laurus"
+    },
+    {
+      "id": "c_8",
+      "name": "IGOR",
+      "phone": "",
+      "address": "",
+      "notes": "Cliente Laurus"
+    },
+    {
+      "id": "c_9",
+      "name": "CB MACHADO",
+      "phone": "",
+      "address": "",
+      "notes": "Paga todo Dia 01"
+    },
+    {
+      "id": "c_10",
+      "name": "CB R. BARBOZA",
+      "phone": "",
+      "address": "",
+      "notes": "Paga todo Dia 01"
+    },
+    {
+      "id": "c_11",
+      "name": "PAULINHO KOSTTA",
+      "phone": "",
+      "address": "",
+      "notes": "Cliente Laurus"
+    },
+    {
+      "id": "c_12",
+      "name": "TEN HEISHEN",
+      "phone": "",
+      "address": "",
+      "notes": "Cliente Laurus"
+    },
+    {
+      "id": "c_13",
+      "name": "CB FERNANDES",
+      "phone": "",
+      "address": "",
+      "notes": "Cliente Laurus"
+    },
+    {
+      "id": "c_14",
+      "name": "PAITZ",
+      "phone": "",
+      "address": "",
+      "notes": "Cliente Laurus"
+    },
+    {
+      "id": "c_15",
+      "name": "CB LEANDRO",
+      "phone": "",
+      "address": "",
+      "notes": "Cliente Laurus"
+    },
+    {
+      "id": "c_16",
+      "name": "CB LEAL",
+      "phone": "",
+      "address": "",
+      "notes": "Paga todo Dia 01"
+    },
+    {
+      "id": "c_17",
+      "name": "VITOR SANTOS",
+      "phone": "",
+      "address": "",
+      "notes": "Cliente Laurus"
+    },
+    {
+      "id": "c_18",
+      "name": "ANA JULIA",
+      "phone": "",
+      "address": "",
+      "notes": "Cliente Laurus"
+    },
+    {
+      "id": "c_19",
+      "name": "LACOMSKI",
+      "phone": "",
+      "address": "",
+      "notes": "Cliente Laurus"
+    },
+    {
+      "id": "c_20",
+      "name": "NARIZ",
+      "phone": "",
+      "address": "",
+      "notes": "Cliente Laurus"
+    },
+    {
+      "id": "c_21",
+      "name": "CESAR CSB",
+      "phone": "",
+      "address": "",
+      "notes": "Cliente Laurus"
+    },
+    {
+      "id": "c_22",
+      "name": "BRUNAO CSB",
+      "phone": "",
+      "address": "",
+      "notes": "Cliente Laurus"
+    },
+    {
+      "id": "c_23",
+      "name": "GABE CSB",
+      "phone": "",
+      "address": "",
+      "notes": "Cliente Laurus"
+    },
+    {
+      "id": "c_24",
+      "name": "asafeh EB",
+      "phone": "",
+      "address": "",
+      "notes": "Cliente Laurus"
+    },
+    {
+      "id": "c_25",
+      "name": "TIO ZINHO",
+      "phone": "",
+      "address": "",
+      "notes": "Cliente Laurus"
+    },
+    {
+      "id": "c_26",
+      "name": "LUANA MONTEIRO",
+      "phone": "",
+      "address": "",
+      "notes": "Cliente Laurus"
+    },
+    {
+      "id": "c_27",
+      "name": "CARLÃO CSB",
+      "phone": "",
+      "address": "",
+      "notes": "Cliente Laurus"
+    }
+  ],
+  "sales": [
+    {
+      "id": "sale_real_1",
+      "date": "2026-08-26",
+      "customerId": "c_24",
+      "customerName": "asafeh EB",
+      "customerPhone": "",
+      "items": [
+        {
+          "productId": "prod_1",
+          "name": "Perfume Importado",
+          "quantity": 1,
+          "unitPrice": 700,
+          "size": "Original"
+        }
+      ],
+      "total": 700,
+      "paymentMethod": "boca_2x",
+      "paidAtSale": 350,
+      "remainingBalance": 350,
+      "status": "parcial",
+      "installments": [
+        {
+          "number": 1,
+          "amount": 350,
+          "dueDate": "2026-08-26",
+          "paid": true,
+          "paidDate": "2026-08-26"
+        },
+        {
+          "number": 2,
+          "amount": 350,
+          "dueDate": "2026-09-26",
+          "paid": false,
+          "paidDate": null
+        }
       ]
     },
     {
-      id: 'sale_real_5',
-      date: '2026-07-15',
-      customerId: 'c_10',
-      customerName: 'CB R. BARBOZA',
-      customerPhone: '',
-      items: [{ productId: 'prod_39', name: 'SABAH GARDEN OF EDEN', quantity: 1, unitPrice: 300.0, size: 'Fem - Al Wataniah' }],
-      total: 300.0,
-      paymentMethod: 'boca_2x',
-      paidAtSale: 200.0,
-      remainingBalance: 100.0,
-      status: 'parcial',
-      installments: [
-        { number: 1, amount: 100.0, dueDate: '2026-08-01', paid: true, paidDate: '2026-08-01' },
-        { number: 2, amount: 100.0, dueDate: '2026-09-01', paid: true, paidDate: '2026-09-01' },
-        { number: 3, amount: 100.0, dueDate: '2026-10-01', paid: false, paidDate: null }
+      "id": "sale_real_2",
+      "date": "2026-08-25",
+      "customerId": "c_22",
+      "customerName": "BRUNAO CSB",
+      "customerPhone": "",
+      "items": [
+        {
+          "productId": "prod_6",
+          "name": "ASAD ELIXIR",
+          "quantity": 1,
+          "unitPrice": 290,
+          "size": "Masc - Lattafa"
+        }
+      ],
+      "total": 290,
+      "paymentMethod": "boca_2x",
+      "paidAtSale": 0,
+      "remainingBalance": 290,
+      "status": "pendente",
+      "installments": [
+        {
+          "number": 1,
+          "amount": 145,
+          "dueDate": "2026-09-15",
+          "paid": false,
+          "paidDate": null
+        },
+        {
+          "number": 2,
+          "amount": 145,
+          "dueDate": "2026-10-15",
+          "paid": false,
+          "paidDate": null
+        }
       ]
     },
     {
-      id: 'sale_real_6',
-      date: '2026-08-15',
-      customerId: 'c_23',
-      customerName: 'GABE CSB',
-      customerPhone: '',
-      items: [{ productId: 'prod_5', name: 'ASAD BOURBON', quantity: 1, unitPrice: 260.0, size: 'Masc - Lattafa' }],
-      total: 260.0,
-      paymentMethod: 'boca_2x',
-      paidAtSale: 130.0,
-      remainingBalance: 130.0,
-      status: 'parcial',
-      installments: [
-        { number: 1, amount: 130.0, dueDate: '2026-08-15', paid: true, paidDate: '2026-08-15' },
-        { number: 2, amount: 130.0, dueDate: '2026-09-15', paid: false, paidDate: null }
+      "id": "sale_real_3",
+      "date": "2026-07-30",
+      "customerId": "c_16",
+      "customerName": "CB LEAL",
+      "customerPhone": "",
+      "items": [
+        {
+          "productId": "prod_16",
+          "name": "FAKHAR BLACK",
+          "quantity": 1,
+          "unitPrice": 180,
+          "size": "Masc - Lattafa"
+        }
+      ],
+      "total": 180,
+      "paymentMethod": "boca_2x",
+      "paidAtSale": 120,
+      "remainingBalance": 60,
+      "status": "parcial",
+      "installments": [
+        {
+          "number": 1,
+          "amount": 60,
+          "dueDate": "2026-08-01",
+          "paid": true,
+          "paidDate": "2026-08-01"
+        },
+        {
+          "number": 2,
+          "amount": 60,
+          "dueDate": "2026-09-01",
+          "paid": true,
+          "paidDate": "2026-09-01"
+        },
+        {
+          "number": 3,
+          "amount": 60,
+          "dueDate": "2026-10-01",
+          "paid": false,
+          "paidDate": null
+        }
       ]
     },
     {
-      id: 'sale_real_7',
-      date: '2026-08-31',
-      customerId: 'c_19',
-      customerName: 'LACOMSKI',
-      customerPhone: '',
-      items: [{ productId: 'prod_1', name: 'Produto Perfumaria', quantity: 1, unitPrice: 150.0, size: 'Original' }],
-      total: 150.0,
-      paymentMethod: 'boca_2x',
-      paidAtSale: 0,
-      remainingBalance: 150.0,
-      status: 'pendente',
-      installments: [
-        { number: 1, amount: 150.0, dueDate: '2026-09-30', paid: false, paidDate: null }
+      "id": "sale_real_4",
+      "date": "2026-08-04",
+      "customerId": "c_9",
+      "customerName": "CB MACHADO",
+      "customerPhone": "",
+      "items": [
+        {
+          "productId": "prod_7",
+          "name": "ASAD TRADICIONAL + YARA + CREME",
+          "quantity": 1,
+          "unitPrice": 570,
+          "size": "Combo"
+        }
+      ],
+      "total": 570,
+      "paymentMethod": "boca_2x",
+      "paidAtSale": 190,
+      "remainingBalance": 380,
+      "status": "parcial",
+      "installments": [
+        {
+          "number": 1,
+          "amount": 190,
+          "dueDate": "2026-08-04",
+          "paid": true,
+          "paidDate": "2026-08-04"
+        },
+        {
+          "number": 2,
+          "amount": 190,
+          "dueDate": "2026-09-01",
+          "paid": false,
+          "paidDate": null
+        },
+        {
+          "number": 3,
+          "amount": 190,
+          "dueDate": "2026-10-01",
+          "paid": false,
+          "paidDate": null
+        }
       ]
     },
     {
-      id: 'sale_real_8',
-      date: '2026-08-20',
-      customerId: 'c_20',
-      customerName: 'NARIZ',
-      customerPhone: '',
-      items: [{ productId: 'prod_36', name: 'PERSEUS', quantity: 1, unitPrice: 110.0, size: 'Masc - Maison' }],
-      total: 110.0,
-      paymentMethod: 'boca_2x',
-      paidAtSale: 0,
-      remainingBalance: 110.0,
-      status: 'pendente',
-      installments: [
-        { number: 1, amount: 110.0, dueDate: '2026-09-20', paid: false, paidDate: null }
+      "id": "sale_real_5",
+      "date": "2026-07-15",
+      "customerId": "c_10",
+      "customerName": "CB R. BARBOZA",
+      "customerPhone": "",
+      "items": [
+        {
+          "productId": "prod_39",
+          "name": "SABAH GARDEN OF EDEN",
+          "quantity": 1,
+          "unitPrice": 300,
+          "size": "Fem - Al Wataniah"
+        }
+      ],
+      "total": 300,
+      "paymentMethod": "boca_2x",
+      "paidAtSale": 200,
+      "remainingBalance": 100,
+      "status": "parcial",
+      "installments": [
+        {
+          "number": 1,
+          "amount": 100,
+          "dueDate": "2026-08-01",
+          "paid": true,
+          "paidDate": "2026-08-01"
+        },
+        {
+          "number": 2,
+          "amount": 100,
+          "dueDate": "2026-09-01",
+          "paid": true,
+          "paidDate": "2026-09-01"
+        },
+        {
+          "number": 3,
+          "amount": 100,
+          "dueDate": "2026-10-01",
+          "paid": false,
+          "paidDate": null
+        }
       ]
     },
     {
-      id: 'sale_real_9',
-      date: '2026-08-24',
-      customerId: 'c_20',
-      customerName: 'NARIZ',
-      customerPhone: '',
-      items: [{ productId: 'prod_5', name: 'ASAD BOURBON', quantity: 1, unitPrice: 270.0, size: 'Masc - Lattafa' }],
-      total: 270.0,
-      paymentMethod: 'boca_2x',
-      paidAtSale: 0,
-      remainingBalance: 270.0,
-      status: 'pendente',
-      installments: [
-        { number: 1, amount: 135.0, dueDate: '2026-09-24', paid: false, paidDate: null },
-        { number: 2, amount: 135.0, dueDate: '2026-10-24', paid: false, paidDate: null }
+      "id": "sale_real_6",
+      "date": "2026-08-15",
+      "customerId": "c_23",
+      "customerName": "GABE CSB",
+      "customerPhone": "",
+      "items": [
+        {
+          "productId": "prod_5",
+          "name": "ASAD BOURBON",
+          "quantity": 1,
+          "unitPrice": 260,
+          "size": "Masc - Lattafa"
+        }
+      ],
+      "total": 260,
+      "paymentMethod": "boca_2x",
+      "paidAtSale": 130,
+      "remainingBalance": 130,
+      "status": "parcial",
+      "installments": [
+        {
+          "number": 1,
+          "amount": 130,
+          "dueDate": "2026-08-15",
+          "paid": true,
+          "paidDate": "2026-08-15"
+        },
+        {
+          "number": 2,
+          "amount": 130,
+          "dueDate": "2026-09-15",
+          "paid": false,
+          "paidDate": null
+        }
       ]
     },
     {
-      id: 'sale_real_10',
-      date: '2026-08-26',
-      customerId: 'c_25',
-      customerName: 'TIO ZINHO',
-      customerPhone: '',
-      items: [{ productId: 'prod_21', name: 'HIS CONFESSION', quantity: 1, unitPrice: 260.0, size: 'Masc - Lattafa' }],
-      total: 260.0,
-      paymentMethod: 'boca_2x',
-      paidAtSale: 130.0,
-      remainingBalance: 130.0,
-      status: 'parcial',
-      installments: [
-        { number: 1, amount: 130.0, dueDate: '2026-08-26', paid: true, paidDate: '2026-08-26' },
-        { number: 2, amount: 130.0, dueDate: '2026-09-26', paid: false, paidDate: null }
+      "id": "sale_real_7",
+      "date": "2026-08-31",
+      "customerId": "c_19",
+      "customerName": "LACOMSKI",
+      "customerPhone": "",
+      "items": [
+        {
+          "productId": "prod_1",
+          "name": "Produto Perfumaria",
+          "quantity": 1,
+          "unitPrice": 150,
+          "size": "Original"
+        }
+      ],
+      "total": 150,
+      "paymentMethod": "boca_2x",
+      "paidAtSale": 0,
+      "remainingBalance": 150,
+      "status": "pendente",
+      "installments": [
+        {
+          "number": 1,
+          "amount": 150,
+          "dueDate": "2026-09-30",
+          "paid": false,
+          "paidDate": null
+        }
       ]
     },
     {
-      id: 'sale_real_11',
-      date: '2026-08-06',
-      customerId: 'c_17',
-      customerName: 'VITOR SANTOS',
-      customerPhone: '',
-      items: [{ productId: 'prod_28', name: 'MASHMALLOW BLUSH', quantity: 1, unitPrice: 300.0, size: 'Fem - Paris Corner' }],
-      total: 300.0,
-      paymentMethod: 'boca_2x',
-      paidAtSale: 150.0,
-      remainingBalance: 150.0,
-      status: 'parcial',
-      installments: [
-        { number: 1, amount: 150.0, dueDate: '2026-08-06', paid: true, paidDate: '2026-07-31' },
-        { number: 2, amount: 150.0, dueDate: '2026-09-06', paid: false, paidDate: null }
+      "id": "sale_real_8",
+      "date": "2026-08-20",
+      "customerId": "c_20",
+      "customerName": "NARIZ",
+      "customerPhone": "",
+      "items": [
+        {
+          "productId": "prod_36",
+          "name": "PERSEUS",
+          "quantity": 1,
+          "unitPrice": 110,
+          "size": "Masc - Maison"
+        }
+      ],
+      "total": 110,
+      "paymentMethod": "boca_2x",
+      "paidAtSale": 0,
+      "remainingBalance": 110,
+      "status": "pendente",
+      "installments": [
+        {
+          "number": 1,
+          "amount": 110,
+          "dueDate": "2026-09-20",
+          "paid": false,
+          "paidDate": null
+        }
       ]
     },
     {
-      id: 'sale_real_12',
-      date: '2026-08-17',
-      customerId: 'c_17',
-      customerName: 'VITOR SANTOS',
-      customerPhone: '',
-      items: [{ productId: 'prod_20', name: 'HAWAS MALIBU', quantity: 1, unitPrice: 330.0, size: 'Masc - Rasasi' }],
-      total: 330.0,
-      paymentMethod: 'boca_2x',
-      paidAtSale: 0,
-      remainingBalance: 330.0,
-      status: 'pendente',
-      installments: [
-        { number: 1, amount: 165.0, dueDate: '2026-09-17', paid: false, paidDate: null },
-        { number: 2, amount: 165.0, dueDate: '2026-10-17', paid: false, paidDate: null }
+      "id": "sale_real_9",
+      "date": "2026-08-24",
+      "customerId": "c_20",
+      "customerName": "NARIZ",
+      "customerPhone": "",
+      "items": [
+        {
+          "productId": "prod_5",
+          "name": "ASAD BOURBON",
+          "quantity": 1,
+          "unitPrice": 270,
+          "size": "Masc - Lattafa"
+        }
+      ],
+      "total": 270,
+      "paymentMethod": "boca_2x",
+      "paidAtSale": 0,
+      "remainingBalance": 270,
+      "status": "pendente",
+      "installments": [
+        {
+          "number": 1,
+          "amount": 135,
+          "dueDate": "2026-09-24",
+          "paid": false,
+          "paidDate": null
+        },
+        {
+          "number": 2,
+          "amount": 135,
+          "dueDate": "2026-10-24",
+          "paid": false,
+          "paidDate": null
+        }
       ]
     },
     {
-      id: 'sale_real_13',
-      date: '2026-08-28',
-      customerId: 'c_26',
-      customerName: 'LUANA MONTEIRO',
-      customerPhone: '',
-      items: [{ productId: 'prod_8', name: 'ATHEERI', quantity: 1, unitPrice: 600.0, size: 'Fem - Lattafa' }],
-      total: 600.0,
-      paymentMethod: 'boca_2x',
-      paidAtSale: 0,
-      remainingBalance: 600.0,
-      status: 'pendente',
-      installments: [
-        { number: 1, amount: 150.0, dueDate: '2026-09-28', paid: false, paidDate: null },
-        { number: 2, amount: 150.0, dueDate: '2026-10-28', paid: false, paidDate: null },
-        { number: 3, amount: 150.0, dueDate: '2026-11-28', paid: false, paidDate: null },
-        { number: 4, amount: 150.0, dueDate: '2026-12-28', paid: false, paidDate: null }
+      "id": "sale_real_10",
+      "date": "2026-08-26",
+      "customerId": "c_25",
+      "customerName": "TIO ZINHO",
+      "customerPhone": "",
+      "items": [
+        {
+          "productId": "prod_21",
+          "name": "HIS CONFESSION",
+          "quantity": 1,
+          "unitPrice": 260,
+          "size": "Masc - Lattafa"
+        }
+      ],
+      "total": 260,
+      "paymentMethod": "boca_2x",
+      "paidAtSale": 130,
+      "remainingBalance": 130,
+      "status": "parcial",
+      "installments": [
+        {
+          "number": 1,
+          "amount": 130,
+          "dueDate": "2026-08-26",
+          "paid": true,
+          "paidDate": "2026-08-26"
+        },
+        {
+          "number": 2,
+          "amount": 130,
+          "dueDate": "2026-09-26",
+          "paid": false,
+          "paidDate": null
+        }
       ]
     },
     {
-      id: 'sale_real_14',
-      date: '2026-08-19',
-      customerId: 'c_27',
-      customerName: 'CARLÃO CSB',
-      customerPhone: '',
-      items: [{ productId: 'prod_7', name: 'ASAD TRADICIONAL', quantity: 1, unitPrice: 250.0, size: 'Masc - Lattafa' }],
-      total: 250.0,
-      paymentMethod: 'boca_2x',
-      paidAtSale: 0,
-      remainingBalance: 250.0,
-      status: 'pendente',
-      installments: [
-        { number: 1, amount: 125.0, dueDate: '2026-09-19', paid: false, paidDate: null },
-        { number: 2, amount: 125.0, dueDate: '2026-10-19', paid: false, paidDate: null }
+      "id": "sale_real_11",
+      "date": "2026-08-06",
+      "customerId": "c_17",
+      "customerName": "VITOR SANTOS",
+      "customerPhone": "",
+      "items": [
+        {
+          "productId": "prod_28",
+          "name": "MASHMALLOW BLUSH",
+          "quantity": 1,
+          "unitPrice": 300,
+          "size": "Fem - Paris Corner"
+        }
+      ],
+      "total": 300,
+      "paymentMethod": "boca_2x",
+      "paidAtSale": 150,
+      "remainingBalance": 150,
+      "status": "parcial",
+      "installments": [
+        {
+          "number": 1,
+          "amount": 150,
+          "dueDate": "2026-08-06",
+          "paid": true,
+          "paidDate": "2026-07-31"
+        },
+        {
+          "number": 2,
+          "amount": 150,
+          "dueDate": "2026-09-06",
+          "paid": false,
+          "paidDate": null
+        }
+      ]
+    },
+    {
+      "id": "sale_real_12",
+      "date": "2026-08-17",
+      "customerId": "c_17",
+      "customerName": "VITOR SANTOS",
+      "customerPhone": "",
+      "items": [
+        {
+          "productId": "prod_20",
+          "name": "HAWAS MALIBU",
+          "quantity": 1,
+          "unitPrice": 330,
+          "size": "Masc - Rasasi"
+        }
+      ],
+      "total": 330,
+      "paymentMethod": "boca_2x",
+      "paidAtSale": 0,
+      "remainingBalance": 330,
+      "status": "pendente",
+      "installments": [
+        {
+          "number": 1,
+          "amount": 165,
+          "dueDate": "2026-09-17",
+          "paid": false,
+          "paidDate": null
+        },
+        {
+          "number": 2,
+          "amount": 165,
+          "dueDate": "2026-10-17",
+          "paid": false,
+          "paidDate": null
+        }
+      ]
+    },
+    {
+      "id": "sale_real_13",
+      "date": "2026-08-28",
+      "customerId": "c_26",
+      "customerName": "LUANA MONTEIRO",
+      "customerPhone": "",
+      "items": [
+        {
+          "productId": "prod_8",
+          "name": "ATHEERI",
+          "quantity": 1,
+          "unitPrice": 600,
+          "size": "Fem - Lattafa"
+        }
+      ],
+      "total": 600,
+      "paymentMethod": "boca_2x",
+      "paidAtSale": 0,
+      "remainingBalance": 600,
+      "status": "pendente",
+      "installments": [
+        {
+          "number": 1,
+          "amount": 150,
+          "dueDate": "2026-09-28",
+          "paid": false,
+          "paidDate": null
+        },
+        {
+          "number": 2,
+          "amount": 150,
+          "dueDate": "2026-10-28",
+          "paid": false,
+          "paidDate": null
+        },
+        {
+          "number": 3,
+          "amount": 150,
+          "dueDate": "2026-11-28",
+          "paid": false,
+          "paidDate": null
+        },
+        {
+          "number": 4,
+          "amount": 150,
+          "dueDate": "2026-12-28",
+          "paid": false,
+          "paidDate": null
+        }
+      ]
+    },
+    {
+      "id": "sale_real_14",
+      "date": "2026-08-19",
+      "customerId": "c_27",
+      "customerName": "CARLÃO CSB",
+      "customerPhone": "",
+      "items": [
+        {
+          "productId": "prod_7",
+          "name": "ASAD TRADICIONAL",
+          "quantity": 1,
+          "unitPrice": 250,
+          "size": "Masc - Lattafa"
+        }
+      ],
+      "total": 250,
+      "paymentMethod": "boca_2x",
+      "paidAtSale": 0,
+      "remainingBalance": 250,
+      "status": "pendente",
+      "installments": [
+        {
+          "number": 1,
+          "amount": 125,
+          "dueDate": "2026-09-19",
+          "paid": false,
+          "paidDate": null
+        },
+        {
+          "number": 2,
+          "amount": 125,
+          "dueDate": "2026-10-19",
+          "paid": false,
+          "paidDate": null
+        }
       ]
     }
   ],
-  personalFinance: []
+  "personalFinance": []
 };
