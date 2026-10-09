@@ -72,6 +72,19 @@ export const ProductCard = ({ product, onOpenModal }) => {
     }
   }
 
+  const isClothing = product.category === 'Roupas' || product.category?.toLowerCase().includes('roupa');
+  let clothingGender = null;
+  if (isClothing) {
+    const dLower = (product.description || '').toLowerCase();
+    const cLower = (product.category || '').toLowerCase();
+    const nLower = (product.name || '').toLowerCase();
+    if (cLower.includes('masculin') || dLower.includes('masculino') || nLower.includes('masculin')) {
+      clothingGender = 'masculino';
+    } else if (cLower.includes('feminin') || dLower.includes('feminino') || nLower.includes('feminin')) {
+      clothingGender = 'feminino';
+    }
+  }
+
   return (
     <div className="product-card">
       <div className="product-image-container" onClick={() => onOpenModal(product)}>
@@ -97,6 +110,12 @@ export const ProductCard = ({ product, onOpenModal }) => {
               {perfumeGender === 'masculino' && '👔 Masc'}
               {perfumeGender === 'feminino' && '🌸 Fem'}
               {perfumeGender === 'unissex' && '✨ Unisex'}
+            </span>
+          )}
+          {clothingGender && (
+            <span className={`product-badge-gender badge-${clothingGender}`}>
+              {clothingGender === 'masculino' && '👔 Masc'}
+              {clothingGender === 'feminino' && '🌸 Fem'}
             </span>
           )}
         </div>

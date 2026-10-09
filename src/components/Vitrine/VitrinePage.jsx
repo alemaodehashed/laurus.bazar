@@ -31,14 +31,45 @@ export const getPerfumeGender = (p) => {
   return 'unissex';
 };
 
+export const getClothingGender = (p) => {
+  if (!p) return null;
+  const cat = (p.category || '').toLowerCase();
+  const desc = (p.description || '').toLowerCase();
+  const sizes = (p.sizes || []).join(' ').toLowerCase();
+  const name = (p.name || '').toLowerCase();
+
+  if (
+    cat.includes('masculin') ||
+    desc.includes('gênero: masculino') ||
+    desc.includes('genero: masculino') ||
+    desc.includes('masculino') ||
+    sizes.includes('masc') ||
+    name.includes('masculin')
+  ) {
+    return 'masculino';
+  }
+  if (
+    cat.includes('feminin') ||
+    desc.includes('gênero: feminino') ||
+    desc.includes('genero: feminino') ||
+    desc.includes('feminino') ||
+    sizes.includes('fem') ||
+    name.includes('feminin')
+  ) {
+    return 'feminino';
+  }
+  return 'feminino';
+};
+
 export const VitrinePage = ({ onOpenAdminLogin }) => {
   const { products, settings, cart, setIsCartOpen } = useStore();
   const [selectedCategory, setSelectedCategory] = useState('Todas');
   const [perfumeGenderFilter, setPerfumeGenderFilter] = useState('todos');
+  const [clothingGenderFilter, setClothingGenderFilter] = useState('todos');
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedProduct, setSelectedProduct] = useState(null);
 
-  const categories = ['Todas', 'Destaques', 'Roupas Femininas', 'Roupas Masculinas', 'Perfumes', 'Bazar'];
+  const categories = ['Todas', 'Destaques', 'Roupas', 'Perfumes', 'Bazar'];
 
   const perfumeCounts = useMemo(() => {
     const activePerfumes = products.filter(
@@ -61,6 +92,24 @@ export const VitrinePage = ({ onOpenAdminLogin }) => {
     };
   }, [products]);
 
+  const clothingCounts = useMemo(() => {
+    const activeClothes = products.filter(
+      (p) => p.active && (p.category?.toLowerCase().includes('roupa') || p.category === 'Roupas')
+    );
+    let masc = 0;
+    let fem = 0;
+    activeClothes.forEach((p) => {
+      const g = getClothingGender(p);
+      if (g === 'masculino') masc++;
+      else fem++;
+    });
+    return {
+      todos: activeClothes.length,
+      feminino: fem,
+      masculino: masc,
+    };
+  }, [products]);
+
   const filteredProducts = useMemo(() => {
     return products.filter((p) => {
       if (!p.active) return false;
@@ -69,9 +118,15 @@ export const VitrinePage = ({ onOpenAdminLogin }) => {
         matchesCategory = true;
       } else if (selectedCategory === 'Destaques') {
         matchesCategory = Boolean(p.featured);
-      } else if (selectedCategory === 'Roupas Femininas') {
-        const catLower = p.category?.toLowerCase() || '';
-        matchesCategory = catLower === 'roupas femininas' || catLower === 'roupas';
+      } else if (selectedCategory === 'Roupas') {
+        const isClothing = p.category?.toLowerCase().includes('roupa') || p.category === 'Roupas';
+        if (!isClothing) {
+          matchesCategory = false;
+        } else if (clothingGenderFilter === 'todos') {
+          matchesCategory = true;
+        } else {
+          matchesCategory = getClothingGender(p) === clothingGenderFilter;
+        }
       } else if (selectedCategory === 'Perfumes') {
         const isPerf = p.category?.toLowerCase() === 'perfumes' || p.category?.toLowerCase().includes('perfume');
         if (!isPerf) {
@@ -91,7 +146,7 @@ export const VitrinePage = ({ onOpenAdminLogin }) => {
         p.category?.toLowerCase().includes(searchQuery.toLowerCase());
       return matchesCategory && matchesSearch;
     });
-  }, [products, selectedCategory, searchQuery, perfumeGenderFilter]);
+  }, [products, selectedCategory, searchQuery, perfumeGenderFilter, clothingGenderFilter]);
 
   const totalCartCount = cart.reduce((acc, item) => acc + item.quantity, 0);
 
@@ -209,6 +264,7 @@ export const VitrinePage = ({ onOpenAdminLogin }) => {
               onClick={() => {
                 setSelectedCategory(cat);
                 if (cat !== 'Perfumes') setPerfumeGenderFilter('todos');
+                if (cat !== 'Roupas') setClothingGenderFilter('todos');
               }}
             >
               {cat === 'Todas' && (
@@ -223,16 +279,10 @@ export const VitrinePage = ({ onOpenAdminLogin }) => {
                   <span className="cat-label-mobile">⭐ Destaques</span>
                 </>
               )}
-              {cat === 'Roupas Femininas' && (
+              {cat === 'Roupas' && (
                 <>
-                  <span className="cat-label-full">👗 Roupas Femininas</span>
-                  <span className="cat-label-mobile">👗 Roupas Fem</span>
-                </>
-              )}
-              {cat === 'Roupas Masculinas' && (
-                <>
-                  <span className="cat-label-full">👕 Roupas Masculinas</span>
-                  <span className="cat-label-mobile">👕 Roupas Masc</span>
+                  <span className="cat-label-full">👗 Roupas</span>
+                  <span className="cat-label-mobile">👗 Roupas</span>
                 </>
               )}
               {cat === 'Perfumes' && (
@@ -250,6 +300,41 @@ export const VitrinePage = ({ onOpenAdminLogin }) => {
             </button>
           ))}
         </div>
+
+        {/* Clothing Gender Sub-filter Bar (appears when Roupas is selected) */}
+        {selectedCategory === 'Roupas' && (
+          <div className="perfume-subfilter-wrapper">
+            <div className="perfume-subfilter-header">
+              <span>Linha:</span>
+            </div>
+            <div className="perfume-subfilter-bar">
+              <button
+                type="button"
+                className={`perfume-sub-pill ${clothingGenderFilter === 'todos' ? 'active' : ''}`}
+                onClick={() => setClothingGenderFilter('todos')}
+              >
+                <span>👗 Todas</span>
+                <span className="perfume-sub-badge">{clothingCounts.todos}</span>
+              </button>
+              <button
+                type="button"
+                className={`perfume-sub-pill pill-fem ${clothingGenderFilter === 'feminino' ? 'active' : ''}`}
+                onClick={() => setClothingGenderFilter('feminino')}
+              >
+                <span>🌸 Feminino</span>
+                <span className="perfume-sub-badge">{clothingCounts.feminino}</span>
+              </button>
+              <button
+                type="button"
+                className={`perfume-sub-pill pill-masc ${clothingGenderFilter === 'masculino' ? 'active' : ''}`}
+                onClick={() => setClothingGenderFilter('masculino')}
+              >
+                <span>👔 Masculino</span>
+                <span className="perfume-sub-badge">{clothingCounts.masculino}</span>
+              </button>
+            </div>
+          </div>
+        )}
 
         {/* Perfume Gender Sub-filter Bar (appears when Perfumes is selected) */}
         {selectedCategory === 'Perfumes' && (

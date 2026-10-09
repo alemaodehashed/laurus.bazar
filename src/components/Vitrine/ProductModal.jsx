@@ -112,6 +112,19 @@ export const ProductModal = ({ product, onClose }) => {
     }
   }
 
+  const isClothing = product.category === 'Roupas' || product.category?.toLowerCase().includes('roupa');
+  let clothingGender = null;
+  if (isClothing) {
+    const dLower = (product.description || '').toLowerCase();
+    const cLower = (product.category || '').toLowerCase();
+    const nLower = (product.name || '').toLowerCase();
+    if (cLower.includes('masculin') || dLower.includes('masculino') || nLower.includes('masculin')) {
+      clothingGender = 'masculino';
+    } else if (cLower.includes('feminin') || dLower.includes('feminino') || nLower.includes('feminin')) {
+      clothingGender = 'feminino';
+    }
+  }
+
   // Módulo de Desempenho (Longevidade / Rastro)
   const parseVotes = (v) => {
     if (v === null || v === undefined) return 0;
@@ -209,13 +222,21 @@ export const ProductModal = ({ product, onClose }) => {
           )}
 
           <div>
-            {perfumeGender && (
+            {(perfumeGender || clothingGender) && (
               <div style={{ marginBottom: '8px' }}>
-                <span className={`product-badge-gender badge-${perfumeGender}`} style={{ fontSize: '0.78rem', padding: '4px 10px', borderRadius: '8px' }}>
-                  {perfumeGender === 'masculino' && '👔 Linha Masculina'}
-                  {perfumeGender === 'feminino' && '🌸 Linha Feminina'}
-                  {perfumeGender === 'unissex' && '✨ Linha Unissex'}
-                </span>
+                {perfumeGender && (
+                  <span className={`product-badge-gender badge-${perfumeGender}`} style={{ fontSize: '0.78rem', padding: '4px 10px', borderRadius: '8px' }}>
+                    {perfumeGender === 'masculino' && '👔 Linha Masculina'}
+                    {perfumeGender === 'feminino' && '🌸 Linha Feminina'}
+                    {perfumeGender === 'unissex' && '✨ Linha Unissex'}
+                  </span>
+                )}
+                {clothingGender && (
+                  <span className={`product-badge-gender badge-${clothingGender}`} style={{ fontSize: '0.78rem', padding: '4px 10px', borderRadius: '8px' }}>
+                    {clothingGender === 'masculino' && '👔 Moda Masculina'}
+                    {clothingGender === 'feminino' && '🌸 Moda Feminina'}
+                  </span>
+                )}
               </div>
             )}
             <h2 style={{ fontSize: '1.4rem', color: 'var(--color-secondary)', marginBottom: '8px' }}>
