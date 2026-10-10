@@ -1,17 +1,5 @@
 {
-  "redirects": [
-    {
-      "source": "/(.*)",
-      "has": [
-        {
-          "type": "host",
-          "value": "laurus-bazar-blue.vercel.app"
-        }
-      ],
-      "destination": "https://laurus-bazar.vercel.app/$1",
-      "permanent": true
-    }
-  ],
+
   "rewrites": [
     {
       "source": "/(.*)",
