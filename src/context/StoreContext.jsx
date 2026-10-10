@@ -257,7 +257,7 @@ export const StoreProvider = ({ children }) => {
               }
             : prev.settings;
 
-          const baseProducts = newProducts !== null ? newProducts : prev.products;
+          const baseProducts = newProducts !== null ? mergeListById(prev.products, newProducts) : prev.products;
           const finalProducts = baseProducts.map((p) => ({
             ...p,
             specialPrice: mergedSettings.specialPrices?.[p.id] ?? p.specialPrice ?? null,
@@ -266,9 +266,9 @@ export const StoreProvider = ({ children }) => {
           const updated = {
             ...prev,
             products: finalProducts,
-            customers: (custRes.data && custRes.data.length > 0) || isCatalogInitialized ? newCustomers : prev.customers,
-            sales: (salesRes.data && salesRes.data.length > 0) || isCatalogInitialized ? newSales : prev.sales,
-            personalFinance: (finRes.data && finRes.data.length > 0) || isCatalogInitialized ? newFinance : prev.personalFinance,
+            customers: (custRes.data && custRes.data.length > 0) || isCatalogInitialized ? mergeListById(prev.customers, newCustomers) : prev.customers,
+            sales: (salesRes.data && salesRes.data.length > 0) || isCatalogInitialized ? mergeListById(prev.sales, newSales) : prev.sales,
+            personalFinance: (finRes.data && finRes.data.length > 0) || isCatalogInitialized ? mergeListById(prev.personalFinance, newFinance) : prev.personalFinance,
             settings: mergedSettings,
           };
           saveStoredData(updated);
@@ -744,20 +744,16 @@ export const StoreProvider = ({ children }) => {
     });
 
     if (supabase && targetProduct) {
-      try {
-        await supabase.from('products').update({ stock: newStockVal }).eq('id', id);
-        if (finRecord) {
-          await supabase.from('personal_finance').insert({
-            id: finRecord.id,
-            date: finRecord.date,
-            type: finRecord.type,
-            category: finRecord.category,
-            description: finRecord.description,
-            amount: finRecord.amount,
-          });
-        }
-      } catch (err) {
-        console.warn('Erro ao ajustar estoque ou salvar finança no Supabase:', err);
+      await cloudWrite('ajuste estoque', supabase.from('products').update({ stock: newStockVal }).eq('id', id));
+      if (finRecord) {
+        await cloudWrite('financeiro estoque', supabase.from('personal_finance').insert({
+          id: finRecord.id,
+          date: finRecord.date,
+          type: finRecord.type,
+          category: finRecord.category,
+          description: finRecord.description,
+          amount: finRecord.amount,
+        }));
       }
     }
 
@@ -842,38 +838,34 @@ export const StoreProvider = ({ children }) => {
     });
 
     if (supabase) {
-      try {
-        await supabase.from('personal_finance').insert({
-          id: finRecord.id,
-          date: finRecord.date,
-          type: finRecord.type,
-          category: finRecord.category,
-          description: finRecord.description,
-          amount: finRecord.amount,
-        });
+      await cloudWrite('financeiro lote', supabase.from('personal_finance').insert({
+        id: finRecord.id,
+        date: finRecord.date,
+        type: finRecord.type,
+        category: finRecord.category,
+        description: finRecord.description,
+        amount: finRecord.amount,
+      }));
 
-        if (newProdCreated) {
-          await supabase.from('products').insert({
-            id: newProdCreated.id,
-            name: newProdCreated.name,
-            category: newProdCreated.category,
-            cost_price: newProdCreated.costPrice,
-            price: newProdCreated.price,
-            stock: newProdCreated.stock,
-            sizes: newProdCreated.sizes || [],
-            image: newProdCreated.image || '',
-            description: newProdCreated.description || '',
-            featured: newProdCreated.featured,
-            active: newProdCreated.active,
-          });
-        } else if (updatedExistingProd) {
-          await supabase.from('products').update({
-            stock: updatedExistingProd.stock,
-            cost_price: updatedExistingProd.costPrice,
-          }).eq('id', updatedExistingProd.id);
-        }
-      } catch (err) {
-        console.warn('Erro ao salvar entrada de lote no Supabase:', err);
+      if (newProdCreated) {
+        await cloudWrite('produto lote', supabase.from('products').insert({
+          id: newProdCreated.id,
+          name: newProdCreated.name,
+          category: newProdCreated.category,
+          cost_price: newProdCreated.costPrice,
+          price: newProdCreated.price,
+          stock: newProdCreated.stock,
+          sizes: newProdCreated.sizes || [],
+          image: newProdCreated.image || '',
+          description: newProdCreated.description || '',
+          featured: newProdCreated.featured,
+          active: newProdCreated.active,
+        }));
+      } else if (updatedExistingProd) {
+        await cloudWrite('atualiza produto lote', supabase.from('products').update({
+          stock: updatedExistingProd.stock,
+          cost_price: updatedExistingProd.costPrice,
+        }).eq('id', updatedExistingProd.id));
       }
     }
 
@@ -895,17 +887,13 @@ export const StoreProvider = ({ children }) => {
     }));
 
     if (supabase) {
-      try {
-        await supabase.from('customers').insert({
-          id: newCustomer.id,
-          name: newCustomer.name,
-          phone: newCustomer.phone || '',
-          address: newCustomer.address || '',
-          notes: newCustomer.notes || '',
-        });
-      } catch (err) {
-        console.warn('Erro ao salvar cliente no Supabase:', err);
-      }
+      await cloudWrite('cliente', supabase.from('customers').insert({
+        id: newCustomer.id,
+        name: newCustomer.name,
+        phone: newCustomer.phone || '',
+        address: newCustomer.address || '',
+        notes: newCustomer.notes || '',
+      }));
     }
 
     showToast('Cliente cadastrado com sucesso!');
@@ -921,16 +909,12 @@ export const StoreProvider = ({ children }) => {
     }));
 
     if (supabase) {
-      try {
-        await supabase.from('customers').update({
-          name: updatedData.name,
-          phone: updatedData.phone,
-          address: updatedData.address,
-          notes: updatedData.notes,
-        }).eq('id', id);
-      } catch (err) {
-        console.warn('Erro ao atualizar cliente no Supabase:', err);
-      }
+      await cloudWrite('atualiza cliente', supabase.from('customers').update({
+        name: updatedData.name,
+        phone: updatedData.phone,
+        address: updatedData.address,
+        notes: updatedData.notes,
+      }).eq('id', id));
     }
 
     showToast('Dados do cliente atualizados!');
@@ -943,11 +927,7 @@ export const StoreProvider = ({ children }) => {
     }));
 
     if (supabase) {
-      try {
-        await supabase.from('customers').delete().eq('id', id);
-      } catch (err) {
-        console.warn('Erro ao deletar cliente no Supabase:', err);
-      }
+      await cloudWrite('deleta cliente', supabase.from('customers').delete().eq('id', id));
     }
 
     showToast('Cliente removido!');
@@ -1074,22 +1054,22 @@ export const StoreProvider = ({ children }) => {
 
     // Sync to Supabase
     if (supabase) {
-      try {
-        await supabase.from('sales').insert({
-          id: newSale.id,
-          date: newSale.date,
-          customer_id: newSale.customerId,
-          customer_name: newSale.customerName,
-          customer_phone: newSale.customerPhone,
-          items: newSale.items,
-          total: newSale.total,
-          payment_method: newSale.paymentMethod,
-          paid_at_sale: newSale.paidAtSale,
-          remaining_balance: newSale.remainingBalance,
-          status: newSale.status,
-          installments: newSale.installments,
-        });
+      const saleOk = await cloudWrite('venda', supabase.from('sales').insert({
+        id: newSale.id,
+        date: newSale.date,
+        customer_id: newSale.customerId,
+        customer_name: newSale.customerName,
+        customer_phone: newSale.customerPhone,
+        items: newSale.items,
+        total: newSale.total,
+        payment_method: newSale.paymentMethod,
+        paid_at_sale: newSale.paidAtSale,
+        remaining_balance: newSale.remainingBalance,
+        status: newSale.status,
+        installments: newSale.installments,
+      }));
 
+      if (saleOk) {
         // Update product stocks in Supabase
         for (const item of items) {
           const prod = (dataRef.current?.products || data.products || []).find((p) => p.id === item.productId);
@@ -1101,11 +1081,9 @@ export const StoreProvider = ({ children }) => {
               updatedColorStock[chosenColor] = Math.max(0, updatedColorStock[chosenColor] - item.quantity);
             }
             const updatedProd = { ...prod, stock: newStk, colorStock: updatedColorStock };
-            await supabase.from('products').update(toProductRow(updatedProd)).eq('id', prod.id);
+            await cloudWrite('estoque após venda', supabase.from('products').update(toProductRow(updatedProd)).eq('id', prod.id));
           }
         }
-      } catch (err) {
-        console.warn('Erro ao sincronizar venda no Supabase:', err);
       }
     }
 
@@ -1155,16 +1133,12 @@ export const StoreProvider = ({ children }) => {
     });
 
     if (supabase && updatedSaleToSync) {
-      try {
-        await supabase.from('sales').update({
-          remaining_balance: updatedSaleToSync.remainingBalance,
-          paid_at_sale: updatedSaleToSync.paidAtSale,
-          status: updatedSaleToSync.status,
-          installments: updatedSaleToSync.installments,
-        }).eq('id', saleId);
-      } catch (err) {
-        console.warn('Erro ao atualizar parcela no Supabase:', err);
-      }
+      await cloudWrite('pagar parcela', supabase.from('sales').update({
+        remaining_balance: updatedSaleToSync.remainingBalance,
+        paid_at_sale: updatedSaleToSync.paidAtSale,
+        status: updatedSaleToSync.status,
+        installments: updatedSaleToSync.installments,
+      }).eq('id', saleId));
     }
 
     showToast(`Parcela ${installmentNumber} recebida com sucesso!`);
@@ -1202,13 +1176,9 @@ export const StoreProvider = ({ children }) => {
     });
 
     if (supabase && updatedSaleToSync) {
-      try {
-        await supabase.from('sales').update({
-          installments: updatedSaleToSync.installments,
-        }).eq('id', saleId);
-      } catch (err) {
-        console.warn('Erro ao atualizar vencimento da parcela no Supabase:', err);
-      }
+      await cloudWrite('atualiza vencimento', supabase.from('sales').update({
+        installments: updatedSaleToSync.installments,
+      }).eq('id', saleId));
     }
 
     showToast('Data de vencimento atualizada com sucesso!');
@@ -1238,19 +1208,15 @@ export const StoreProvider = ({ children }) => {
     });
 
     if (supabase && isSupabaseConfigured()) {
-      try {
-        await supabase.from('sales').delete().eq('id', saleId);
-        if (saleToDelete && Array.isArray(saleToDelete.items)) {
-          for (const item of saleToDelete.items) {
-            const prod = (data.products || []).find((p) => p.id === item.productId);
-            if (prod) {
-              const restoredStock = prod.stock + (Number(item.quantity) || 1);
-              await supabase.from('products').update({ stock: restoredStock }).eq('id', prod.id);
-            }
+      const deletedOk = await cloudWrite('exclui venda', supabase.from('sales').delete().eq('id', saleId));
+      if (deletedOk && saleToDelete && Array.isArray(saleToDelete.items)) {
+        for (const item of saleToDelete.items) {
+          const prod = (data.products || []).find((p) => p.id === item.productId);
+          if (prod) {
+            const restoredStock = prod.stock + (Number(item.quantity) || 1);
+            await cloudWrite('restaura estoque', supabase.from('products').update({ stock: restoredStock }).eq('id', prod.id));
           }
         }
-      } catch (err) {
-        console.warn('Erro ao excluir venda no Supabase:', err);
       }
     }
 
@@ -1264,11 +1230,7 @@ export const StoreProvider = ({ children }) => {
     }));
 
     if (supabase) {
-      try {
-        await supabase.from('sales').delete().neq('id', 'none');
-      } catch (err) {
-        console.warn('Erro ao limpar vendas no Supabase:', err);
-      }
+      await cloudWrite('limpa vendas', supabase.from('sales').delete().neq('id', 'none'));
     }
 
     showToast('Todas as vendas e fiados de teste foram zerados!');
@@ -1289,18 +1251,14 @@ export const StoreProvider = ({ children }) => {
     }));
 
     if (supabase) {
-      try {
-        await supabase.from('personal_finance').insert({
-          id: newRecord.id,
-          date: newRecord.date,
-          type: newRecord.type,
-          category: newRecord.category,
-          description: newRecord.description,
-          amount: newRecord.amount,
-        });
-      } catch (err) {
-        console.warn('Erro ao salvar finança no Supabase:', err);
-      }
+      await cloudWrite('finança', supabase.from('personal_finance').insert({
+        id: newRecord.id,
+        date: newRecord.date,
+        type: newRecord.type,
+        category: newRecord.category,
+        description: newRecord.description,
+        amount: newRecord.amount,
+      }));
     }
 
     showToast('Lançamento financeiro registrado!');
@@ -1314,11 +1272,7 @@ export const StoreProvider = ({ children }) => {
     }));
 
     if (supabase) {
-      try {
-        await supabase.from('personal_finance').delete().eq('id', id);
-      } catch (err) {
-        console.warn('Erro ao excluir finança no Supabase:', err);
-      }
+      await cloudWrite('exclui finança', supabase.from('personal_finance').delete().eq('id', id));
     }
 
     showToast('Lançamento excluído!');
